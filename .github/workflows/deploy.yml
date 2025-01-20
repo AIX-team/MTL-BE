@@ -18,10 +18,10 @@ jobs: # 작업을 정의
       - name: Checkout code			# 단계이름 'Checkout code(소스가져오기)' 
         uses: actions/checkout@v3	# 깃허브에서 제공하는 checkout@v3 기능 사용하여 소스가져오기
 
-      - name: Set up JDK 21			# 단계이름 'Set up JDK 17(jdk17설치)'
+      - name: Set up JDK 17			# 단계이름 'Set up JDK 17(jdk17설치)'
         uses: actions/setup-java@v2	# 깃허브에서 제공하는 setup-java@v2 기능 사용하여 JDK설치
         with:
-          java-version: '21'		# 자바버전 21
+          java-version: '17'		# 자바버전 21
           distribution: 'temurin'	# 'temurin' OpenJDK의 배포판 이름
 
       - name: Build with Maven		# 단계이름 'Build with Maven(메이븐 빌드)' 
@@ -42,7 +42,7 @@ jobs: # 작업을 정의
     steps:  # step은 job안쪽에 개별단계를 의미
       - uses: actions/checkout@v3 # 깃허브에서 제공하는 checkout@v3 기능 사용하여 소스가져오기
       - name: ssh to ec2	# 단계이름 'ssh to ec2(ec2에 ssh로 접근 mobaXterm에서 했던작업
-        uses: appleboy/ssh-action@master # 깃허브에서 제공하는 ssh-action@master 기능 
+        uses: appleboy/ssh-action@dev # 깃허브에서 제공하는 ssh-action@master 기능
         with:
           host: ${{ secrets.EC2_HOST }}					 #ec2서버의 ip (깃허브에 세팅된값)
           username: ${{ secrets.EC2_USERNAME }}			 #ec2서버의 계정명 (깃허브에 세팅된값)
