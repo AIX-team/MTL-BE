@@ -18,10 +18,10 @@ jobs: # 작업을 정의
       - name: Checkout code			# 단계이름 'Checkout code(소스가져오기)' 
         uses: actions/checkout@v3	# 깃허브에서 제공하는 checkout@v3 기능 사용하여 소스가져오기
 
-      - name: Set up JDK 21			# 단계이름 'Set up JDK 17(jdk17설치)'
+      - name: Set up JDK 17			# 단계이름 'Set up JDK 17(jdk17설치)'
         uses: actions/setup-java@v2	# 깃허브에서 제공하는 setup-java@v2 기능 사용하여 JDK설치
         with:
-          java-version: '21'		# 자바버전 21
+          java-version: '17'		# 자바버전 21
           distribution: 'temurin'	# 'temurin' OpenJDK의 배포판 이름
 
       - name: Build with Maven		# 단계이름 'Build with Maven(메이븐 빌드)' 
