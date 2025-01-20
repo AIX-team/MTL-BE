@@ -42,7 +42,7 @@ jobs: # 작업을 정의
     steps:  # step은 job안쪽에 개별단계를 의미
       - uses: actions/checkout@v3 # 깃허브에서 제공하는 checkout@v3 기능 사용하여 소스가져오기
       - name: ssh to ec2	# 단계이름 'ssh to ec2(ec2에 ssh로 접근 mobaXterm에서 했던작업
-        uses: appleboy/ssh-action@master # 깃허브에서 제공하는 ssh-action@master 기능 
+        uses: appleboy/ssh-action@dev # 깃허브에서 제공하는 ssh-action@master 기능
         with:
           host: ${{ secrets.EC2_HOST }}					 #ec2서버의 ip (깃허브에 세팅된값)
           username: ${{ secrets.EC2_USERNAME }}			 #ec2서버의 계정명 (깃허브에 세팅된값)
