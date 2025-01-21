@@ -45,10 +45,11 @@ jobs:
     runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
 
     steps:
-      - uses: actions/checkout@v3  # GitHub의 checkout@v3 액션 사용
+      - name: Checkout code  # 단계 이름: 'Checkout code (소스 가져오기)'
+        uses: actions/checkout@v3  # GitHub의 checkout@v3 액션 사용
 
       - name: SSH to EC2  # 단계 이름: 'SSH to EC2 (EC2에 SSH로 접근)'
-        uses: appleboy/ssh-action@v0.1.13  # 안정적인 최신 릴리스 버전 사용
+        uses: appleboy/ssh-action@master  # master 브랜치 사용
         with:
           host: ${{ secrets.EC2_HOST }}  # EC2 서버의 IP (GitHub Secrets에 설정)
           username: ${{ secrets.EC2_USERNAME }}  # EC2 서버의 사용자명 (GitHub Secrets에 설정)
