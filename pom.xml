@@ -13,7 +13,7 @@
 	</parent>
 
 	<groupId>com.example</groupId>
-	<artifactId>MyTravelLink</artifactId>
+	<artifactId>api-mytravellink</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>MyTravelLink</name>
 	<description>MyTravelLink</description>
@@ -89,30 +89,14 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- File Upload -->
-		<dependency>
-			<groupId>commons-fileupload</groupId>
-			<artifactId>commons-fileupload</artifactId>
-			<version>1.4</version>
-		</dependency>
 
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>2.11.0</version>
-		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
-		<!-- 네이버 로그인용 의존성 -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20230227</version>
-		</dependency>
+
 
 		<!-- 구글 로그인용 의존성 -->
 		<dependency>
