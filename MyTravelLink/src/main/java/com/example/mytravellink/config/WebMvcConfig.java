@@ -24,10 +24,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .allowCredentials(true); // 쿠키허용
     }
 
-    @Bean
-    public WebClient webClient(WebClient.Builder builder) {
-        return builder.build();
-    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
