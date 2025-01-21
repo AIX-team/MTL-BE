@@ -60,13 +60,4 @@ jobs:
             sudo docker stop api-mytravellink || true  # 기존 컨테이너 중지 (존재하지 않으면 무시)
             sudo docker rm api-mytravellink || true  # 기존 컨테이너 제거 (존재하지 않으면 무시)
             sudo docker run -d --name api-mytravellink -p 9000:9000 -v /home/***/upload:/app/upload yuchankim/api-mytravellink:latest  # 도커 컨테이너 실행
-          port: 22
-          sync: false
-          use_insecure_cipher: false
-          timeout: 30s
-          command_timeout: 10m
-          proxy_port: 22
-          proxy_timeout: 30s
-          proxy_use_insecure_cipher: false
-          script_stop: false
-          debug: false
+          
