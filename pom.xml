@@ -159,7 +159,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<mainClass>com.example.mytravellink.comfig.main</mainClass>
+					<mainClass>com.example.mytravellink.config.main</mainClass>
 				</configuration>
 			</plugin>
 		</plugins>
