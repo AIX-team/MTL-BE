@@ -54,12 +54,22 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}  # EC2 서버의 사용자명 (GitHub Secrets에 설정)
           key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH 개인 키 (GitHub Secrets에 설정)
           script: |
-            sudo mkdir -p /home/ec2-user/upload  # 업로드 디렉토리 생성
+            sudo mkdir -p /home/***/upload  # 업로드 디렉토리 생성
             sudo docker pull yuchankim/api-mytravellink:latest  # 최신 도커 이미지 풀
             sudo docker stop api-mytravellink || true  # 기존 컨테이너 중지 (존재하지 않으면 무시)
             sudo docker rm api-mytravellink || true  # 기존 컨테이너 제거 (존재하지 않으면 무시)
             sudo docker run -d \  # 도커 컨테이너 실행
               --name api-mytravellink \  # 컨테이너 이름 지정
               -p 9000:9000 \  # 포트 매핑
-              -v /home/ec2-user/upload:/app/upload \  # 볼륨 마운트
+              -v /home/***/upload:/app/upload \  # 볼륨 마운트
               yuchankim/api-mytravellink:latest  # 도커 이미지 사용
+          port: 22
+          sync: false
+          use_insecure_cipher: false
+          timeout: 30s
+          command_timeout: 10m
+          proxy_port: 22
+          proxy_timeout: 30s
+          proxy_use_insecure_cipher: false
+          script_stop: false
+          debug: false
