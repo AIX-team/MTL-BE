@@ -1,5 +1,5 @@
 # JDK 17 베이스 이미지 사용
-FROM openjdk:21
+FROM openjdk:17
 
 # 컨테이너 내부에서 애플리케이션 파일을 저장할 디렉토리 생성
 WORKDIR /app
