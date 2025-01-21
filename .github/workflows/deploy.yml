@@ -6,7 +6,7 @@ on:
       - dev # dev 브랜치로 push될 때 트리거
 
 jobs:
-  build-and-deploy:	# 첫번째 작업: 빌드 및 배포
+  build-and-deploy:	# 첫 번째 작업: 빌드 및 배포
     runs-on: ubuntu-latest			# 최신 우분투 환경에서 실행
     steps:
       - name: Checkout code			# 단계 이름: 'Checkout code(소스 가져오기)'
@@ -33,8 +33,8 @@ jobs:
       - name: Push Docker image to Docker Hub  # 단계 이름: 'Push Docker image to Docker Hub(도커이미지 푸시)'
         run: docker push yuchankim/api-mytravellink:latest # 도커 이미지 푸시 명령어 실행
 
-  SSH:  # 두번째 작업: SSH
-    needs: build-and-deploy # 첫번째 작업이 완료된 후 실행
+  SSH:  # 두 번째 작업: SSH
+    needs: build-and-deploy # 첫 번째 작업이 완료된 후 실행
     runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
     steps:
       - uses: actions/checkout@v3 # GitHub에서 제공하는 checkout@v3 액션 사용
