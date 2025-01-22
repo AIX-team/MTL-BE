@@ -1,4 +1,4 @@
-package com.example.mytravellink.myinfo.service;
-
-public class MyInfoService {
-}
+//package com.example.mytravellink.myinfo.service;
+//
+//public class MyInfoService {
+//}

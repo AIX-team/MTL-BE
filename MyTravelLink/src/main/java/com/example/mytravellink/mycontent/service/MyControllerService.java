@@ -1,4 +1,4 @@
-package com.example.mytravellink.mycontent.service;
-
-public class MyControllerService {
-}
+//package com.example.mytravellink.mycontent.service;
+//
+//public class MyControllerService {
+//}
