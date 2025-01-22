@@ -1,4 +1,4 @@
-package com.example.mytravellink.myinfo.controller;
-
-public class MyInfoController {
-}
+//package com.example.mytravellink.myinfo.controller;
+//
+//public class MyInfoController {
+//}

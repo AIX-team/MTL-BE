@@ -1,4 +1,4 @@
-package com.example.mytravellink.auth.filter;
+package com.example.mytravellink.config;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.auth.service.CustomUserDetails;
@@ -43,7 +43,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 "/v3/api-docs/(.*)",         //swagger 설정
                 "/swagger-resources",        //swagger 설정
                 "/swagger-resources/(.*)",    //swagger 설정
-                "/auth/google/callback"
+                "/auth/google/callback",
+                "/auth/kakao/callback",
+                "/api/v1/chatRoom/(.*)",
+                "/api/v1/character/(.*)",
+                "/chatMessage/getMsgImg/(.*)"
         );
 
         if(roleLeessList.stream().anyMatch(uri -> roleLeessList.stream().anyMatch(pattern -> Pattern.matches(pattern, request.getRequestURI())))){

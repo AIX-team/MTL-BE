@@ -1,4 +1,4 @@
-package com.example.mytravellink.myinfo.repository;
-
-public interface MyInfoRepository {
-}
+//package com.example.mytravellink.myinfo.repository;
+//
+//public interface MyInfoRepository {
+//}

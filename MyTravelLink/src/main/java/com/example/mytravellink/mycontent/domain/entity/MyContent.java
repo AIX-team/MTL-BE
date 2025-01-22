@@ -1,4 +1,4 @@
-package com.example.mytravellink.mycontent.domain.entity;
-
-public class MyContent {
-}
+//package com.example.mytravellink.mycontent.domain.entity;
+//
+//public class MyContent {
+//}
