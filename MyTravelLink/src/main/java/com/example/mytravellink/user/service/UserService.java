@@ -1,7 +1,7 @@
-package com.example.mytravellink.member.service;
+package com.example.mytravellink.user.service;
 
-import com.example.mytravellink.member.domain.entity.Member;
-import com.example.mytravellink.member.repository.MemberRepository;
+import com.example.mytravellink.user.domain.entity.User;
+import com.example.mytravellink.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class MemberService {
+public class UserService {
 //    private final ModelMapper modelMapper;
-    private final MemberRepository memberRepository;
+    private final UserRepository memberRepository;
 
 //    public Member updateUserInfo(Long memberNo, String nickName) {
 //        Member foundMember = memberRepository.findById(memberNo).get();
@@ -22,7 +22,7 @@ public class MemberService {
 //    }
 
     public void deleteUserById(Long memberNo) {
-        Member foundMember = memberRepository.findById(memberNo).get();
+        User foundMember = memberRepository.findById(memberNo).get();
 
         memberRepository.delete(foundMember);
     }

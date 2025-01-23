@@ -2,8 +2,8 @@ package com.example.mytravellink.auth;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.common.ResponseMessage;
-import com.example.mytravellink.member.domain.entity.Member;
-import com.example.mytravellink.member.repository.MemberRepository;
+import com.example.mytravellink.user.domain.entity.User;
+import com.example.mytravellink.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class AuthController {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
-    private final MemberRepository memberRepository;
+    private final UserRepository memberRepository;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
@@ -66,7 +66,7 @@ public class AuthController {
 
         // 4. 사용자 정보 처리 및 회원가입 로직
         String userInfo = userInfoResponse.getBody();
-        Member member = processUserInfo(userInfo);
+        User member = processUserInfo(userInfo);
 
         // 5. 백엔드 서버 access token 생성하여 프론트 서버로 전달
         String backendAccessToken = jwtTokenProvider.generateToken(member); // 사용자 정보를 기반으로 JWT 생성
@@ -97,22 +97,25 @@ public class AuthController {
         }
     }
 
-    private Member processUserInfo(String userInfo) {
+    private User processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(userInfo);
 
-            String googleId = jsonNode.get("sub").asText(); // 구글 ID
             String name = jsonNode.get("name").asText(); // 사용자 이름
             String email = jsonNode.get("email").asText(); // 이메일
 
-            Member user = memberRepository.findByGoogleId(googleId);
-            if (user == null) {
+            // Optional<Member>로 변경
+            Optional<User> optionalUser = memberRepository.findByEmail(email);
+            User user;
+
+            if (optionalUser.isPresent()) {
+                user = optionalUser.get(); // 존재하는 사용자
+            } else {
                 // 사용자 정보가 없으면 새로운 사용자 생성
-                user = new Member();
-                user.setGoogleId(googleId);
-                user.setName(name);
+                user = new User();
                 user.setEmail(email);
+                user.setName(name);
                 memberRepository.save(user); // 데이터베이스에 저장
             }
             log.info("user 정보 : {}", user);
