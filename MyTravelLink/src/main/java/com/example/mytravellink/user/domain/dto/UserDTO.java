@@ -1,4 +1,4 @@
-package com.example.mytravellink.member.domain.dto;
+package com.example.mytravellink.user.domain.dto;
 
 import lombok.*;
 
@@ -8,7 +8,7 @@ import lombok.*;
 @Setter
 @Builder
 @ToString
-public class MemberDTO {
+public class UserDTO {
     private String email;
 
 }

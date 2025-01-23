@@ -1,4 +1,4 @@
-package com.example.mytravellink.member.domain.entity;
+package com.example.mytravellink.user.domain.entity;
 
 import com.nimbusds.openid.connect.sdk.claims.Gender;
 import jakarta.persistence.*;
@@ -13,7 +13,7 @@ import java.util.Date;
 @Getter
 @Setter
 @Builder
-public class Member {
+public class User {
 
     @Id
     @Column(name= "email", nullable = false)

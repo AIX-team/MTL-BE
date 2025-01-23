@@ -1,6 +1,6 @@
 package com.example.mytravellink.auth.handler;
 
-import com.example.mytravellink.member.domain.entity.Member;
+import com.example.mytravellink.user.domain.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -19,7 +19,7 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration-time}")
     private long expirationTime;
 
-    public String generateToken(Member user) {
+    public String generateToken(User user) {
         Claims claims = Jwts.claims().setSubject(user.getEmail()); // 사용자 이메일을 주제로 설정
         claims.put("name", user.getName()); // 토큰에 사용자 이름 넣기
         claims.put("email", user.getEmail());

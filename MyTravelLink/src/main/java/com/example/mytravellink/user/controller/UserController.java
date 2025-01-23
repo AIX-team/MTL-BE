@@ -1,8 +1,8 @@
-package com.example.mytravellink.member.controller;
+package com.example.mytravellink.user.controller;
 
 import com.example.mytravellink.common.ResponseMessage;
 
-import com.example.mytravellink.member.service.MemberService;
+import com.example.mytravellink.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +19,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 @RequestMapping("/member")
-public class MemberController {
-    private final MemberService memberService;
+public class UserController {
+    private final UserService memberService;
 
     // 유저 삭제
     @Operation(summary = "유저 삭제")

@@ -1,6 +1,6 @@
 package com.example.mytravellink.auth.service;
 
-import com.example.mytravellink.member.domain.entity.Member;
+import com.example.mytravellink.user.domain.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +18,7 @@ import java.util.Collections;
 @Getter
 public class CustomUserDetails implements UserDetails {
 
-    private Member member ;
+    private User member ;
 
     public String getEmail() {
         return member.getEmail();
