@@ -1,7 +1,8 @@
 package com.example.mytravellink.auth.service;
 
-import com.example.mytravellink.user.domain.entity.User;
-import com.example.mytravellink.user.repository.UserRepository;
+
+import com.example.mytravellink.domain.user.entity.User;
+import com.example.mytravellink.domain.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
