@@ -60,7 +60,6 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             Claims claims = jwtTokenProvider.getClaimsFromToken(token); // JWT에서 사용자 고유 넘버 추출
 
             Member member = Member.builder()
-                    .memberNo(Long.parseLong(claims.get("member_no").toString()))
                     .email(claims.getSubject())
                     .name(claims.get("name").toString())
                     .build();

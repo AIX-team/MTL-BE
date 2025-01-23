@@ -22,7 +22,7 @@ public class JwtTokenProvider {
     public String generateToken(Member user) {
         Claims claims = Jwts.claims().setSubject(user.getEmail()); // 사용자 이메일을 주제로 설정
         claims.put("name", user.getName()); // 토큰에 사용자 이름 넣기
-        claims.put("member_no", user.getMemberNo());
+        claims.put("email", user.getEmail());
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + expirationTime); // 만료 시간 설정
@@ -63,7 +63,7 @@ public class JwtTokenProvider {
     // JWT에서 토큰 정보 추출
     public Claims getClaimsFromToken(String token) {
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody(); // 사용자 이메일 반환
-//        return claims.get("member_no", String.class); // 사용자 이메일 반환
+
     }
 
 }

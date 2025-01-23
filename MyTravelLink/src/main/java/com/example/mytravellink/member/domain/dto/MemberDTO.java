@@ -9,6 +9,6 @@ import lombok.*;
 @Builder
 @ToString
 public class MemberDTO {
-    private Long memberNo;
+    private String email;
 
 }
