@@ -3,6 +3,7 @@ package com.example.mytravellink.user.domain.entity;
 import com.nimbusds.openid.connect.sdk.claims.Gender;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.util.Date;
 
@@ -13,6 +14,7 @@ import java.util.Date;
 @Getter
 @Setter
 @Builder
+@ToString
 public class User {
 
     @Id
@@ -22,20 +24,20 @@ public class User {
     @Column(name= "name", nullable = false)
     private String name;
 
-    @Column(name = "dob", nullable = false)
+    @Column(name = "dob")
     private Date dob;
 
-    @Column(name = "gender", nullable = false)
+    @Column(name = "gender")
     private Gender gender;
 
-    @Column(name = "create_at", nullable = false)
-    private Date createAt;
+    @Column(name = "create_at")
+    private Date createAt = new Date();
 
     @Column(name = "profile_img", nullable = true)
     private String profileImg;
 
-    @Column(name = "is_delete", nullable = false)
-    private Boolean isDelete;
+    @Column(name = "is_delete")
+    private Boolean isDelete=false;
 
 }
 
