@@ -1,4 +1,4 @@
-package com.example.mytravellink.domain.user.domain.dto;
+package com.example.mytravellink.domain.user.dto;
 
 import lombok.*;
 
