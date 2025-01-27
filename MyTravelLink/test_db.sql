@@ -131,3 +131,20 @@ CREATE TABLE user_ext_place_list (
                                      INDEX idx_user_place_email (email),
                                      INDEX idx_user_place_list (ext_place_list_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 외부 장소 목록';
+
+#  추가 사항
+ALTER TABLE user DROP gender;
+ALTER TABLE user DROP dob;
+
+ALTER TABLE user_search_term DROP FOREIGN KEY user_search_term_ibfk_1;
+ALTER TABLE user_url DROP FOREIGN KEY user_url_ibfk_1;
+ALTER TABLE travel_taste DROP FOREIGN KEY travel_taste_ibfk_1;
+ALTER TABLE travel_info DROP FOREIGN KEY travel_info_ibfk_1;
+ALTER TABLE user_ext_place_list DROP FOREIGN KEY user_ext_place_list_ibfk_1;
+
+
+
+
+ALTER TABLE user MODIFY COLUMN email VARCHAR(100) NOT NULL;
+ALTER TABLE user_search_term
+    ADD CONSTRAINT user_search_term_ibfk_1 FOREIGN KEY (email) REFERENCES user(email);

@@ -77,6 +77,7 @@ public class AuthController {
         ResponseEntity<String> userInfoResponse = restTemplate.getForEntity(userInfoUrl, String.class);
 
         System.out.println(userInfoResponse.getBody());
+
         // 4. 사용자 정보 처리 및 회원가입 로직
         String userInfo = userInfoResponse.getBody();
         User member = processUserInfo(userInfo);
@@ -111,6 +112,7 @@ public class AuthController {
         }
     }
 
+     // 사용자가 없으면 데이터 추가
     private User processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
