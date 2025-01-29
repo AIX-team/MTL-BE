@@ -1,3 +1,6 @@
+package com.example.mytravellink.url.domain;
+
+import com.example.mytravellink.domain.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -11,28 +14,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "travel_info_place")
+@Table(name = "user_search_term")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TravelInfoPlace extends BaseTimeEntity {
+public class UserSearchTerm extends BaseTimeEntity {
     
-    @EmbeddedId
-    private TravelInfoPlaceId id;
+    @Id
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    private String id;
     
-    @MapsId("travelInfoId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "travel_info_id")
-    private TravelInfo travelInfo;
+    @JoinColumn(name = "email")
+    private User user;
     
-    @MapsId("placeId")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "place_id")
-    private Place place;
+    @Column(nullable = false)
+    private String word;
     
     @Builder
-    public TravelInfoPlace(TravelInfo travelInfo, Place place) {
-        this.id = new TravelInfoPlaceId(travelInfo.getId(), place.getId());
-        this.travelInfo = travelInfo;
-        this.place = place;
+    public UserSearchTerm(User user, String word) {
+        this.user = user;
+        this.word = word;
     }
 } 

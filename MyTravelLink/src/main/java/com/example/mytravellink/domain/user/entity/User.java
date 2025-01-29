@@ -5,7 +5,6 @@ import com.example.mytravellink.domain.travelinfo.entity.TravelTaste;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,12 +27,14 @@ public class User {
     private String name;
 
     @Column(name = "create_at", nullable = false)
+    @Builder.Default
     private LocalDateTime createAt = LocalDateTime.now();
 
     @Column(name = "profile_img", length = 255)
     private String profileImg;
 
     @Column(name = "is_delete", nullable = false)
+    @Builder.Default
     private boolean isDelete = false;
 
     // 회원 검색어

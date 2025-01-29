@@ -153,8 +153,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<!-- 실제 main 클래스 경로로 수정 -->
-					<mainClass>com.example.mytravellink.config.MainApplication</mainClass>
+					<mainClass>com.example.mytravellink.MyTravelLinkApplication</mainClass>
 				</configuration>
 			</plugin>
 		</plugins>

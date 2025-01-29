@@ -1,3 +1,6 @@
+package com.example.mytravellink.travel.domain;
+
+import com.example.mytravellink.domain.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -12,7 +15,10 @@ import java.util.List;
 
 @Entity
 @Table(name = "course")
+@Setter
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Course extends BaseTimeEntity {
     
