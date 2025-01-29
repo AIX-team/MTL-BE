@@ -1,5 +1,6 @@
 package com.example.mytravellink.domain.user.entity;
 
+import com.example.mytravellink.domain.travelinfo.entity.ExtPlaceList;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

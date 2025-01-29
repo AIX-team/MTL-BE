@@ -27,12 +27,6 @@ public class User {
     @Column(name = "name", length = 50, nullable = false)
     private String name;
 
-    @Column(name = "dob", nullable = false)
-    private LocalDate dob;
-
-    @Column(name = "gender", nullable = false)
-    private int gender;
-
     @Column(name = "create_at", nullable = false)
     private LocalDateTime createAt = LocalDateTime.now();
 
