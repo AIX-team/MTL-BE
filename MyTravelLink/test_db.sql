@@ -1,133 +1,166 @@
+-- 데이터베이스 생성
+CREATE DATABASE test_db
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+
+-- 데이터베이스 선택
 USE test_db;
 
--- 문자셋 설정
-SET NAMES utf8mb4;
+-- User 테이블 생성
+CREATE TABLE User (
+                      email VARCHAR(255) PRIMARY KEY,
+                      name VARCHAR(255) NOT NULL,
+                      create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                      profile_img VARCHAR(255),
+                      is_delete BOOLEAN NOT NULL DEFAULT FALSE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- user 테이블
-CREATE TABLE user (
-                      email VARCHAR(100) NOT NULL PRIMARY KEY COMMENT '사용자 이메일',
-                      name VARCHAR(50) NOT NULL COMMENT '사용자 이름',
-                      dob DATE NOT NULL COMMENT '생년월일',
-                      gender TINYINT NOT NULL COMMENT '성별',
-                      create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                      profile_img VARCHAR(255) COMMENT '프로필 이미지 URL',
-                      is_delete TINYINT(1) DEFAULT 0 NOT NULL COMMENT '삭제여부',
-                      INDEX idx_user_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보';
+-- User_Search_Term 테이블 생성
+CREATE TABLE User_Search_Term (
+                                  id VARCHAR(255) PRIMARY KEY,
+                                  email VARCHAR(255) NOT NULL,
+                                  word VARCHAR(255) NOT NULL,
+                                  create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                  update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+                                  FOREIGN KEY (email) REFERENCES User(email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- user_search_term 테이블
-CREATE TABLE user_search_term (
-                                  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '검색어 ID',
-                                  email VARCHAR(100) NOT NULL COMMENT '사용자 이메일',
-                                  word VARCHAR(100) NOT NULL COMMENT '검색어',
-                                  create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                                  update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일시',
-                                  FOREIGN KEY fk_search_email (email) REFERENCES user(email),
-                                  INDEX idx_search_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 검색어';
+-- Travel_Taste 테이블 생성
+CREATE TABLE Travel_Taste (
+                              id VARCHAR(255) PRIMARY KEY,
+                              email VARCHAR(255) NOT NULL,
+                              landmark BOOLEAN DEFAULT FALSE,
+                              relax BOOLEAN DEFAULT FALSE,
+                              food BOOLEAN DEFAULT FALSE,
+                              alone BOOLEAN DEFAULT FALSE,
+                              romance BOOLEAN DEFAULT FALSE,
+                              friend BOOLEAN DEFAULT FALSE,
+                              child BOOLEAN DEFAULT FALSE,
+                              parents BOOLEAN DEFAULT FALSE,
+                              travel_days INT,
+                              options_input VARCHAR(255),
+                              create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                              FOREIGN KEY (email) REFERENCES User(email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- user_url 테이블 (ID 컬럼 추가 후 기본 키 설정)
-CREATE TABLE user_url (
-                          id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'URL ID',
-                          email VARCHAR(100) NOT NULL COMMENT '사용자 이메일',
-                          url VARCHAR(255) NOT NULL COMMENT 'URL',
-                          create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                          update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일시',
-                          is_use TINYINT(1) DEFAULT 1 NOT NULL COMMENT '사용여부',
-                          FOREIGN KEY fk_url_email (email) REFERENCES user(email),
-                          INDEX idx_url_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 URL';
+-- URL 테이블 생성
+CREATE TABLE URL (
+                     id VARCHAR(255) PRIMARY KEY,
+                     ext_url_id VARCHAR(255),
+                     url_title VARCHAR(255),
+                     url_author VARCHAR(255),
+                     create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                     url VARCHAR(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- travel_taste 테이블
-CREATE TABLE travel_taste (
-                              id VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '여행취향 ID',
-                              email VARCHAR(100) NOT NULL COMMENT '사용자 이메일',
-                              landmark TINYINT(1) DEFAULT 0 NOT NULL COMMENT '랜드마크 선호',
-                              relax TINYINT(1) DEFAULT 0 NOT NULL COMMENT '휴식 선호',
-                              food TINYINT(1) DEFAULT 0 NOT NULL COMMENT '음식 선호',
-                              alone TINYINT(1) DEFAULT 0 NOT NULL COMMENT '혼자여행 선호',
-                              romance TINYINT(1) DEFAULT 0 NOT NULL COMMENT '로맨스 선호',
-                              friend TINYINT(1) DEFAULT 0 NOT NULL COMMENT '친구여행 선호',
-                              child TINYINT(1) DEFAULT 0 NOT NULL COMMENT '자녀동반 선호',
-                              parents TINYINT(1) DEFAULT 0 NOT NULL COMMENT '부모동반 선호',
-                              travel_days INT NOT NULL COMMENT '여행일수',
-                              options_input VARCHAR(255) NOT NULL COMMENT '추가입력옵션',
-                              create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                              FOREIGN KEY fk_taste_email (email) REFERENCES user(email),
-                              INDEX idx_taste_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='여행 취향';
+-- User_URL 테이블 생성
+CREATE TABLE User_URL (
+                          email VARCHAR(255) NOT NULL,
+                          url_id VARCHAR(255) NOT NULL,
+                          create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+                          is_use BOOLEAN DEFAULT TRUE,
+                          PRIMARY KEY (email, url_id),
+                          FOREIGN KEY (email) REFERENCES User(email),
+                          FOREIGN KEY (url_id) REFERENCES URL(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ext_place_list 테이블
-CREATE TABLE ext_place_list (
-                                id VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '장소목록 ID',
-                                place_list TEXT NOT NULL COMMENT '장소목록',
-                                place_count INT NOT NULL DEFAULT 0 COMMENT '장소수',
-                                use_count INT NOT NULL DEFAULT 0 COMMENT '사용수',
-                                create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                                INDEX idx_place_count (place_count)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='추출 장소 목록';
+-- Travel_Info 테이블 생성
+CREATE TABLE Travel_Info (
+                             id VARCHAR(255) PRIMARY KEY,
+                             email VARCHAR(255) NOT NULL,
+                             travel_taste_id VARCHAR(255),
+                             place_count INT DEFAULT 0,
+                             use_count INT DEFAULT 0,
+                             title VARCHAR(255) NOT NULL,
+                             create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                             bookmark BOOLEAN DEFAULT FALSE,
+                             fixed BOOLEAN DEFAULT FALSE,
+                             is_delete BOOLEAN DEFAULT FALSE,
+                             FOREIGN KEY (email) REFERENCES User(email),
+                             FOREIGN KEY (travel_taste_id) REFERENCES Travel_Taste(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- travel_info 테이블 (fixed 컬럼 추가)
-CREATE TABLE travel_info (
-                             id VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '여행정보 ID',
-                             email VARCHAR(100) NOT NULL COMMENT '사용자 이메일',
-                             ext_place_list_id VARCHAR(36) NOT NULL COMMENT '외부장소목록 ID',
-                             travel_taste_id VARCHAR(36) NOT NULL COMMENT '여행취향 ID',
-                             place_count INT NOT NULL DEFAULT 0 COMMENT '장소수',
-                             use_count INT NOT NULL DEFAULT 0 COMMENT '사용수',
-                             title VARCHAR(100) NOT NULL COMMENT '제목',
-                             create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                             bookmark TINYINT(1) DEFAULT 0 NOT NULL COMMENT '북마크여부',
-                             fixed TINYINT(1) DEFAULT 0 NOT NULL COMMENT '고정 여부',
-                             is_delete TINYINT(1) DEFAULT 0 NOT NULL COMMENT '삭제여부',
-                             FOREIGN KEY fk_info_email (email) REFERENCES user(email),
-                             FOREIGN KEY fk_info_place (ext_place_list_id) REFERENCES ext_place_list(id),
-                             FOREIGN KEY fk_info_taste (travel_taste_id) REFERENCES travel_taste(id),
-                             INDEX idx_info_email (email),
-                             INDEX idx_info_place (ext_place_list_id),
-                             INDEX idx_info_taste (travel_taste_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='여행 정보';
+-- Place 테이블 생성
+CREATE TABLE Place (
+                       id VARCHAR(255) PRIMARY KEY,
+                       address VARCHAR(255),
+                       title VARCHAR(255) NOT NULL,
+                       description TEXT,
+                       type VARCHAR(255),
+                       image VARCHAR(255),
+                       score DECIMAL(3,1),
+                       review_cnt INT DEFAULT 0,
+                       create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                       update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- guide 테이블 (fixed 컬럼 추가)
-CREATE TABLE guide (
-                       id VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '가이드 ID',
-                       travel_info_id VARCHAR(36) NOT NULL COMMENT '여행정보 ID',
-                       course_count INT NOT NULL DEFAULT 0 COMMENT '코스수',
-                       use_count INT NOT NULL DEFAULT 0 COMMENT '사용수',
-                       create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                       update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일시',
-                       title VARCHAR(100) NOT NULL COMMENT '제목',
-                       travel_days INT NOT NULL COMMENT '여행일수',
-                       bookmark TINYINT(1) DEFAULT 0 NOT NULL COMMENT '북마크여부',
-                       fixed TINYINT(1) DEFAULT 0 NOT NULL COMMENT '고정 여부',
-                       is_delete TINYINT(1) DEFAULT 0 NOT NULL COMMENT '삭제여부',
-                       FOREIGN KEY fk_guide_info (travel_info_id) REFERENCES travel_info(id),
-                       INDEX idx_guide_info (travel_info_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='가이드';
+-- Guide 테이블 생성
+CREATE TABLE Guide (
+                       id VARCHAR(255) PRIMARY KEY,
+                       travel_info_id VARCHAR(255) NOT NULL,
+                       course_count INT DEFAULT 0,
+                       use_count INT DEFAULT 0,
+                       title VARCHAR(255) NOT NULL,
+                       travel_days INT,
+                       create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                       update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+                       bookmark BOOLEAN DEFAULT FALSE,
+                       fixed BOOLEAN DEFAULT FALSE,
+                       is_delete BOOLEAN DEFAULT FALSE,
+                       FOREIGN KEY (travel_info_id) REFERENCES Travel_Info(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- guide_course_info 테이블
-CREATE TABLE guide_course_info (
-                                   id VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '코스정보 ID',
-                                   guide_id VARCHAR(36) NOT NULL COMMENT '가이드 ID',
-                                   course_number INT NOT NULL COMMENT '코스번호',
-                                   place_number INT NOT NULL COMMENT '장소번호',
-                                   place_list TEXT NOT NULL COMMENT '장소목록',
-                                   create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                                   update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '수정일시',
-                                   is_delete TINYINT(1) DEFAULT 0 NOT NULL COMMENT '삭제여부',
-                                   FOREIGN KEY fk_course_guide (guide_id) REFERENCES guide(id),
-                                   INDEX idx_course_guide (guide_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='가이드 코스 정보';
+-- Course 테이블 생성
+CREATE TABLE Course (
+                        id VARCHAR(255) PRIMARY KEY,
+                        guide_id VARCHAR(255) NOT NULL,
+                        course_number INT NOT NULL,
+                        create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+                        is_delete BOOLEAN DEFAULT FALSE,
+                        FOREIGN KEY (guide_id) REFERENCES Guide(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- user_ext_place_list 테이블
-CREATE TABLE user_ext_place_list (
-                                     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT 'ID',
-                                     email VARCHAR(100) NOT NULL COMMENT '사용자 이메일',
-                                     ext_place_list_id VARCHAR(36) NOT NULL COMMENT '외부장소목록 ID',
-                                     create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '생성일시',
-                                     is_delete TINYINT(1) DEFAULT 0 NOT NULL COMMENT '삭제여부',
-                                     FOREIGN KEY fk_user_place_email (email) REFERENCES user(email),
-                                     FOREIGN KEY fk_user_place_list (ext_place_list_id) REFERENCES ext_place_list(id),
-                                     INDEX idx_user_place_email (email),
-                                     INDEX idx_user_place_list (ext_place_list_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 외부 장소 목록';
+-- Travel_Info_Place 테이블 생성
+CREATE TABLE Travel_Info_Place (
+                                   travel_info_id VARCHAR(255) NOT NULL,
+                                   place_id VARCHAR(255) NOT NULL,
+                                   create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                   PRIMARY KEY (travel_info_id, place_id),
+                                   FOREIGN KEY (travel_info_id) REFERENCES Travel_Info(id),
+                                   FOREIGN KEY (place_id) REFERENCES Place(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- URL_Place 테이블 생성
+CREATE TABLE URL_Place (
+                           url_id VARCHAR(255) NOT NULL,
+                           place_id VARCHAR(255) NOT NULL,
+                           create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           PRIMARY KEY (url_id, place_id),
+                           FOREIGN KEY (url_id) REFERENCES URL(id),
+                           FOREIGN KEY (place_id) REFERENCES Place(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Course_Place 테이블 생성
+CREATE TABLE Course_Place (
+                              place_id VARCHAR(255) NOT NULL,
+                              guide_id VARCHAR(255) NOT NULL,
+                              place_num INT NOT NULL,
+                              create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                              PRIMARY KEY (place_id, guide_id),
+                              FOREIGN KEY (place_id) REFERENCES Place(id),
+                              FOREIGN KEY (guide_id) REFERENCES Guide(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 인덱스 생성
+CREATE INDEX idx_user_email ON User(email);
+CREATE INDEX idx_travel_info_email ON Travel_Info(email);
+CREATE INDEX idx_travel_taste_email ON Travel_Taste(email);
+CREATE INDEX idx_guide_travel_info ON Guide(travel_info_id);
+CREATE INDEX idx_course_guide ON Course(guide_id);
+CREATE INDEX idx_place_title ON Place(title);
+CREATE INDEX idx_url_ext_url ON URL(ext_url_id);
+
+-- 외래키 체크 다시 설정
+SET FOREIGN_KEY_CHECKS = 1;
