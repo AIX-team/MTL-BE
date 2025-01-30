@@ -143,8 +143,6 @@ ALTER TABLE travel_info DROP FOREIGN KEY travel_info_ibfk_1;
 ALTER TABLE user_ext_place_list DROP FOREIGN KEY user_ext_place_list_ibfk_1;
 
 
-
-
 ALTER TABLE user MODIFY COLUMN email VARCHAR(100) NOT NULL;
 ALTER TABLE user_search_term
     ADD CONSTRAINT user_search_term_ibfk_1 FOREIGN KEY (email) REFERENCES user(email);

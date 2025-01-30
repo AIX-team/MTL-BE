@@ -20,6 +20,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class User {
+
     @Id
     @Column(name = "email", length = 100, nullable = false)
     private String email;

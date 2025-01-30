@@ -72,11 +72,13 @@ public class AuthController {
         String accessToken = extractAccessToken(response.getBody());
 
         // 3. 사용자 정보 요청
-        String userInfoUrl = profileUrl + accessToken;
+        String userInfoUrl = profileUrl; // 사용자 정보 URL
         log.info(userInfoUrl);
-        ResponseEntity<String> userInfoResponse = restTemplate.getForEntity(userInfoUrl, String.class);
+        HttpHeaders userInfoHeaders = new HttpHeaders();
+        userInfoHeaders.setBearerAuth(accessToken); // 액세스 토큰을 Authorization 헤더에 추가
 
-        System.out.println(userInfoResponse.getBody());
+        HttpEntity<String> userInfoRequestEntity = new HttpEntity<>(userInfoHeaders);
+        ResponseEntity<String> userInfoResponse = restTemplate.exchange(userInfoUrl, HttpMethod.GET, userInfoRequestEntity, String.class);
 
         // 4. 사용자 정보 처리 및 회원가입 로직
         String userInfo = userInfoResponse.getBody();
@@ -112,7 +114,7 @@ public class AuthController {
         }
     }
 
-     // 사용자가 없으면 데이터 추가
+    // 사용자가 없으면 데이터 추가
     private User processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();

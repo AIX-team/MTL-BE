@@ -17,8 +17,8 @@ public class ResponseMessage {
     private String message;
     private Map<String, Object> results;
 
-
-    public ResponseMessage(HttpStatus httpStatus, String message, Map<String, Object> results){
+    // 기존 생성자
+    public ResponseMessage(HttpStatus httpStatus, String message, Map<String, Object> results) {
         this.httpStatusCode = httpStatus.value();
         this.message = message;
         this.results = results;
@@ -31,6 +31,11 @@ public class ResponseMessage {
         this.results = new HashMap<>(); // 결과를 빈 맵으로 초기화
     }
 
-
-
+    // 사용자 정보와 메시지를 포함하는 생성자 추가
+    public ResponseMessage(HttpStatus httpStatus, String message, Object data) {
+        this.httpStatusCode = httpStatus.value();
+        this.message = message;
+        this.results = new HashMap<>();
+        this.results.put("data", data); // 사용자 정보를 results에 추가
+    }
 }
