@@ -44,7 +44,7 @@ public class CoursePlace extends BaseTimeEntity {
     @JoinColumn(name = "course_id")
     private Course course;
     
-    @Column(nullable = false)
+    @Column(name = "place_num", nullable = false)
     private int placeNum;
     
     @Builder

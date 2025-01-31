@@ -2,7 +2,7 @@ package com.example.mytravellink.auth;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.common.ResponseMessage;
-import com.example.mytravellink.domain.user.entity.User;
+import com.example.mytravellink.user.domain.User;
 import com.example.mytravellink.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -129,9 +129,10 @@ public class AuthController {
                 user = optionalUser.get(); // 존재하는 사용자
             } else {
                 // 사용자 정보가 없으면 새로운 사용자 생성
-                user = new User();
-                user.setEmail(email);
-                user.setName(name);
+                user = User.builder()
+                        .email(email)
+                        .name(name)
+                        .build();
                 memberRepository.save(user); // 데이터베이스에 저장
             }
             log.info("user 정보 : {}", user);

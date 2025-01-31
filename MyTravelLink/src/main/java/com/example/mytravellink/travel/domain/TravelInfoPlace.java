@@ -2,12 +2,12 @@ package com.example.mytravellink.travel.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Id;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,18 +26,20 @@ import lombok.Setter;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TravelInfoPlace extends BaseTimeEntity {
     
-    @Id
+    @EmbeddedId
+    private TravelInfoPlaceId id;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "travel_info_id")
     private TravelInfo travelInfo;
     
-    @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id")
     private Place place;
     
     @Builder
     public TravelInfoPlace(TravelInfo travelInfo, Place place) {
+        this.id = new TravelInfoPlaceId(travelInfo.getId(), place.getId());
         this.travelInfo = travelInfo;
         this.place = place;
     }

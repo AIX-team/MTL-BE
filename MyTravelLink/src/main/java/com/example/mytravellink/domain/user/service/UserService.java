@@ -1,6 +1,6 @@
 package com.example.mytravellink.domain.user.service;
 
-import com.example.mytravellink.domain.user.entity.User;
+import com.example.mytravellink.user.domain.User;
 import com.example.mytravellink.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

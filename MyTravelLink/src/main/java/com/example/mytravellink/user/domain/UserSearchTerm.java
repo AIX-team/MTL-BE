@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import lombok.Builder;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Column;
+import jakarta.persistence.GenerationType;
 
 /**
  * 사용자 검색 키워드 (UserSearchTerm) 엔티티
@@ -25,11 +27,12 @@ import jakarta.persistence.GeneratedValue;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserSearchTerm extends BaseTimeEntity {
     @Id
-    @GeneratedValue(generator = "uuid2")
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
     private String id;
     
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "email")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "email", nullable = false)
     private User user;
     
     private String word;

@@ -27,7 +27,6 @@ import java.util.List;
 @Table(name = "place")
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Place extends BaseTimeEntity {
@@ -58,18 +57,18 @@ public class Place extends BaseTimeEntity {
     
     private String type;
     private String image;
-    private double score;
-    private int reviewCnt;
+    private Double latitude;
+    private Double longitude;
 
     @Builder
     public Place(String address, String title, String description, String type,
-                String image, double score) {
+                String image, Double latitude, Double longitude) {
         this.address = address;
         this.title = title;
         this.description = description;
         this.type = type;
         this.image = image;
-        this.score = score;
-        this.reviewCnt = 0;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 } 
