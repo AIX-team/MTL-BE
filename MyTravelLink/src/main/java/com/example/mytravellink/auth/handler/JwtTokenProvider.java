@@ -1,6 +1,7 @@
 package com.example.mytravellink.auth.handler;
 
-import com.example.mytravellink.domain.user.entity.User;
+
+import com.example.mytravellink.user.domain.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

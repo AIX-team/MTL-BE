@@ -2,7 +2,7 @@ package com.example.mytravellink.auth;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.common.ResponseMessage;
-import com.example.mytravellink.user.domain.entity.User;
+import com.example.mytravellink.user.domain.User;
 import com.example.mytravellink.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,9 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -51,22 +54,34 @@ public class AuthController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        String body = String.format("code=%s&client_id=%s&client_secret=%s&redirect_uri=%s&grant_type=authorization_code",
-                code, clientId, clientSecret, redirectUri);
+        // 요청 본문을 MultiValueMap으로 생성
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("code", code);
+        params.add("client_id", clientId);
+        params.add("client_secret", clientSecret);
+        params.add("redirect_uri", redirectUri);
+        params.add("grant_type", "authorization_code");
 
-        HttpEntity<String> requestEntity = new HttpEntity<>(body, headers);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
+
         ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+
+        log.info(response.getBody());
 
         // 2. 액세스 토큰 반환
         String accessToken = extractAccessToken(response.getBody());
 
         // 3. 사용자 정보 요청
         String userInfoUrl = profileUrl + accessToken;
+        log.info(userInfoUrl);
         ResponseEntity<String> userInfoResponse = restTemplate.getForEntity(userInfoUrl, String.class);
+
+        System.out.println(userInfoResponse.getBody());
 
         // 4. 사용자 정보 처리 및 회원가입 로직
         String userInfo = userInfoResponse.getBody();
         User member = processUserInfo(userInfo);
+        log.info(member.toString());
 
         // 5. 백엔드 서버 access token 생성하여 프론트 서버로 전달
         String backendAccessToken = jwtTokenProvider.generateToken(member); // 사용자 정보를 기반으로 JWT 생성
@@ -97,6 +112,7 @@ public class AuthController {
         }
     }
 
+     // 사용자가 없으면 데이터 추가
     private User processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -113,9 +129,10 @@ public class AuthController {
                 user = optionalUser.get(); // 존재하는 사용자
             } else {
                 // 사용자 정보가 없으면 새로운 사용자 생성
-                user = new User();
-                user.setEmail(email);
-                user.setName(name);
+                user = User.builder()
+                        .email(email)
+                        .name(name)
+                        .build();
                 memberRepository.save(user); // 데이터베이스에 저장
             }
             log.info("user 정보 : {}", user);

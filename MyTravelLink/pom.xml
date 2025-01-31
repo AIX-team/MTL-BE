@@ -109,23 +109,50 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
-			<version>0.11.2</version>
+			<version>0.11.5</version>
 		</dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-impl</artifactId>
-			<version>0.11.2</version>
+			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-jackson</artifactId>
-			<version>0.11.2</version>
+			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- QueryDSL -->
+		<dependency>
+			<groupId>com.querydsl</groupId>
+			<artifactId>querydsl-apt</artifactId>
+			<version>5.0.0</version>
+			<classifier>jakarta</classifier>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.querydsl</groupId>
+			<artifactId>querydsl-jpa</artifactId>
+			<version>5.0.0</version>
+			<classifier>jakarta</classifier>
+		</dependency>
+
+		<dependency>
+			<groupId>jakarta.annotation</groupId>
+			<artifactId>jakarta.annotation-api</artifactId>
+			<version>2.1.1</version>
+		</dependency>
+
+		<dependency>
+			<groupId>jakarta.persistence</groupId>
+			<artifactId>jakarta.persistence-api</artifactId>
+			<version>3.1.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -137,6 +164,27 @@
 					<mainClass>com.example.mytravellink.MyTravelLinkApplication</mainClass>
 				</configuration>
 			</plugin>
+
+			<plugin>
+    <groupId>com.querydsl</groupId>
+    <artifactId>querydsl-maven-plugin</artifactId>
+    <version>5.0.0</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>jpa-export</goal>
+            </goals>
+            <configuration>
+                <targetFolder>target/generated-sources/java</targetFolder>
+                <packages>
+                    <package>com.example.mytravellink.domain</package>
+                </packages>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+
+
 		</plugins>
 	</build>
 </project>

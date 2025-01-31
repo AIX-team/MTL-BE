@@ -33,3 +33,8 @@ build/
 .vscode/
 
 application.yml
+application.properties
+
+
+# QueryDSL
+/target/generated-sources/
