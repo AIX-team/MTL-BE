@@ -1,10 +1,7 @@
 package com.example.mytravellink.user.domain;
 
-import org.hibernate.annotations.UuidGenerator;
-
 import com.example.mytravellink.domain.BaseTimeEntity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -12,10 +9,12 @@ import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import lombok.Builder;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Column;
+import jakarta.persistence.GenerationType;
 
 /**
  * 사용자 검색 키워드 (UserSearchTerm) 엔티티
@@ -27,15 +26,13 @@ import jakarta.persistence.ManyToOne;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserSearchTerm extends BaseTimeEntity {
-      
     @Id
-    @GeneratedValue
-    @UuidGenerator
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "email")
+    @JoinColumn(name = "email", nullable = false)
     private User user;
     
     private String word;

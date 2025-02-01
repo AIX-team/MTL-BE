@@ -2,7 +2,6 @@ package com.example.mytravellink.user.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.travel.domain.TravelInfo;
-import com.example.mytravellink.url.domain.UserUrl;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -27,8 +26,8 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class User extends BaseTimeEntity {
     @Id
     private String email;

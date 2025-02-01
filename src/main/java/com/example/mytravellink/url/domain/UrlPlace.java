@@ -11,7 +11,6 @@ import lombok.Setter;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
-import jakarta.persistence.MapsId;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
@@ -31,19 +30,17 @@ public class UrlPlace extends BaseTimeEntity {
     @EmbeddedId
     private UrlPlaceId id;
 
-    @MapsId("urlId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "url_id")
     private Url url;
     
-    @MapsId("placeId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id")
     private Place place;
     
     @Builder
-    public UrlPlace(UrlPlaceId id, Url url, Place place) {
-        this.id = id;
+    public UrlPlace(Url url, Place place) {
+        this.id = new UrlPlaceId(url.getId(), place.getId());
         this.url = url;
         this.place = place;
     }

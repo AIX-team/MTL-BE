@@ -1,11 +1,14 @@
 package com.example.mytravellink.url.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.example.mytravellink.travel.domain.TravelInfo;
+import com.example.mytravellink.user.domain.UserUrl;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -18,6 +21,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * URL (Url) 엔티티
@@ -33,18 +39,24 @@ import java.util.List;
 public class Url extends BaseTimeEntity {
     
     @Id
-    @Column(length = 64)  // SHA-256 해시값은 64자
+    @Column(length = 128)  // SHA-512 해시값은 128자
     private String id;
     
     // Url -> UrlPlace (1:N)
     @OneToMany(mappedBy = "url")
-    private List<UrlPlace> urlPlaces = new ArrayList<>();
+    private final List<UrlPlace> urlPlaces = new ArrayList<>();
     
     // Url -> UserUrl (1:N)
     @OneToMany(mappedBy = "url")
-    private List<UserUrl> userUrls = new ArrayList<>();
+    private final List<UserUrl> userUrls = new ArrayList<>();
+
+    @OneToOne(mappedBy = "url")
+    private TravelInfo travelInfo;
     
+    @Column(nullable = false)
     private String urlTitle;
+
+    @Column(name = "url_author")
     private String urlAuthor;
     
     @Column(nullable = false)
@@ -53,15 +65,15 @@ public class Url extends BaseTimeEntity {
     
     @Builder
     public Url(String urlTitle, String urlAuthor, String url) {
+        this.id = generateHashFromUrl(Arrays.asList(url));
         this.urlTitle = urlTitle;
         this.urlAuthor = urlAuthor;
         this.url = url;
-        this.id = generateHashFromUrl(Arrays.asList(url));
     }
     
     private String generateHashFromUrl(List<String> urls) {
         try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
             StringBuilder combinedUrls = new StringBuilder();
             
             // URL 리스트를 알파벳 순으로 정렬
@@ -73,18 +85,39 @@ public class Url extends BaseTimeEntity {
                 combinedUrls.append(url);
             }
             
-            byte[] hash = digest.digest(combinedUrls.toString().getBytes("UTF-8"));
+            byte[] hash = digest.digest(combinedUrls.toString().getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             
             for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
+                hexString.append(String.format("%02x", b));
             }
             
             return hexString.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("URL 해시 생성 중 오류 발생", e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("해시 알고리즘 생성 중 오류 발생", e);
         }
+    }
+
+    public List<UrlPlace> getUrlPlaces() {
+        return Collections.unmodifiableList(urlPlaces);
+    }
+    public List<UserUrl> getUserUrls() {
+        return Collections.unmodifiableList(userUrls);
+    }
+
+    public void addUrlPlace(UrlPlace urlPlace) {
+        if (urlPlace == null) {
+            throw new IllegalArgumentException("urlPlace cannot be null");
+        }
+        this.urlPlaces.add(urlPlace);
+        urlPlace.setUrl(this);
+    }
+
+    public void addUserUrl(UserUrl userUrl) {
+        if (userUrl == null) {
+            throw new IllegalArgumentException("userUrl cannot be null");
+        }
+        this.userUrls.add(userUrl);
+        userUrl.setUrl(this);
     }
 } 

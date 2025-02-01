@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,12 +27,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CoursePlace extends BaseTimeEntity {
-
+    
     @EmbeddedId
     private CoursePlaceId id;
-        
+    
     @MapsId("placeId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id")
@@ -42,12 +44,12 @@ public class CoursePlace extends BaseTimeEntity {
     @JoinColumn(name = "course_id")
     private Course course;
     
-    @Column(nullable = false)
+    @Column(name = "place_num", nullable = false)
     private int placeNum;
     
     @Builder
-    public CoursePlace(CoursePlaceId id, Place place, Course course, int placeNum) {
-        this.id = id;
+    public CoursePlace(Place place, Course course, int placeNum) {
+        this.id = new CoursePlaceId(place.getId(), course.getId());
         this.place = place;
         this.course = course;
         this.placeNum = placeNum;

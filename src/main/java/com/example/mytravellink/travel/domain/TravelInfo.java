@@ -1,7 +1,9 @@
 package com.example.mytravellink.travel.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.example.mytravellink.url.domain.Url;
 import com.example.mytravellink.user.domain.User;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,8 +23,6 @@ import lombok.AccessLevel;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hibernate.annotations.UuidGenerator;
 
 /**
  * 여행 정보 (TravelInfo) 엔티티
@@ -35,11 +36,9 @@ import org.hibernate.annotations.UuidGenerator;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TravelInfo extends BaseTimeEntity {
-        
+    
     @Id
-    @GeneratedValue
-    @UuidGenerator
-    @Column(length = 36)
+    @GeneratedValue(generator = "uuid2")
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,6 +48,7 @@ public class TravelInfo extends BaseTimeEntity {
     private Integer travelDays;
     
     private int placeCount;
+    @Column(nullable = false)
     private int useCount;
     
     @Column(nullable = false)
@@ -63,9 +63,13 @@ public class TravelInfo extends BaseTimeEntity {
 
     @OneToMany(mappedBy = "travelInfo")
     private List<TravelInfoPlace> travelInfoPlaces = new ArrayList<>();
+
+    @OneToOne
+    @JoinColumn(name = "url_id", nullable = false)
+    private Url url;
     
     @Builder
-    public TravelInfo(User user, Integer travelDays, String title) {
+    public TravelInfo(User user, Integer travelDays, String title, Url url) {
         this.user = user;
         this.travelDays = travelDays;
         this.title = title;
@@ -74,5 +78,6 @@ public class TravelInfo extends BaseTimeEntity {
         this.bookmark = false;
         this.fixed = false;
         this.isDelete = false;
+        this.url = url;
     }
 } 

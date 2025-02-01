@@ -1,7 +1,6 @@
 package com.example.mytravellink.travel.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
-import org.hibernate.annotations.UuidGenerator;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,15 +30,12 @@ import java.util.List;
 @Table(name = "guide")
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue
-    @UuidGenerator
-    @Column(length = 36)
+    @GeneratedValue(generator = "uuid2")
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -50,6 +46,7 @@ public class Guide extends BaseTimeEntity {
     private List<Course> courses = new ArrayList<>();
     
     private int courseCount;
+    @Column(nullable = false)
     private int useCount;
     
     @Column(nullable = false)
@@ -59,19 +56,16 @@ public class Guide extends BaseTimeEntity {
     private boolean bookmark;
     private boolean fixed;
     private boolean isDelete;
-
-    @OneToMany(mappedBy = "guide")
-    private List<CoursePlace> coursePlaces = new ArrayList<CoursePlace>();
     
     @Builder
-    public Guide(TravelInfo travelInfo, String title, Integer travelDays) {
+    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, int useCount, boolean bookmark, boolean fixed, boolean isDelete) {
         this.travelInfo = travelInfo;
         this.title = title;
         this.travelDays = travelDays;
-        this.courseCount = 0;
-        this.useCount = 0;
-        this.bookmark = false;
-        this.fixed = false;
-        this.isDelete = false;
+        this.courseCount = courseCount;
+        this.useCount = useCount;
+        this.bookmark = bookmark;
+        this.fixed = fixed;
+        this.isDelete = isDelete;
     }
 } 

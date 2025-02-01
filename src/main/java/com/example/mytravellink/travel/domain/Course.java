@@ -1,10 +1,7 @@
 package com.example.mytravellink.travel.domain;
 
-import org.hibernate.annotations.UuidGenerator;
-
 import com.example.mytravellink.domain.BaseTimeEntity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -27,11 +24,8 @@ import jakarta.persistence.FetchType;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Course extends BaseTimeEntity {
-      
     @Id
-    @GeneratedValue
-    @UuidGenerator
-    @Column(length = 36)
+    @GeneratedValue(generator = "uuid2")
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
