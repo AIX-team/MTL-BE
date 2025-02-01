@@ -1,6 +1,6 @@
 package com.example.mytravellink.auth.service;
 
-import com.example.mytravellink.domain.user.entity.User;
+import com.example.mytravellink.user.domain.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

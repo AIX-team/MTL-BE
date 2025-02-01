@@ -1,7 +1,6 @@
 package com.example.mytravellink.travel.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
-import com.example.mytravellink.url.domain.Url;
 import com.example.mytravellink.user.domain.User;
 
 import jakarta.persistence.Column;
@@ -12,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -64,12 +62,11 @@ public class TravelInfo extends BaseTimeEntity {
     @OneToMany(mappedBy = "travelInfo")
     private List<TravelInfoPlace> travelInfoPlaces = new ArrayList<>();
 
-    @OneToOne
-    @JoinColumn(name = "url_id", nullable = false)
-    private Url url;
+    @OneToMany(mappedBy = "travelInfo")
+    private List<TravelInfoUrl> urlList = new ArrayList<>();
     
     @Builder
-    public TravelInfo(User user, Integer travelDays, String title, Url url) {
+    public TravelInfo(User user, Integer travelDays, String title, List<TravelInfoUrl> urlList) {
         this.user = user;
         this.travelDays = travelDays;
         this.title = title;
@@ -78,6 +75,6 @@ public class TravelInfo extends BaseTimeEntity {
         this.bookmark = false;
         this.fixed = false;
         this.isDelete = false;
-        this.url = url;
+        this.urlList = urlList;
     }
 } 

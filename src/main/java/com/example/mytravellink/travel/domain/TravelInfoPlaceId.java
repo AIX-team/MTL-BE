@@ -16,6 +16,7 @@ public class TravelInfoPlaceId implements Serializable {
     
     private String travelInfoId;
     private String placeId;
+    
     @Builder
     public TravelInfoPlaceId(String travelInfoId, String placeId) {
         this.travelInfoId = travelInfoId;

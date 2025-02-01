@@ -1,8 +1,16 @@
 package com.example.mytravellink.travel.repository;
 
-import com.example.mytravellink.travel.domain.TravelInfo;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.example.mytravellink.travel.domain.TravelInfoPlace;
+import com.example.mytravellink.travel.domain.TravelInfoPlaceId;
 
-public interface TravelInfoPlaceRepository extends JpaRepository<TravelInfo, String> {
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+public interface TravelInfoPlaceRepository extends JpaRepository<TravelInfoPlace, TravelInfoPlaceId> {
+
+  @Query("SELECT tip.coursePlaceId.placeId FROM TravelInfoPlace tip WHERE tip.travelInfo.id = :travelInfoId")
+  List<String> findByTravelInfoId(String travelInfoId);
   
 }

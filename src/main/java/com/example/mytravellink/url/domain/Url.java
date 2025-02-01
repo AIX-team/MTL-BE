@@ -2,6 +2,7 @@ package com.example.mytravellink.url.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.travel.domain.TravelInfo;
+import com.example.mytravellink.travel.domain.TravelInfoUrl;
 import com.example.mytravellink.user.domain.UserUrl;
 
 import jakarta.persistence.Column;
@@ -61,7 +62,9 @@ public class Url extends BaseTimeEntity {
     
     @Column(nullable = false)
     private String url;
-    
+
+    @OneToMany(mappedBy = "url")
+    private List<TravelInfoUrl> travelInfoUrlList = new ArrayList<>();
     
     @Builder
     public Url(String urlTitle, String urlAuthor, String url) {
