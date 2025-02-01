@@ -1,5 +1,6 @@
 package com.example.mytravellink.travel.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,12 +15,15 @@ import java.io.Serializable;
 public class TravelInfoPlaceId implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private String travelInfoId;
-    private String placeId;
+    @Column(name = "travel_info_id", columnDefinition = "VARCHAR(36)")
+    private String tId;
+    
+    @Column(name = "place_id")
+    private String pId;
     
     @Builder
     public TravelInfoPlaceId(String travelInfoId, String placeId) {
-        this.travelInfoId = travelInfoId;
-        this.placeId = placeId;
+        this.tId = travelInfoId;
+        this.pId = placeId;
     }
 }

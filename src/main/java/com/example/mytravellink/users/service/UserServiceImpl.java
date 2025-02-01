@@ -1,4 +1,4 @@
-package com.example.mytravellink.user.service;
+package com.example.mytravellink.users.service;
 
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;

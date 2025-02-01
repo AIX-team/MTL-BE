@@ -11,6 +11,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface UrlPlaceRepository extends JpaRepository<UrlPlace, UrlPlaceId> {
 
-  @Query("SELECT p.placeId FROM UrlPlace p WHERE p.url.id = :urlId")
+  @Query("SELECT p.place.id FROM UrlPlace p WHERE p.url.id = :urlId")
   List<String> findByUrlId(@Param("urlId") String urlId);
 }

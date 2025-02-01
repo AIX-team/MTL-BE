@@ -1,4 +1,4 @@
-package com.example.mytravellink.user.domain;
+package com.example.mytravellink.users.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 
@@ -25,20 +25,20 @@ import jakarta.persistence.GenerationType;
 @Table(name = "user_search_term")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserSearchTerm extends BaseTimeEntity {
+public class UsersSearchTerm extends BaseTimeEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     @Column(length = 36)
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "email", nullable = false)
-    private User user;
+    private Users user;
     
     private String word;
     
     @Builder
-    public UserSearchTerm(User user, String word) {
+    public UsersSearchTerm(Users user, String word) {
         this.user = user;
         this.word = word;
     }

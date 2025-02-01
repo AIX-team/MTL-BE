@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface TravelInfoPlaceRepository extends JpaRepository<TravelInfoPlace, TravelInfoPlaceId> {
 
-  @Query("SELECT tip.coursePlaceId.placeId FROM TravelInfoPlace tip WHERE tip.travelInfo.id = :travelInfoId")
+  @Query("SELECT tip.place.id FROM TravelInfoPlace tip WHERE tip.travelInfo.id = :travelInfoId")
   List<String> findByTravelInfoId(String travelInfoId);
   
 }

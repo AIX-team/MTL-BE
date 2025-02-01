@@ -1,5 +1,6 @@
 package com.example.mytravellink.api.travelInfo.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import lombok.Builder;
@@ -24,7 +25,7 @@ public class TravelInfoPlaceResponse {
     String placeImage;
     String placeDescription;
     String intro;
-    Double latitude;
-    Double longitude;
+    BigDecimal latitude;
+    BigDecimal longitude;
   }
 }

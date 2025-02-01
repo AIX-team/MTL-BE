@@ -1,4 +1,4 @@
-package com.example.mytravellink.user.domain;
+package com.example.mytravellink.users.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.url.domain.Url;
@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 
@@ -28,24 +29,26 @@ import jakarta.persistence.FetchType;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserUrl extends BaseTimeEntity {
+public class UsersUrl extends BaseTimeEntity {
 
     @EmbeddedId
-    private UserUrlId id;
+    private UsersUrlId id;
 
+    @MapsId("eid")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "email")
-    private User user;
+    private Users user;
     
+    @MapsId("uid")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "url_id")
+    @JoinColumn(name = "url_id", columnDefinition = "VARCHAR(128)")
     private Url url;
     
     private boolean isUse;
     
     @Builder
-    public UserUrl(User user, Url url) {
-        this.id = new UserUrlId(user.getEmail(), url.getId());
+    public UsersUrl(Users user, Url url) {
+        this.id = new UsersUrlId(user.getEmail(), url.getId());
         this.user = user;
         this.url = url;
         this.isUse = true;

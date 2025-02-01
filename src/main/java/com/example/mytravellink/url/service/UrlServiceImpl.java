@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.travel.domain.Place;
+import com.example.mytravellink.travel.domain.TravelInfo;
 import com.example.mytravellink.travel.repository.PlaceRepository;
 import com.example.mytravellink.url.domain.Url;
 import com.example.mytravellink.url.repository.TravelInfoUrlRepository;
@@ -45,12 +46,12 @@ public class UrlServiceImpl implements UrlService {
    * @return List<Url>
    */
   @Override
-  public List<Url> findUrlByTravelId(String travelId) {
+  public List<Url> findUrlByTravelInfoId(TravelInfo travelInfo) {
 
-    List<String> travelInfoUrlList = travelInfoUrlRepository.findUrlIdByTravelId(travelId);
+    List<String> travelInfoUrlList = travelInfoUrlRepository.findUrlIdByTravelInfoId(travelInfo);
     List<Url> urlList = new ArrayList<>();
     for (String urlId : travelInfoUrlList) {
-      urlList.add(urlRepository.findById(urlId).get());
+      urlList.add(urlRepository.findById(urlId).orElse(null));
     }
     return urlList;
   }

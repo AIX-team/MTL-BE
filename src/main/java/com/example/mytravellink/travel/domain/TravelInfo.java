@@ -1,12 +1,13 @@
 package com.example.mytravellink.travel.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
-import com.example.mytravellink.user.domain.User;
+import com.example.mytravellink.users.domain.Users;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -36,19 +37,17 @@ import java.util.List;
 public class TravelInfo extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue(generator = "uuid2")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "email")
-    private User user;
+    private Users user;
 
     private Integer travelDays;
     
     private int placeCount;
-    @Column(nullable = false)
-    private int useCount;
-    
+        
     @Column(nullable = false)
     private String title;
     
@@ -66,15 +65,14 @@ public class TravelInfo extends BaseTimeEntity {
     private List<TravelInfoUrl> urlList = new ArrayList<>();
     
     @Builder
-    public TravelInfo(User user, Integer travelDays, String title, List<TravelInfoUrl> urlList) {
+    public TravelInfo(Users user, Integer travelDays, int placeCount, String title, boolean bookmark, boolean fixed, boolean isDelete, List<TravelInfoUrl> urlList) {
         this.user = user;
         this.travelDays = travelDays;
+        this.placeCount = placeCount;
         this.title = title;
-        this.placeCount = 0;
-        this.useCount = 0;
-        this.bookmark = false;
-        this.fixed = false;
-        this.isDelete = false;
+        this.bookmark = bookmark;
+        this.fixed = fixed;
+        this.isDelete = isDelete;
         this.urlList = urlList;
     }
 } 

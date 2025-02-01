@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -29,10 +30,12 @@ public class TravelInfoPlace extends BaseTimeEntity {
     @EmbeddedId
     private TravelInfoPlaceId id;
 
+    @MapsId
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "travel_info_id")
+    @JoinColumn(name = "travel_info_id", columnDefinition = "VARCHAR(36)")
     private TravelInfo travelInfo;
     
+    @MapsId
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id")
     private Place place;

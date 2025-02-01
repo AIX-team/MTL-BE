@@ -39,7 +39,7 @@ public class TravelInfoController {
     @GetMapping("/travelInfo/{travelId}/info")
     public ResponseEntity<TravelInfoUrlResponse> travelInfo(@PathVariable String travelId) {
         TravelInfo travelInfo = travelInfoService.getTravelInfo(travelId);
-        List<Url> urlList = urlService.findUrlByTravelId(travelId);
+        List<Url> urlList = urlService.findUrlByTravelInfoId(travelInfo);
 
         List<TravelInfoUrlResponse.Url> urlResponseList = urlList.stream()
             .map(url -> TravelInfoUrlResponse.Url.builder()

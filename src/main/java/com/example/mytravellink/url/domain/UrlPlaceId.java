@@ -1,20 +1,27 @@
 package com.example.mytravellink.url.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
 
 @Embeddable
 @Getter
-@Setter
-public class UrlPlaceId {
-  private String urlId;
-  private String placeId;
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@EqualsAndHashCode
+@Builder
+public class UrlPlaceId implements Serializable {
+  
+  @Column(name = "url_id", columnDefinition = "VARCHAR(128)")
+  private String uid;
 
-  @Builder
-  public UrlPlaceId(String urlId, String placeId) {
-    this.urlId = urlId;
-    this.placeId = placeId;
-  }
+  @Column(name = "place_id")
+  private String pid;
 }

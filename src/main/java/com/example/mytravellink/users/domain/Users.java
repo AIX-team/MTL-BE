@@ -1,4 +1,4 @@
-package com.example.mytravellink.user.domain;
+package com.example.mytravellink.users.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.travel.domain.TravelInfo;
@@ -28,7 +28,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class User extends BaseTimeEntity {
+public class Users extends BaseTimeEntity {
     @Id
     private String email;
     
@@ -42,14 +42,14 @@ public class User extends BaseTimeEntity {
 
     // User -> UserSearchTerm (1:N)
     @OneToMany(mappedBy = "user")
-    private List<UserSearchTerm> searchTerms = new ArrayList<UserSearchTerm>();
+    private List<UsersSearchTerm> searchTerms = new ArrayList<UsersSearchTerm>();
 
     // User -> UserUrl (1:N)
     @OneToMany(mappedBy = "user")
-    private List<UserUrl> userUrls = new ArrayList<UserUrl>();
+    private List<UsersUrl> userUrls = new ArrayList<UsersUrl>();
 
     @Builder
-    public User(String email, String name, String profileImg) {
+    public Users(String email, String name, String profileImg) {
         this.email = email;
         this.name = name;
         this.profileImg = profileImg;

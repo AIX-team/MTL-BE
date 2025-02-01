@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -35,7 +36,7 @@ import java.util.List;
 public class Guide extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue(generator = "uuid2")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,8 +47,6 @@ public class Guide extends BaseTimeEntity {
     private List<Course> courses = new ArrayList<>();
     
     private int courseCount;
-    @Column(nullable = false)
-    private int useCount;
     
     @Column(nullable = false)
     private String title;
@@ -58,12 +57,11 @@ public class Guide extends BaseTimeEntity {
     private boolean isDelete;
     
     @Builder
-    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, int useCount, boolean bookmark, boolean fixed, boolean isDelete) {
+    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, boolean bookmark, boolean fixed, boolean isDelete) {
         this.travelInfo = travelInfo;
         this.title = title;
         this.travelDays = travelDays;
         this.courseCount = courseCount;
-        this.useCount = useCount;
         this.bookmark = bookmark;
         this.fixed = fixed;
         this.isDelete = isDelete;

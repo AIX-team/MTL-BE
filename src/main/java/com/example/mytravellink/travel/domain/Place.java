@@ -6,6 +6,7 @@ import com.example.mytravellink.url.domain.UrlPlace;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -15,6 +16,8 @@ import lombok.Builder;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +35,7 @@ import java.util.List;
 public class Place extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue(generator = "uuid2")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     private String id;
     
     // Place -> TravelInfoPlace (1:N)
@@ -60,12 +63,16 @@ public class Place extends BaseTimeEntity {
 
     private String type;
     private String image;
-    private Double latitude;
-    private Double longitude;
+
+    @Column(columnDefinition = "DECIMAL(10,8)")
+    private BigDecimal latitude;
+    
+    @Column(columnDefinition = "DECIMAL(11,8)")
+    private BigDecimal longitude;
 
     @Builder
     public Place(String address, String title, String description, String type,
-                String image, Double latitude, Double longitude) {
+                String image, BigDecimal latitude, BigDecimal longitude) {
         this.address = address;
         this.title = title;
         this.description = description;

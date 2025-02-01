@@ -1,15 +1,13 @@
 package com.example.mytravellink.url.domain;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
-import com.example.mytravellink.travel.domain.TravelInfo;
 import com.example.mytravellink.travel.domain.TravelInfoUrl;
-import com.example.mytravellink.user.domain.UserUrl;
+import com.example.mytravellink.users.domain.UsersUrl;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -49,10 +47,12 @@ public class Url extends BaseTimeEntity {
     
     // Url -> UserUrl (1:N)
     @OneToMany(mappedBy = "url")
-    private final List<UserUrl> userUrls = new ArrayList<>();
-
-    @OneToOne(mappedBy = "url")
-    private TravelInfo travelInfo;
+    private final List<UsersUrl> userUrls = new ArrayList<>();
+    
+    // Url -> TravelInfoUrl (1:N)
+    @OneToMany(mappedBy = "url")
+    private List<TravelInfoUrl> travelInfoUrlList = new ArrayList<>();
+    
     
     @Column(nullable = false)
     private String urlTitle;
@@ -63,9 +63,6 @@ public class Url extends BaseTimeEntity {
     @Column(nullable = false)
     private String url;
 
-    @OneToMany(mappedBy = "url")
-    private List<TravelInfoUrl> travelInfoUrlList = new ArrayList<>();
-    
     @Builder
     public Url(String urlTitle, String urlAuthor, String url) {
         this.id = generateHashFromUrl(Arrays.asList(url));
@@ -104,7 +101,7 @@ public class Url extends BaseTimeEntity {
     public List<UrlPlace> getUrlPlaces() {
         return Collections.unmodifiableList(urlPlaces);
     }
-    public List<UserUrl> getUserUrls() {
+    public List<UsersUrl> getUserUrls() {
         return Collections.unmodifiableList(userUrls);
     }
 
@@ -116,7 +113,7 @@ public class Url extends BaseTimeEntity {
         urlPlace.setUrl(this);
     }
 
-    public void addUserUrl(UserUrl userUrl) {
+    public void addUserUrl(UsersUrl userUrl) {
         if (userUrl == null) {
             throw new IllegalArgumentException("userUrl cannot be null");
         }

@@ -2,6 +2,7 @@ package com.example.mytravellink.travel.domain;
 
 import java.io.Serializable;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +21,10 @@ import lombok.EqualsAndHashCode;
 public class CoursePlaceId implements Serializable {
     private static final long serialVersionUID = 1L;
     
+    @Column(name = "course_id")
     private String courseId;
+    
+    @Column(name = "place_id")
     private String placeId;
 
     @Builder

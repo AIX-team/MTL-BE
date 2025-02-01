@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
@@ -24,8 +25,9 @@ import jakarta.persistence.FetchType;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Course extends BaseTimeEntity {
+    
     @Id
-    @GeneratedValue(generator = "uuid2")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)

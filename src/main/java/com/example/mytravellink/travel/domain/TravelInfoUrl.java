@@ -2,19 +2,18 @@ package com.example.mytravellink.travel.domain;
 
 import com.example.mytravellink.url.domain.Url;
 
-import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.EqualsAndHashCode;
 
 @Entity
-@Embeddable
 @Getter
 @NoArgsConstructor
 @EqualsAndHashCode
@@ -23,12 +22,14 @@ public class TravelInfoUrl {
   @EmbeddedId
   private TravelInfoUrlId id;
 
+  @MapsId
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "travelInfoId")
+  @JoinColumn(name = "travel_info_id", columnDefinition = "VARCHAR(36)")
   private TravelInfo travelInfo;
 
+  @MapsId
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "urlId")
+  @JoinColumn(name = "url_id", columnDefinition = "VARCHAR(128)")  // 명시적으로 컬럼 타입 지정
   private Url url;
 
   @Builder

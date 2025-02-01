@@ -31,7 +31,7 @@ public class TravelInfoServiceImpl implements TravelInfoService {
    * 
    */
   public TravelInfo getTravelInfo (String travelInfoId) {
-    return travelInfoRepository.findByTravelId(travelInfoId);
+    return travelInfoRepository.findById(travelInfoId).orElse(null);
   }
   
   /**
