@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.example.mytravellink.users.domain.Users;
+import com.example.mytravellink.domain.users.entity.Users;
 
 import java.util.Date;
 

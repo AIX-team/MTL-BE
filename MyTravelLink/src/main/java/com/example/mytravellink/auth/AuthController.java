@@ -2,8 +2,8 @@ package com.example.mytravellink.auth;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.common.ResponseMessage;
-import com.example.mytravellink.users.domain.Users;
-import com.example.mytravellink.users.repository.UsersRepository;
+import com.example.mytravellink.domain.users.entity.Users;
+import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

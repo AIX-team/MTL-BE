@@ -2,7 +2,7 @@ package com.example.mytravellink.auth.filter;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.auth.service.CustomUserDetails;
-import com.example.mytravellink.users.domain.Users;
+import com.example.mytravellink.domain.users.entity.Users;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;

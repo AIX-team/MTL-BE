@@ -2,7 +2,7 @@ package com.example.mytravellink.infrastructure.ai.Guide.dto;
 
 import java.util.List;
 
-import com.example.mytravellink.travel.domain.Place;
+import com.example.mytravellink.domain.travel.entity.Place;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

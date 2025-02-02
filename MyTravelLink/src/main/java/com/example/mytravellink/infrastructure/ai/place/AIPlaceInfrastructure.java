@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.example.mytravellink.infrastructure.ai.common.AIServerClient;
 import com.example.mytravellink.infrastructure.ai.common.exception.AIServerException;
-import com.example.mytravellink.travel.domain.Place;
+import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.infrastructure.ai.place.dto.AIPlaceRecomRequest;
 import com.example.mytravellink.infrastructure.ai.place.dto.AIPlaceRecomResponse;
 
