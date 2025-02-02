@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.Builder;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +23,7 @@ import jakarta.persistence.FetchType;
  */
 @Entity
 @Table(name = "course")
+@Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Course extends BaseTimeEntity {

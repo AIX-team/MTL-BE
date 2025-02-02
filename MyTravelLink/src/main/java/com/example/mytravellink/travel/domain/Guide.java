@@ -31,6 +31,7 @@ import java.util.List;
 @Table(name = "guide")
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
