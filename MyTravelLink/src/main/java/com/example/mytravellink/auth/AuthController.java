@@ -2,8 +2,8 @@ package com.example.mytravellink.auth;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.common.ResponseMessage;
-import com.example.mytravellink.user.domain.User;
-import com.example.mytravellink.domain.user.repository.UserRepository;
+import com.example.mytravellink.domain.users.entity.Users;
+import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -32,7 +31,7 @@ public class AuthController {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
-    private final UserRepository memberRepository;
+    private final UsersRepository memberRepository;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
@@ -80,7 +79,7 @@ public class AuthController {
 
         // 4. 사용자 정보 처리 및 회원가입 로직
         String userInfo = userInfoResponse.getBody();
-        User member = processUserInfo(userInfo);
+        Users member = processUserInfo(userInfo);
         log.info(member.toString());
 
         // 5. 백엔드 서버 access token 생성하여 프론트 서버로 전달
@@ -113,7 +112,7 @@ public class AuthController {
     }
 
      // 사용자가 없으면 데이터 추가
-    private User processUserInfo(String userInfo) {
+    private Users processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(userInfo);
@@ -122,17 +121,17 @@ public class AuthController {
             String email = jsonNode.get("email").asText(); // 이메일
 
             // Optional<Member>로 변경
-            Optional<User> optionalUser = memberRepository.findByEmail(email);
-            User user;
+            Optional<Users> optionalUser = memberRepository.findByEmail(email);
+            Users user;
 
             if (optionalUser.isPresent()) {
                 user = optionalUser.get(); // 존재하는 사용자
             } else {
                 // 사용자 정보가 없으면 새로운 사용자 생성
-                user = User.builder()
-                        .email(email)
-                        .name(name)
-                        .build();
+                user = Users.builder()
+                    .email(email)
+                    .name(name)
+                    .build();
                 memberRepository.save(user); // 데이터베이스에 저장
             }
             log.info("user 정보 : {}", user);

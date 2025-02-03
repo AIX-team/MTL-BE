@@ -1,7 +1,5 @@
 package com.example.mytravellink.auth.service;
 
-
-import com.example.mytravellink.user.domain.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,6 +7,8 @@ import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import com.example.mytravellink.domain.users.entity.Users;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -19,7 +19,7 @@ import java.util.Collections;
 @Getter
 public class CustomUserDetails implements UserDetails {
 
-    private User member ;
+    private Users member ;
 
     public String getEmail() {
         return member.getEmail();
