@@ -55,5 +55,14 @@ public class TravelInfoServiceImpl implements TravelInfoService {
 
     return placeList;
   }
-  
+
+  /**
+   * 여행정보 ID 기준 여행정보 수정
+   * 제목, 여행일 수정
+   * @param travelInfoId
+   * @param travelInfoUpdateTitleAndTravelDaysRequest
+   */
+  public void updateTravelInfo(String travelInfoId, String travelInfoTitle, Integer travelDays) {
+    travelInfoRepository.updateTravelInfo(travelInfoId, travelInfoTitle, travelDays);
+  }
 }

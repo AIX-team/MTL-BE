@@ -23,6 +23,7 @@ import java.util.List;
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
+import jakarta.persistence.CascadeType;
 
 /**
  * URL (Url) 엔티티
@@ -42,16 +43,16 @@ public class Url extends BaseTimeEntity {
     private String id;
     
     // Url -> UrlPlace (1:N)
-    @OneToMany(mappedBy = "url")
-    private final List<UrlPlace> urlPlaces = new ArrayList<>();
+    @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
+    private List<UrlPlace> urlPlaces = new ArrayList<>();
     
     // Url -> UserUrl (1:N)
-    @OneToMany(mappedBy = "url")
-    private final List<UsersUrl> userUrls = new ArrayList<>();
+    @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
+    private List<UsersUrl> usersUrls = new ArrayList<>();
     
     // Url -> TravelInfoUrl (1:N)
-    @OneToMany(mappedBy = "url")
-    private List<TravelInfoUrl> travelInfoUrlList = new ArrayList<>();
+    @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
+    private List<TravelInfoUrl> travelInfoUrls = new ArrayList<>();
     
     
     @Column(nullable = false)
@@ -102,7 +103,7 @@ public class Url extends BaseTimeEntity {
         return Collections.unmodifiableList(urlPlaces);
     }
     public List<UsersUrl> getUserUrls() {
-        return Collections.unmodifiableList(userUrls);
+        return Collections.unmodifiableList(usersUrls);
     }
 
     public void addUrlPlace(UrlPlace urlPlace) {
@@ -117,7 +118,7 @@ public class Url extends BaseTimeEntity {
         if (userUrl == null) {
             throw new IllegalArgumentException("userUrl cannot be null");
         }
-        this.userUrls.add(userUrl);
+        this.usersUrls.add(userUrl);
         userUrl.setUrl(this);
     }
 } 

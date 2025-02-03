@@ -8,12 +8,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.api.travelInfo.dto.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.TravelInfoPlaceResponse;
+import com.example.mytravellink.api.travelInfo.dto.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.TravelInfoUrlResponse;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.domain.travel.entity.Guide;
@@ -152,6 +154,25 @@ public class TravelInfoController {
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+
+    /**
+     * 여행 정보 ID 기준 여행 정보 수정
+     * 여행일, 여행제목 수정
+     * @param travelInfoId
+     * @return
+     */
+    @PutMapping("/travelInfos/{travelInfoId}")
+    public ResponseEntity<String> updateTravelInfo(@PathVariable String travelInfoId, @RequestBody TravelInfoUpdateTitleAndTravelDaysRequest travelInfoUpdateTitleAndTravelDaysRequest) {
+        try {
+            String travelInfoTitle = travelInfoUpdateTitleAndTravelDaysRequest.getTravelInfoTitle();
+            Integer travelDays = travelInfoUpdateTitleAndTravelDaysRequest.getTravelDays();
+            travelInfoService.updateTravelInfo(travelInfoId, travelInfoTitle, travelDays);
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }          
     }
 
 

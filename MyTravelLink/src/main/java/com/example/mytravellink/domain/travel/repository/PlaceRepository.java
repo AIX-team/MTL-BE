@@ -14,5 +14,6 @@ public interface PlaceRepository extends JpaRepository<Place, String> {
   Optional<Place> findById(String placeId);
 
   @Query("SELECT p FROM Place p WHERE p.id IN :ids")
-  List<Place> findByIdIn(@Param("ids") List<String> ids);
+  List<Place> findByIds(@Param("ids") List<String> ids);
+  
 }
