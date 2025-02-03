@@ -7,8 +7,12 @@ import org.springframework.stereotype.Service;
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceRequest;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceResponse;
+import com.example.mytravellink.api.travelInfo.dto.TravelInfoPlaceResponse;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
+import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,8 +21,30 @@ import lombok.RequiredArgsConstructor;
 public class PlaceServiceImpl implements PlaceService {
   
   private final PlaceRepository placeRepository;
+  private final TravelInfoPlaceRepository travelInfoPlaceRepository;
   private final AIGuideInfrastructure aiGuideInfrastructure;
 
+
+
+
+  /**
+   * 장소 조회
+   * @param id 장소 ID
+   * @return 장소
+   */
+  @Override
+  public Place findById(String id) {
+    return placeRepository.findById(id)
+      .orElseThrow(() -> new IllegalArgumentException("Place not found"));
+  }
+
+
+  /**
+   * AI 코스 추천
+   * @param placeIdList 장소 ID 리스트
+   * @param dayNum 여행 일수
+   * @return AI 코스 추천 응답
+   */
   @Override
   public AIGuideCourseResponse getAIGuideCourse(List<String> placeIdList, int dayNum) {
     List<Place> placeList = placeRepository.findByIds(placeIdList);
@@ -28,10 +54,33 @@ public class PlaceServiceImpl implements PlaceService {
       .build();
     return aiGuideInfrastructure.getGuideRecommendation(aiGuideCourseRequest);
   }
-
+  /**
+   * AI 장소 선택
+   * @param travelInfoId 여행 정보 ID
+   * @param travelDays 여행 일수
+   * @return AI 장소 선택 응답
+   */
   @Override
-  public Place findById(String id) {
-    return placeRepository.findById(id)
-      .orElseThrow(() -> new IllegalArgumentException("Place not found"));
+  public TravelInfoPlaceResponse getAISelectPlace(String travelInfoId, int travelDays) {
+    List<String> placeIdList = travelInfoPlaceRepository.findByTravelInfoId(travelInfoId);
+    List<Place> placeList = placeRepository.findByIds(placeIdList);
+
+    // AI 장소 선택
+    try {
+      AISelectedPlaceRequest aiSelectedPlaceRequest = AISelectedPlaceRequest.builder()
+        .placeList(placeList)
+        .travelDays(travelDays)
+        .build();
+
+      AISelectedPlaceResponse aiSelectedPlaceResponse = aiGuideInfrastructure.getAISelectPlace(aiSelectedPlaceRequest);
+      return TravelInfoPlaceResponse.builder()
+        .success("success")
+        .message("AI 장소 선택 성공")
+        .content(aiSelectedPlaceResponse.dtoConvert())
+        .build();
+    } catch (Exception e) {
+      throw new IllegalArgumentException("AI 장소 선택 실패");
+    }
   }
 }
+

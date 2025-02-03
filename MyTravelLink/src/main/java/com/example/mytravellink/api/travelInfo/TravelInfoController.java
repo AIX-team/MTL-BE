@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 
+
 @RestController
 @RequestMapping("/api/v1/travels")
 @RequiredArgsConstructor
@@ -174,6 +175,23 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }          
     }
+
+    @GetMapping("travelInfos/{travelInfoId}/aiSelect")
+    public ResponseEntity<TravelInfoPlaceResponse> aiSelect(@PathVariable String travelInfoId) {
+        try {
+            Integer travelDays = travelInfoService.getTravelInfo(travelInfoId).getTravelDays();            
+            // AI 장소 선택
+            try{
+                TravelInfoPlaceResponse aiSelectPlaceList = placeService.getAISelectPlace(travelInfoId, travelDays);
+                return new ResponseEntity<>(aiSelectPlaceList, HttpStatus.OK);
+            } catch (Exception e) {
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
 
 
     /**
