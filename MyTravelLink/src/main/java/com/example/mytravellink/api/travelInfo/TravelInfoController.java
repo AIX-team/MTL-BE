@@ -176,6 +176,11 @@ public class TravelInfoController {
         }          
     }
 
+    /**
+     * 여행정보 ID 기준 AI 추천 장소
+     * @param travelInfoId
+     * @return ResponseEntity<TravelInfoPlaceResponse>
+     */
     @GetMapping("travelInfos/{travelInfoId}/aiSelect")
     public ResponseEntity<TravelInfoPlaceResponse> aiSelect(@PathVariable String travelInfoId) {
         try {
@@ -235,7 +240,7 @@ public class TravelInfoController {
     /**
      * 가이드 ID 기준 가이드 조회
      * @param guideId
-     * @return ResponseEntity<TravelInfoPlaceResponse>
+     * @return ResponseEntity<GuideBookResponse>
      */
     @GetMapping("/guides/{guideId}")
     public String guideInfo(@PathVariable String guideId) {
