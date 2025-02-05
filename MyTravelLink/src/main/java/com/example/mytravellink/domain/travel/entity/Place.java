@@ -70,6 +70,9 @@ public class Place extends BaseTimeEntity {
     @Column(columnDefinition = "DECIMAL(11,8)")
     private BigDecimal longitude;
 
+    @Column(columnDefinition = "TEXT")
+    private String openHours;
+
     @Builder
     public Place(String address, String title, String description, String type,
                 String image, BigDecimal latitude, BigDecimal longitude) {

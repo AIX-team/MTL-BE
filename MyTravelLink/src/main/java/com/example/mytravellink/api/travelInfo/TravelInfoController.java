@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mytravellink.api.travelInfo.dto.GuideBookResponse;
 import com.example.mytravellink.api.travelInfo.dto.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.TravelInfoUpdateTitleAndTravelDaysRequest;
@@ -21,6 +22,7 @@ import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRespons
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
+import com.example.mytravellink.domain.travel.service.CourseServiceImpl;
 import com.example.mytravellink.domain.travel.service.GuideServiceImpl;
 import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
@@ -42,7 +44,7 @@ public class TravelInfoController {
     private final UrlServiceImpl urlService;
     private final PlaceServiceImpl placeService;
     private final GuideServiceImpl guideService;
-
+    private final CourseServiceImpl courseService;
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
      * @param travelId
@@ -242,9 +244,27 @@ public class TravelInfoController {
      * @param guideId
      * @return ResponseEntity<GuideBookResponse>
      */
-    @GetMapping("/guides/{guideId}")
-    public String guideInfo(@PathVariable String guideId) {
-        return new String();
+    @GetMapping("/guidebooks/{guideId}")
+    public ResponseEntity<GuideBookResponse> guideInfo(@PathVariable String guideId) {
+        try {
+            Guide guide = guideService.getGuide(guideId);
+            TravelInfo travelInfo = guideService.getTravelInfo(guideId);
+            List<GuideBookResponse.CourseList> courseListResp = courseService.getCoursePlace(guideId);
+
+        GuideBookResponse guideBookResponse = GuideBookResponse.builder()
+            .success("success")
+            .message("success")
+            .guideBookTitle(guide.getTitle())
+            .travelInfoTitle(travelInfo.getTitle()) 
+            .travelInfoId(travelInfo.getId())
+            .courseCnt(guide.getCourseCount())
+            .courses(courseListResp)
+            .build();
+
+            return new ResponseEntity<>(guideBookResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     
 }

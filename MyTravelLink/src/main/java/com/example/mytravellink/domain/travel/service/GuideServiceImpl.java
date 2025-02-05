@@ -6,6 +6,7 @@ import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRespons
 import com.example.mytravellink.domain.travel.entity.Course;
 import com.example.mytravellink.domain.travel.entity.CoursePlace;
 import com.example.mytravellink.domain.travel.entity.Guide;
+import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
 import com.example.mytravellink.domain.travel.repository.CourseRepository;
 import com.example.mytravellink.domain.travel.repository.GuideRepository;
@@ -22,6 +23,16 @@ public class GuideServiceImpl implements GuideService {
   private final CourseRepository courseRepository;
   private final CoursePlaceRepository coursePlaceRepository;
   private final PlaceRepository placeRepository;
+
+  /**
+   * Guide 조회
+   * @param guideId
+   * @return Guide
+   */
+  @Override
+  public Guide getGuide(String guideId) {
+    return guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found"));
+  }
 
   /**
    * Guide, Course, CoursePlace 생성
@@ -88,4 +99,14 @@ public class GuideServiceImpl implements GuideService {
       throw new RuntimeException("CoursePlace 생성 실패", e);
     }
   }
+
+  /**
+   * TravelInfo 조회
+   * @param guideId
+   * @return TravelInfo
+   */
+  @Override
+  public TravelInfo getTravelInfo(String guideId) {
+    return guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found")).getTravelInfo();
+  } 
 }
