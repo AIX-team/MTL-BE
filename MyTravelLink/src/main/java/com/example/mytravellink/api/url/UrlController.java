@@ -19,9 +19,8 @@ public class UrlController {
         this.urlService = urlService;
     }
 
-    @PostMapping // POST 메소드로 설정
-    public ResponseEntity<UrlResponse> processUrl(
-            @RequestBody UrlRequest request) { // 요청 본문에서 UrlRequest를 가져옴
+    @PostMapping("/analyze") // POST 메소드로 설정
+    public ResponseEntity<UrlResponse> analyzeUrl(@RequestBody UrlRequest request) { // 요청 본문에서 UrlRequest를 가져옴
 
         // UrlRequest의 URL로 요청 처리
         UrlResponse response = urlService.processUrl(request);

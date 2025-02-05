@@ -11,6 +11,8 @@ import com.example.mytravellink.domain.travel.entity.Place;
 
 public interface PlaceRepository extends JpaRepository<Place, String> {
 
+  Optional<Place> findByTitle(String title);
+
   Optional<Place> findById(String placeId);
 
   @Query("SELECT p FROM Place p WHERE p.id IN :ids")

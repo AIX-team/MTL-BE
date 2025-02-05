@@ -32,6 +32,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 public class Place extends BaseTimeEntity {
     
     @Id
