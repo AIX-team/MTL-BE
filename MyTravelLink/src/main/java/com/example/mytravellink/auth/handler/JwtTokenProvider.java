@@ -1,12 +1,13 @@
 package com.example.mytravellink.auth.handler;
 
-import com.example.mytravellink.domain.user.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import com.example.mytravellink.domain.users.entity.Users;
 
 import java.util.Date;
 
@@ -19,7 +20,7 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration-time}")
     private long expirationTime;
 
-    public String generateToken(User user) {
+    public String generateToken(Users user) {
         Claims claims = Jwts.claims().setSubject(user.getEmail()); // 사용자 이메일을 주제로 설정
         claims.put("name", user.getName()); // 토큰에 사용자 이름 넣기
         claims.put("email", user.getEmail());

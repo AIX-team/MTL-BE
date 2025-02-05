@@ -2,7 +2,8 @@ package com.example.mytravellink.auth.filter;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.auth.service.CustomUserDetails;
-import com.example.mytravellink.domain.user.entity.User;
+import com.example.mytravellink.domain.users.entity.Users;
+
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -59,7 +60,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             Claims claims = jwtTokenProvider.getClaimsFromToken(token); // JWT에서 사용자 고유 넘버 추출
 
-            User member = User.builder()
+            Users member = Users.builder()
                     .email(claims.getSubject())
                     .name(claims.get("name").toString())
                     .build();
