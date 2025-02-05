@@ -44,7 +44,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 "/v3/api-docs/(.*)",         //swagger 설정
                 "/swagger-resources",        //swagger 설정
                 "/swagger-resources/(.*)",    //swagger 설정
-                "/auth/google/callback"
+                "/auth/google/callback", // 구글 로그인
+                "/url/(.*)"             // url 요청
         );
 
         if(roleLeessList.stream().anyMatch(uri -> roleLeessList.stream().anyMatch(pattern -> Pattern.matches(pattern, request.getRequestURI())))){
