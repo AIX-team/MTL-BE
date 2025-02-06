@@ -1,6 +1,8 @@
 package com.example.mytravellink.domain.users.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -27,10 +29,10 @@ import jakarta.persistence.GenerationType;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UsersSearchTerm extends BaseTimeEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     @Column(length = 36)
     private String id;
     
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "email", nullable = false)
     private Users user;
@@ -39,6 +41,7 @@ public class UsersSearchTerm extends BaseTimeEntity {
     
     @Builder
     public UsersSearchTerm(Users user, String word) {
+        this.id = UUID.randomUUID().toString();  // UUID 직접 생성
         this.user = user;
         this.word = word;
     }
