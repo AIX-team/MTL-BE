@@ -8,4 +8,5 @@ import com.example.mytravellink.domain.travel.entity.Place;
 public interface PlaceService {
   AIGuideCourseResponse getAIGuideCourse(List<String> placeIdList, int dayNum);
   Place findById(String id);
+  List<Place> getPlacesByIds(List<String> placeIds);
 }
