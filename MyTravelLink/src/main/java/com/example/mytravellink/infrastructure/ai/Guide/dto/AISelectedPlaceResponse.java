@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.example.mytravellink.api.travelInfo.dto.TravelInfoPlaceResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 
 import lombok.Builder;
 import lombok.Data;

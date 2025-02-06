@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.mytravellink.api.travelInfo.dto.GuideBookResponse;
-import com.example.mytravellink.api.travelInfo.dto.PlaceSelectRequest;
-import com.example.mytravellink.api.travelInfo.dto.TravelInfoPlaceResponse;
-import com.example.mytravellink.api.travelInfo.dto.TravelInfoUpdateTitleAndTravelDaysRequest;
-import com.example.mytravellink.api.travelInfo.dto.TravelInfoUrlResponse;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;

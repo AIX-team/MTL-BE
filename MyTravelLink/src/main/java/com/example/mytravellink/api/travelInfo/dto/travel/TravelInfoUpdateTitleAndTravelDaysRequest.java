@@ -1,4 +1,4 @@
-package com.example.mytravellink.api.travelInfo.dto;
+package com.example.mytravellink.api.travelInfo.dto.travel;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,6 +1,7 @@
-package com.example.mytravellink.api.travelInfo.dto;
+package com.example.mytravellink.api.travelInfo.dto.travel;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.example.mytravellink.domain.travel.entity.CoursePlace;
@@ -38,17 +39,17 @@ public class GuideBookResponse {
   @NoArgsConstructor
   @AllArgsConstructor
   public static class CoursePlaceResp {
-    private int Num;
-    private String Id;
-    private String Name;
-    private String Type;
-    private String Description;
-    private String Image;
-    private String Address;
-    private String Hours;
-    private String Intro;
-    private String Latitude;
-    private String Longitude;
+    private int num;
+    private String id;
+    private String name;
+    private String type;
+    private String description;
+    private String image;
+    private String address;
+    private String hours;
+    private String intro;
+    private String latitude;
+    private String longitude;
   }
 
 
@@ -60,19 +61,23 @@ public class GuideBookResponse {
   public static List<CoursePlaceResp> toCoursePlace(List<CoursePlace> coursPlace) {
 
     List<CoursePlaceResp> coursePlaceList = new ArrayList<>();
+
+    // placeNum 오름차순 정렬
+    Collections.sort(coursPlace, (a, b) -> a.getPlaceNum() - b.getPlaceNum());
+
     for (CoursePlace coursePlace : coursPlace) {
       CoursePlaceResp cpl = CoursePlaceResp.builder()
-      .Num(coursePlace.getPlaceNum())
-      .Id(coursePlace.getPlace().getId())
-      .Name(coursePlace.getPlace().getTitle())
-      .Type(coursePlace.getPlace().getType())
-      .Description(coursePlace.getPlace().getDescription())
-      .Image(coursePlace.getPlace().getImage())
-      .Address(coursePlace.getPlace().getAddress())
-      .Hours(coursePlace.getPlace().getOpenHours())
-      .Intro(coursePlace.getPlace().getIntro())
-      .Latitude(coursePlace.getPlace().getLatitude().toString())
-      .Longitude(coursePlace.getPlace().getLongitude().toString())
+      .num(coursePlace.getPlaceNum())
+      .id(coursePlace.getPlace().getId())
+      .name(coursePlace.getPlace().getTitle())
+      .type(coursePlace.getPlace().getType())
+      .description(coursePlace.getPlace().getDescription())
+      .image(coursePlace.getPlace().getImage())
+      .address(coursePlace.getPlace().getAddress())
+      .hours(coursePlace.getPlace().getOpenHours())
+      .intro(coursePlace.getPlace().getIntro())
+      .latitude(coursePlace.getPlace().getLatitude().toString())
+      .longitude(coursePlace.getPlace().getLongitude().toString())
       .build();
       coursePlaceList.add(cpl);
     }

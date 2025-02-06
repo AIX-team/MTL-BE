@@ -9,7 +9,7 @@ import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceRequest;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceResponse;
-import com.example.mytravellink.api.travelInfo.dto.TravelInfoPlaceResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;

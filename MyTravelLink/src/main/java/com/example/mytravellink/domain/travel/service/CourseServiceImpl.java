@@ -2,10 +2,11 @@ package com.example.mytravellink.domain.travel.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
-import com.example.mytravellink.api.travelInfo.dto.GuideBookResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
 import com.example.mytravellink.domain.travel.entity.Course;
 import com.example.mytravellink.domain.travel.entity.CoursePlace;
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
@@ -46,4 +47,14 @@ public class CourseServiceImpl implements CourseService {
     }
   }
 
+  @Override
+  public void updateCoursePlace(String courseId, Map<String, Integer> placeIds) {
+    try {
+      for (Map.Entry<String, Integer> entry : placeIds.entrySet()) {
+        coursePlaceRepository.updateCoursePlace(courseId, entry.getKey(), entry.getValue());
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("CoursePlace 업데이트 실패", e);
+    }
+  }
 }

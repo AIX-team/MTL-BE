@@ -35,7 +35,8 @@ import java.util.List;
 public class Place extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
+    @GeneratedValue(strategy = GenerationType.UUID)  // AUTO_INCREMENT 사용
+    @Column(columnDefinition = "CHAR(32)")
     private String id;
     
     // Place -> TravelInfoPlace (1:N)

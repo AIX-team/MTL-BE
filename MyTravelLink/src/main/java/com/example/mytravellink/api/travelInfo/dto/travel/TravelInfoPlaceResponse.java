@@ -1,4 +1,4 @@
-package com.example.mytravellink.api.travelInfo.dto;
+package com.example.mytravellink.api.travelInfo.dto.travel;
 
 import java.math.BigDecimal;
 import java.util.List;

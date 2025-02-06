@@ -36,7 +36,7 @@ public class CoursePlace extends BaseTimeEntity {
     
     @MapsId("placeId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "place_id")
+    @JoinColumn(name = "place_id", columnDefinition = "CHAR(32)")
     private Place place;
     
     @MapsId("courseId")

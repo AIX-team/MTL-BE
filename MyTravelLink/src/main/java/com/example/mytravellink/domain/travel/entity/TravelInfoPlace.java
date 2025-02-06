@@ -37,7 +37,7 @@ public class TravelInfoPlace extends BaseTimeEntity {
     
     @MapsId
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "place_id")
+    @JoinColumn(name = "place_id", columnDefinition = "CHAR(32)")
     private Place place;
     
     @Builder
