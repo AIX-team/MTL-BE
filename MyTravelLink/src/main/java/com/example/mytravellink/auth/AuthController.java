@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,14 +34,18 @@ public class AuthController {
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
+    
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String clientSecret;
+    
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String redirectUri;
+    
     @Value("${url.google.access-token}")
     private String accessTokenUrl;
+    
     @Value("${url.google.profile}")
-    private String profileUrl;
+    private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
 
     @GetMapping("/auth/google/callback")
     public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
@@ -63,83 +66,87 @@ public class AuthController {
 
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+        ResponseEntity<String> tokenResponse = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+        log.info("Token Response: {}", tokenResponse.getBody());
 
-        log.info(response.getBody());
+        // 2. 액세스 토큰 추출
+        String accessToken = extractAccessToken(tokenResponse.getBody());
+        if (accessToken == null) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ResponseMessage(HttpStatus.BAD_REQUEST, "액세스 토큰 추출 실패", null));
+        }
 
-        // 2. 액세스 토큰 반환
-        String accessToken = extractAccessToken(response.getBody());
+        // 3. 사용자 정보 요청 (access token을 HTTP Header에 담아 전송)
+        String userInfoUrl = profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
+        HttpHeaders userInfoHeaders = new HttpHeaders();
+        userInfoHeaders.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<?> userInfoEntity = new HttpEntity<>(userInfoHeaders);
 
-        // 3. 사용자 정보 요청
-        String userInfoUrl = profileUrl + accessToken;
-        log.info(userInfoUrl);
-        ResponseEntity<String> userInfoResponse = restTemplate.getForEntity(userInfoUrl, String.class);
-
-        System.out.println(userInfoResponse.getBody());
+        ResponseEntity<String> userInfoResponse = restTemplate.exchange(
+                userInfoUrl,
+                HttpMethod.GET,
+                userInfoEntity,
+                String.class
+        );
+        log.info("UserInfo Response: {}", userInfoResponse.getBody());
 
         // 4. 사용자 정보 처리 및 회원가입 로직
         String userInfo = userInfoResponse.getBody();
         Users member = processUserInfo(userInfo);
-        log.info(member.toString());
+        log.info("Processed user: {}", member);
 
-        // 5. 백엔드 서버 access token 생성하여 프론트 서버로 전달
+        // 5. 백엔드 서버 access token 생성 후 프론트에 전달
         String backendAccessToken = jwtTokenProvider.generateToken(member); // 사용자 정보를 기반으로 JWT 생성
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("token", backendAccessToken);
         responseMap.put("user", member);
 
-        log.info("backendAccessToken : {}", backendAccessToken);
+        log.info("Backend access token: {}", backendAccessToken);
 
         return ResponseEntity
                 .ok()
-                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap)); // 백엔드 액세스 토큰 반환
+                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
     }
 
+    // JSON 파싱을 통해 access token 추출
     private String extractAccessToken(String responseBody) {
-        // JSON 파싱을 통해 access token 추출
         try {
-            // Jackson ObjectMapper를 사용하여 JSON 파싱
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(responseBody);
-
-            // access_token을 추출
             return jsonNode.get("access_token").asText();
         } catch (Exception e) {
-            e.printStackTrace();
-            return null; // 오류 발생 시 null 반환
+            log.error("Access token extraction error", e);
+            return null;
         }
     }
 
-     // 사용자가 없으면 데이터 추가
+    // 사용자 정보를 처리하여 기존 사용자가 없으면 저장 후 반환
     private Users processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(userInfo);
 
-            String name = jsonNode.get("name").asText(); // 사용자 이름
-            String email = jsonNode.get("email").asText(); // 이메일
+            String name = jsonNode.get("name").asText();
+            String email = jsonNode.get("email").asText();
 
-            // Optional<Member>로 변경
             Optional<Users> optionalUser = memberRepository.findByEmail(email);
             Users user;
-
             if (optionalUser.isPresent()) {
-                user = optionalUser.get(); // 존재하는 사용자
+                user = optionalUser.get();
             } else {
-                // 사용자 정보가 없으면 새로운 사용자 생성
                 user = Users.builder()
-                    .email(email)
-                    .name(name)
-                    .build();
-                memberRepository.save(user); // 데이터베이스에 저장
+                        .email(email)
+                        .name(name)
+                        .build();
+                memberRepository.save(user);
             }
-            log.info("user 정보 : {}", user);
-            return user; // 사용자 반환
+            log.info("User info: {}", user);
+            return user;
         } catch (Exception e) {
-            e.printStackTrace();
-            return null; // 오류 발생 시 null 반환
+            log.error("Error processing user info", e);
+            return null;
         }
     }
-
 }
