@@ -68,7 +68,7 @@ public class GuideBookResponse {
     for (CoursePlace coursePlace : coursPlace) {
       CoursePlaceResp cpl = CoursePlaceResp.builder()
       .num(coursePlace.getPlaceNum())
-      .id(coursePlace.getPlace().getId())
+      .id(coursePlace.getPlace().getId().toString())
       .name(coursePlace.getPlace().getTitle())
       .type(coursePlace.getPlace().getType())
       .description(coursePlace.getPlace().getDescription())

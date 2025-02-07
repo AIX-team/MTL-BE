@@ -93,7 +93,7 @@ public class TravelInfoController {
 
             List<TravelInfoPlaceResponse.Place> placeResponseList = urlPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
-                    .placeId(place.getId())
+                    .placeId(place.getId().toString())
                     .placeType(place.getType())
                     .placeName(place.getTitle())
                     .placeAddress(place.getAddress())
@@ -135,7 +135,7 @@ public class TravelInfoController {
 
             List<TravelInfoPlaceResponse.Place> placeResponseList = placeList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
-                    .placeId(place.getId())
+                    .placeId(place.getId().toString())
                     .placeType(place.getType())
                     .placeName(place.getTitle())
                     .placeAddress(place.getAddress())

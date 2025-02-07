@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.entity;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -23,6 +24,6 @@ public class CoursePlaceId implements Serializable {
     @Column(name = "course_id")
     private String courseId;
     
-    @Column(name = "place_id")
-    private String placeId;
+    @Column(name = "place_id", columnDefinition = "CHAR(36)")
+    private UUID placeId;
 }

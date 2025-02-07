@@ -20,6 +20,7 @@ import lombok.AccessLevel;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 장소 (Place) 엔티티
@@ -35,9 +36,9 @@ import java.util.List;
 public class Place extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)  // AUTO_INCREMENT 사용
-    @Column(columnDefinition = "CHAR(32)")
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)  // 
+    @Column(columnDefinition = "CHAR(36)")
+    private UUID id;
     
     // Place -> TravelInfoPlace (1:N)
     @OneToMany(mappedBy = "place")
