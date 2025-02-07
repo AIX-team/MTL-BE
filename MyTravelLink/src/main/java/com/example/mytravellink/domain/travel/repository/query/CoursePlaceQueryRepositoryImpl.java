@@ -1,7 +1,6 @@
 package com.example.mytravellink.domain.travel.repository.query;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,7 @@ public class CoursePlaceQueryRepositoryImpl implements CoursePlaceQueryRepositor
 
   @Transactional
   @Override
-  public void updateCoursePlace(String courseId, List<UUID> placeIds) {
+  public void updateCoursePlace(String courseId, List<String> placeIds) {
     QCoursePlace coursePlace = new QCoursePlace("coursePlace");
 
     try {
