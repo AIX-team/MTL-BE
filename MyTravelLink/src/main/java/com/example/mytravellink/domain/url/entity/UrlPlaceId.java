@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.UUID;
 
 @Embeddable
 @Getter
@@ -24,5 +23,5 @@ public class UrlPlaceId implements Serializable {
   private String uid;
 
   @Column(name = "place_id", columnDefinition = "CHAR(36)")
-  private UUID pid;
+  private String pid;
 }

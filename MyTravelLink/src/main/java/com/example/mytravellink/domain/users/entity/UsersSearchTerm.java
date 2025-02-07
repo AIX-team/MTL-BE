@@ -14,9 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Column;
-import jakarta.persistence.GenerationType;
 
 /**
  * 사용자 검색 키워드 (UserSearchTerm) 엔티티
