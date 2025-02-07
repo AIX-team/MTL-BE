@@ -3,6 +3,7 @@ package com.example.mytravellink.domain.travel.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
@@ -47,7 +48,7 @@ public class PlaceServiceImpl implements PlaceService {
    */
   @Override
   public AIGuideCourseResponse getAIGuideCourse(List<String> placeIdList, int dayNum) {
-    List<Place> placeList = placeRepository.findByIds(placeIdList);
+    List<Place> placeList = placeRepository.findByIdIn(placeIdList);
     AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
       .placeList(placeList)
       .dayNum(dayNum)
@@ -81,6 +82,11 @@ public class PlaceServiceImpl implements PlaceService {
     } catch (Exception e) {
       throw new IllegalArgumentException("AI 장소 선택 실패");
     }
+  }
+
+  @Override
+  public List<Place> getPlacesByIds(List<String> placeIds) {
+    return placeRepository.findByIdIn(placeIds);
   }
 }
 

@@ -16,5 +16,6 @@ public interface PlaceService {
 
   // 장소 조회
   Place findById(String id);
+  List<Place> getPlacesByIds(List<String> placeIds);
 }
 
