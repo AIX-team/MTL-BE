@@ -23,9 +23,9 @@ jobs:
         run: mvn clean package
         env:
           SPRING_PROFILES_ACTIVE: prod
-          MYSQL_URL: ${{ secrets.MYSQL_URL }}
-          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          SPRING_DATASOURCE_URL: ${{ secrets.MYSQL_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
 
       - name: Verify Maven Build  # 단계 이름: 'Verify Maven Build (Maven 빌드 확인)'
         run: ls -la target/  # Maven 빌드 후 'target' 디렉토리의 파일 목록 출력
