@@ -20,7 +20,12 @@ jobs:
           distribution: 'temurin'  # 'temurin' OpenJDK 배포판 사용
 
       - name: Build with Maven  # 단계 이름: 'Build with Maven (Maven 빌드)'
-        run: mvn clean package  # Maven 빌드 명령어 실행
+        run: mvn clean package
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+          MYSQL_URL: ${{ secrets.MYSQL_URL }}
+          MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
 
       - name: Verify Maven Build  # 단계 이름: 'Verify Maven Build (Maven 빌드 확인)'
         run: ls -la target/  # Maven 빌드 후 'target' 디렉토리의 파일 목록 출력
@@ -59,5 +64,16 @@ jobs:
             sudo docker pull yuchankim/api-mytravellink:latest  # 최신 도커 이미지 풀
             sudo docker stop api-mytravellink || true  # 기존 컨테이너 중지 (존재하지 않으면 무시)
             sudo docker rm api-mytravellink || true  # 기존 컨테이너 제거 (존재하지 않으면 무시)
-            sudo docker run -d --name api-mytravellink -p 9000:9000 -v /home/***/upload:/app/upload yuchankim/api-mytravellink:latest  # 도커 컨테이너 실행
+            sudo docker run -d --name api-mytravellink \
+              -p 9000:9000 \
+              -v /home/***/upload:/app/upload \
+              -e SPRING_PROFILES_ACTIVE=prod \
+              -e MYSQL_URL=${{ secrets.MYSQL_URL }} \
+              -e MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }} \
+              -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+              yuchankim/api-mytravellink:latest
+
+defaults:
+  run:
+    working-directory: ./MyTravelLink
           
