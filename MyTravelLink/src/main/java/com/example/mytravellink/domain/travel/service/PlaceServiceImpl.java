@@ -1,9 +1,10 @@
 package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
@@ -35,20 +36,23 @@ public class PlaceServiceImpl implements PlaceService {
    */
   @Override
   public Place findById(String id) {
-    return placeRepository.findById(id)
+    return placeRepository.findById(UUID.fromString(id))
       .orElseThrow(() -> new IllegalArgumentException("Place not found"));
   }
 
 
   /**
    * AI 코스 추천
-   * @param placeIdList 장소 ID 리스트
+   * @param placeIds 장소 ID 리스트
    * @param dayNum 여행 일수
    * @return AI 코스 추천 응답
    */
   @Override
-  public AIGuideCourseResponse getAIGuideCourse(List<String> placeIdList, int dayNum) {
-    List<Place> placeList = placeRepository.findByIdIn(placeIdList);
+  public AIGuideCourseResponse getAIGuideCourse(List<String> placeIds, int dayNum) {
+    List<UUID> uuidList = placeIds.stream()
+      .map(id -> UUID.fromString(id))
+      .collect(Collectors.toList());
+    List<Place> placeList = placeRepository.findByIds(uuidList);
     AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
       .placeList(placeList)
       .dayNum(dayNum)
@@ -64,7 +68,10 @@ public class PlaceServiceImpl implements PlaceService {
   @Override
   public TravelInfoPlaceResponse getAISelectPlace(String travelInfoId, int travelDays) {
     List<String> placeIdList = travelInfoPlaceRepository.findByTravelInfoId(travelInfoId);
-    List<Place> placeList = placeRepository.findByIds(placeIdList);
+    List<UUID> uuidList = placeIdList.stream()
+      .map(id -> UUID.fromString(id))
+      .collect(Collectors.toList());
+    List<Place> placeList = placeRepository.findByIds(uuidList);
 
     // AI 장소 선택
     try {
@@ -84,9 +91,17 @@ public class PlaceServiceImpl implements PlaceService {
     }
   }
 
+  /**
+   * 장소 조회
+   * @param placeIds 장소 ID 리스트
+   * @return 장소 리스트
+   */
   @Override
   public List<Place> getPlacesByIds(List<String> placeIds) {
-    return placeRepository.findByIdIn(placeIds);
+    List<UUID> uuidList = placeIds.stream()
+      .map(id -> UUID.fromString(id))
+      .collect(Collectors.toList());
+    return placeRepository.findByIds(uuidList);
   }
 }
 

@@ -21,15 +21,15 @@ public class CoursePlaceQueryRepositoryImpl implements CoursePlaceQueryRepositor
 
   @Transactional
   @Override
-  public void updateCoursePlace(String courseId, List<String> placeId) {
+  public void updateCoursePlace(String courseId, List<UUID> placeIds) {
     QCoursePlace coursePlace = new QCoursePlace("coursePlace");
 
     try {
       // 코스 장소 순서 수정
-      for (int i = 0; i < placeId.size(); i++) {
+      for (int i = 0; i < placeIds.size(); i++) {
         queryFactory.update(coursePlace)
           .where(coursePlace.course.id.eq(courseId)
-            .and(coursePlace.place.id.eq(UUID.fromString(placeId.get(i)))))
+            .and(coursePlace.place.id.eq(placeIds.get(i))))
           .set(coursePlace.placeNum, i + 1)
           .execute();
       }

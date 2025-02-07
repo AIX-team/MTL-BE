@@ -2,6 +2,8 @@ package com.example.mytravellink.domain.travel.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -49,7 +51,10 @@ public class CourseServiceImpl implements CourseService {
   @Override
   public void updateCoursePlace(String courseId, List<String> placeIds) {
     try {
-        coursePlaceRepository.updateCoursePlace(courseId, placeIds);
+      List<UUID> uuidList = placeIds.stream()
+        .map(id -> UUID.fromString(id))
+        .collect(Collectors.toList());
+      coursePlaceRepository.updateCoursePlace(courseId, uuidList);
     } catch (Exception e) {
       throw new RuntimeException("CoursePlace 업데이트 실패", e);
     }

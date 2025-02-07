@@ -1,5 +1,7 @@
 package com.example.mytravellink.domain.travel.service;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
@@ -55,7 +57,7 @@ public class GuideServiceImpl implements GuideService {
                     for (AIGuideCourseResponse.CourseDTO.PlaceDTO placeResp : courseResp.getPlaces()) {
                         CoursePlace coursePlace = CoursePlace.builder()
                             .course(savedCourse)
-                            .place(placeRepository.findById(placeResp.getPlaceId()).orElseThrow(() -> new RuntimeException("Place not found")))
+                            .place(placeRepository.findById(UUID.fromString(placeResp.getPlaceId())).orElseThrow(() -> new RuntimeException("Place not found")))
                             .placeNum(placeResp.getPlaceNum())
                             .build();
                         saveCoursePlace(coursePlace);
