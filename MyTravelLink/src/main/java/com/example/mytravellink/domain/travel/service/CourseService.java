@@ -1,4 +1,11 @@
 package com.example.mytravellink.domain.travel.service;
 
+import java.util.List;
+
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
+
 public interface CourseService {
+  List<GuideBookResponse.CourseList> getCoursePlace(String guideId);
+
+  void updateCoursePlace(String courseId, List<String> placeIds);
 }

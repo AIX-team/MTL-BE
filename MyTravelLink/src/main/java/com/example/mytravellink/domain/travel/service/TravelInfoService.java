@@ -10,6 +10,8 @@ public interface TravelInfoService {
   TravelInfo getTravelInfo(String travelId);
 
   List<Place> getTravelInfoPlace(String travelInfoId);
+
+  void updateTravelInfo(String travelInfoId, String travelInfoTitle, Integer travelDays);
   
 }
 

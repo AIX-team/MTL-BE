@@ -94,6 +94,7 @@ CREATE TABLE place (
     image VARCHAR(500) COMMENT '이미지 URL',
     latitude DECIMAL(10, 8) NOT NULL COMMENT '위도 좌표값',
     longitude DECIMAL(11, 8) NOT NULL COMMENT '경도 좌표값',
+    open_hours VARCHAR(255) COMMENT '오픈 시간',
     create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
     update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
     PRIMARY KEY (id)

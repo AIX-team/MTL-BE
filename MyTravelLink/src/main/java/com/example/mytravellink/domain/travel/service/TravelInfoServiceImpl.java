@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
@@ -50,10 +51,19 @@ public class TravelInfoServiceImpl implements TravelInfoService {
     }
 
     for (String placeId : placeIdList) {
-      placeList.add(placeRepository.findById(placeId).orElse(null));
+      placeList.add(placeRepository.findById(UUID.fromString(placeId)).orElse(null));
     }
 
     return placeList;
   }
-  
+
+  /**
+   * 여행정보 ID 기준 여행정보 수정
+   * 제목, 여행일 수정
+   * @param travelInfoId
+   * @param travelInfoUpdateTitleAndTravelDaysRequest
+   */
+  public void updateTravelInfo(String travelInfoId, String travelInfoTitle, Integer travelDays) {
+    travelInfoRepository.updateTravelInfo(travelInfoId, travelInfoTitle, travelDays);
+  }
 }

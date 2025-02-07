@@ -38,7 +38,7 @@ public class UrlPlace extends BaseTimeEntity {
     
     @MapsId("pid")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "place_id")
+    @JoinColumn(name = "place_id", columnDefinition = "CHAR(36)")
     private Place place;
     
     @Builder

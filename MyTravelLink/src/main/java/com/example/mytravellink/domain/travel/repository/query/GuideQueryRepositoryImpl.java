@@ -12,8 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 @Repository
+@RequiredArgsConstructor
 public class GuideQueryRepositoryImpl implements GuideQueryRepository {
   
   private final JPAQueryFactory queryFactory;

@@ -2,6 +2,7 @@ package com.example.mytravellink.domain.url.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -35,7 +36,7 @@ public class UrlServiceImpl implements UrlService {
     List<String> placeIdList = urlPlaceRepository.findByUrlId(urlId);
     List<Place> placeList = new ArrayList<>();
     for (String placeId : placeIdList) {
-      placeList.add(placeRepository.findById(placeId).get());
+      placeList.add(placeRepository.findById(UUID.fromString(placeId)).get());
     }
     return placeList;
   }

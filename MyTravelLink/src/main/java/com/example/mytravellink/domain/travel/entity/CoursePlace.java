@@ -36,7 +36,7 @@ public class CoursePlace extends BaseTimeEntity {
     
     @MapsId("placeId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "place_id")
+    @JoinColumn(name = "place_id", columnDefinition = "CHAR(36)")
     private Place place;
     
     @MapsId("courseId")
@@ -49,7 +49,7 @@ public class CoursePlace extends BaseTimeEntity {
     
     @Builder
     public CoursePlace(Place place, Course course, int placeNum) {
-        this.id = new CoursePlaceId(place.getId(), course.getId());
+        this.id = new CoursePlaceId(course.getId(), place.getId());
         this.place = place;
         this.course = course;
         this.placeNum = placeNum;

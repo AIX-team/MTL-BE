@@ -46,8 +46,8 @@ public class UserServiceImpl {
 
     @Transactional(readOnly = true)
     public List<UsersSearchTerm> getRecentSearches(String email) {
-        Users user = usersRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        // Users user = usersRepository.findByEmail(email)
+        //     .orElseThrow(() -> new RuntimeException("User not found"));
             
         return usersRepository.findSearchTermsByEmailOrderByCreateAtAsc(email);
     }

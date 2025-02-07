@@ -37,7 +37,7 @@ import java.util.List;
 public class TravelInfo extends BaseTimeEntity {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
+    @GeneratedValue(strategy = GenerationType.UUID)  // UUID 사용
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)

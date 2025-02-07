@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.EqualsAndHashCode;
 import java.io.Serializable;
+import java.util.UUID;
 
 @Embeddable
 @Getter
@@ -18,11 +19,11 @@ public class TravelInfoPlaceId implements Serializable {
     @Column(name = "travel_info_id", columnDefinition = "VARCHAR(36)")
     private String tId;
     
-    @Column(name = "place_id")
-    private String pId;
+    @Column(name = "place_id", columnDefinition = "CHAR(36)")
+    private UUID pId;
     
     @Builder
-    public TravelInfoPlaceId(String travelInfoId, String placeId) {
+    public TravelInfoPlaceId(String travelInfoId, UUID placeId) {
         this.tId = travelInfoId;
         this.pId = placeId;
     }

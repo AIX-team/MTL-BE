@@ -22,8 +22,8 @@ public class UrlQueryRepositoryImpl implements UrlQueryRepository {
   @Override
   public List<Url> findAllByEmailId(String emailId) {
     return queryFactory.selectFrom(url)
-      .join(url.userUrls)
-      .where(url.userUrls.any().user.email.eq(emailId))
+      .join(url.usersUrls)
+      .where(url.usersUrls.any().user.email.eq(emailId))
       .fetch();
   }
 }
