@@ -26,7 +26,7 @@ import io.jsonwebtoken.Claims;
 @RequestMapping("/user")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("isAuthenticated()") 
 public class UserController {
 
     private final UserServiceImpl userService;

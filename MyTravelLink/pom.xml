@@ -62,12 +62,14 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- MySQL Connector dependency for database connectivity -->
+		<!-- MySQL Connector dependency for database connectivity runtime -->
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+
+		
 
 		<!-- Spring Boot Starter Test for unit and integration testing -->
 		<dependency>
