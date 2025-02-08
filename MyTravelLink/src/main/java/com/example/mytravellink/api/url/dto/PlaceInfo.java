@@ -1,5 +1,6 @@
 package com.example.mytravellink.api.url.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -12,6 +13,8 @@ import java.util.Map;
 @Getter
 @Setter
 @ToString
+@JsonIgnoreProperties(ignoreUnknown = true)
+
 public class PlaceInfo {
     private String name;
 
@@ -29,7 +32,8 @@ public class PlaceInfo {
     private Integer priceLevel; // Optional 처리
 
     @JsonProperty("opening_hours")
-    private List<String> openingHours;
+    private List<String> open_hours;
+
     private List<PlacePhoto> photos; // PlacePhoto DTO 필요
 
     @JsonProperty("best_review")

@@ -1,8 +1,6 @@
 package com.example.mytravellink.domain.url.service;
 
-import com.example.mytravellink.api.url.dto.PlaceInfo;
-import com.example.mytravellink.api.url.dto.UrlRequest;
-import com.example.mytravellink.api.url.dto.UrlResponse;
+import com.example.mytravellink.api.url.dto.*;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.url.entity.Url;
@@ -12,10 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+
+import java.util.*;
 
 @Service
 public class UrlServiceImpl implements UrlService {
@@ -74,15 +70,23 @@ public class UrlServiceImpl implements UrlService {
       for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
         Place place = placeRepository.findByTitle(placeInfo.getName())
                 .orElseGet(() -> {
+
+                  // ✅ opening_hours가 빈 리스트이거나 null이면 null로 변환
+                  String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
+                          .filter(list -> !list.isEmpty() && list.stream().anyMatch(str -> !str.isBlank()))
+                          .map(Object::toString)
+                          .orElse(null);
+
+
                   Place newPlace = Place.builder()
                           .title(placeInfo.getName())
                           .description(placeInfo.getDescription())
                           .address(placeInfo.getFormattedAddress()) // 주소 필드
-                          .image(placeInfo.getPhotos().toString()) // 이미지 필드 (필요한 경우)
+                          .image(placeInfo.getPhotos().toString()!= null ? placeInfo.getPhotos().toString() : null) // 이미지 필드 (필요한 경우)
                           .phone(placeInfo.getPhone()) // 전화번호
                           .website(placeInfo.getWebsite()) // 웹사이트
                           .rating(placeInfo.getRating()) // 평점
-                          .openHours(placeInfo.getOpeningHours().toString())  // 시작 시간
+                          .openHours(openHours)  // 시작 시간
                           .build();
                   return placeRepository.save(newPlace);
                 });
