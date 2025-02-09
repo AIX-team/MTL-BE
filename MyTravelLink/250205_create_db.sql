@@ -158,3 +158,5 @@ CREATE INDEX idx_place_location ON place(latitude, longitude);
 CREATE INDEX idx_travel_info_bookmark ON travel_info(bookmark);
 CREATE INDEX idx_guide_bookmark ON guide(bookmark);
 CREATE INDEX idx_place_title ON place(title);
+
+ALTER TABLE place MODIFY open_hours TEXT NULL;
