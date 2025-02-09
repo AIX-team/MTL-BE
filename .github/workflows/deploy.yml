@@ -27,6 +27,7 @@ jobs:
           SPRING_DATASOURCE_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Verify Maven Build  # 빌드 결과 확인 (target 디렉토리 파일 목록 출력)
         run: ls -la target/
@@ -73,6 +74,7 @@ jobs:
               -e MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }} \
               -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
               -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
               yuchankim/api-mytravellink:latest
 
 defaults:
