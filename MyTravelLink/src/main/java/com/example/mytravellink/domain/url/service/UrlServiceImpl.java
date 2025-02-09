@@ -4,6 +4,8 @@ import com.example.mytravellink.api.url.dto.*;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.url.entity.Url;
+import com.example.mytravellink.domain.url.entity.UrlPlace;
+import com.example.mytravellink.domain.url.repository.UrlPlaceRepository;
 import com.example.mytravellink.domain.url.repository.UrlRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -19,14 +21,16 @@ public class UrlServiceImpl implements UrlService {
   private final PlaceRepository placeRepository;
   private final RestTemplate restTemplate;
   private final UrlRepository urlRepository;
+  private final UrlPlaceRepository urlPlaceRepository;
 
   @Value("${ai.server.url}")  // application.yml에서 설정
   private String fastAPiUrl;
 
-  public UrlServiceImpl(RestTemplate restTemplate, UrlRepository urlRepository, PlaceRepository placeRepository) {
+  public UrlServiceImpl(RestTemplate restTemplate, UrlRepository urlRepository, PlaceRepository placeRepository, UrlPlaceRepository urlPlaceRepository) {
     this.restTemplate = restTemplate;
     this.urlRepository = urlRepository;
     this.placeRepository = placeRepository;
+    this.urlPlaceRepository = urlPlaceRepository;
   }
 
   @Override
@@ -82,7 +86,7 @@ public class UrlServiceImpl implements UrlService {
                           .title(placeInfo.getName())
                           .description(placeInfo.getDescription())
                           .address(placeInfo.getFormattedAddress()) // 주소 필드
-                          .image(placeInfo.getPhotos().toString()!= null ? placeInfo.getPhotos().toString() : null) // 이미지 필드 (필요한 경우)
+                          .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null) // 이미지 필드 (필요한 경우)
                           .phone(placeInfo.getPhone()) // 전화번호
                           .website(placeInfo.getWebsite()) // 웹사이트
                           .rating(placeInfo.getRating()) // 평점
@@ -90,6 +94,13 @@ public class UrlServiceImpl implements UrlService {
                           .build();
                   return placeRepository.save(newPlace);
                 });
+
+        // 6. Url과 Place를 연결하는 UrlPlace 저장
+        UrlPlace urlPlace = UrlPlace.builder()
+                .url(newUrl)
+                .place(place)
+                .build();
+        urlPlaceRepository.save(urlPlace);
       }
     }
     return urlResponse;
