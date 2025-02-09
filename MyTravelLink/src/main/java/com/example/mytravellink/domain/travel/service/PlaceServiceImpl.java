@@ -1,8 +1,6 @@
 package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -36,8 +34,7 @@ public class PlaceServiceImpl implements PlaceService {
    */
   @Override
   public Place findById(String id) {
-    return placeRepository.findById(UUID.fromString(id))
-      .orElseThrow(() -> new IllegalArgumentException("Place not found"));
+    return placeRepository.findById(id).orElseThrow(() -> new RuntimeException("Place not found"));
   }
 
 
@@ -49,10 +46,7 @@ public class PlaceServiceImpl implements PlaceService {
    */
   @Override
   public AIGuideCourseResponse getAIGuideCourse(List<String> placeIds, int dayNum) {
-    List<UUID> uuidList = placeIds.stream()
-      .map(id -> UUID.fromString(id))
-      .collect(Collectors.toList());
-    List<Place> placeList = placeRepository.findByIds(uuidList);
+    List<Place> placeList = placeRepository.findByIds(placeIds);
     AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
       .placeList(placeList)
       .dayNum(dayNum)
@@ -68,10 +62,7 @@ public class PlaceServiceImpl implements PlaceService {
   @Override
   public TravelInfoPlaceResponse getAISelectPlace(String travelInfoId, int travelDays) {
     List<String> placeIdList = travelInfoPlaceRepository.findByTravelInfoId(travelInfoId);
-    List<UUID> uuidList = placeIdList.stream()
-      .map(id -> UUID.fromString(id))
-      .collect(Collectors.toList());
-    List<Place> placeList = placeRepository.findByIds(uuidList);
+    List<Place> placeList = placeRepository.findByIds(placeIdList);
 
     // AI 장소 선택
     try {
@@ -98,10 +89,7 @@ public class PlaceServiceImpl implements PlaceService {
    */
   @Override
   public List<Place> getPlacesByIds(List<String> placeIds) {
-    List<UUID> uuidList = placeIds.stream()
-      .map(id -> UUID.fromString(id))
-      .collect(Collectors.toList());
-    return placeRepository.findByIds(uuidList);
+    return placeRepository.findByIds(placeIds);
   }
 }
 

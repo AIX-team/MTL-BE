@@ -248,7 +248,7 @@ public class TravelInfoController {
     public ResponseEntity<GuideBookResponse> guideInfo(@PathVariable String guideId) {
         try {
             Guide guide = guideService.getGuide(guideId);
-            TravelInfo travelInfo = guideService.getTravelInfo(guideId);
+            TravelInfo travelInfo = guideService.getTravelInfo(guide.getTravelInfo().getId());
             List<GuideBookResponse.CourseList> courseListResp = courseService.getCoursePlace(guideId);
 
         GuideBookResponse guideBookResponse = GuideBookResponse.builder()

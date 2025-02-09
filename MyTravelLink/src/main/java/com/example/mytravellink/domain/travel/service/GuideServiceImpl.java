@@ -1,7 +1,5 @@
 package com.example.mytravellink.domain.travel.service;
 
-import java.util.UUID;
-
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
@@ -13,6 +11,7 @@ import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
 import com.example.mytravellink.domain.travel.repository.CourseRepository;
 import com.example.mytravellink.domain.travel.repository.GuideRepository;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
+import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +24,7 @@ public class GuideServiceImpl implements GuideService {
   private final CourseRepository courseRepository;
   private final CoursePlaceRepository coursePlaceRepository;
   private final PlaceRepository placeRepository;
+  private final TravelInfoRepository travelInfoRepository;
 
   /**
    * Guide 조회
@@ -57,7 +57,7 @@ public class GuideServiceImpl implements GuideService {
                     for (AIGuideCourseResponse.CourseDTO.PlaceDTO placeResp : courseResp.getPlaces()) {
                         CoursePlace coursePlace = CoursePlace.builder()
                             .course(savedCourse)
-                            .place(placeRepository.findById(UUID.fromString(placeResp.getPlaceId())).orElseThrow(() -> new RuntimeException("Place not found")))
+                            .place(placeRepository.findById(placeResp.getPlaceId()).orElseThrow(() -> new RuntimeException("Place not found")))
                             .placeNum(placeResp.getPlaceNum())
                             .build();
                         saveCoursePlace(coursePlace);
@@ -108,7 +108,7 @@ public class GuideServiceImpl implements GuideService {
    * @return TravelInfo
    */
   @Override
-  public TravelInfo getTravelInfo(String guideId) {
-    return guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found")).getTravelInfo();
+  public TravelInfo getTravelInfo(String travelInfoId) {
+    return travelInfoRepository.findById(travelInfoId).orElseThrow(() -> new RuntimeException("TravelInfo not found"));
   } 
 }
