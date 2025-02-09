@@ -37,6 +37,7 @@ public class UserController {
         return "travel/info";
     }
 
+    // 최근 검색어 조회
     @GetMapping("/search/recent")
     public ResponseEntity<?> getRecentSearches(@RequestHeader("Authorization") String token) {
         try {
