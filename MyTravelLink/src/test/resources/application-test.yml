@@ -1,0 +1,17 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${OAUTH2_GOOGLE_CLIENT_ID:your_test_client_id}
+            client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET:your_test_client_secret}
+            redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:http://localhost:3000/loginSuccess}
+
+jwt:
+  secret: ${JWT_SECRET:your_test_jwt_secret}
+  expiration-time: ${JWT_EXPIRATION_TIME:86400000}  # 기본값 86400000 (24시간)
+
+ai:
+  server:
+    url: ${AI_SERVER_URL:http://localhost:8000} 
