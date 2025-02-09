@@ -7,12 +7,15 @@ import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.entity.UrlPlace;
 import com.example.mytravellink.domain.url.repository.UrlPlaceRepository;
 import com.example.mytravellink.domain.url.repository.UrlRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Service
@@ -41,10 +44,50 @@ public class UrlServiceImpl implements UrlService {
 
     // 2. 기존 데이터가 있으면 해당 데이터로 반환
     if (existingData.isPresent()) {
+      Url url = existingData.get();
+      ObjectMapper objectMapper = new ObjectMapper();
+
+      List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
+              .map(urlPlace -> {
+                Place place = urlPlace.getPlace();
+
+                // 🔹 이미지 변환
+                List<PlacePhoto> images;
+                try {
+                  images = place.getImage() != null
+                          ? objectMapper.readValue(place.getImage(), new TypeReference<List<PlacePhoto>>() {})
+                          : Collections.emptyList();
+                } catch (Exception e) {
+                  images = Collections.emptyList();
+                }
+
+                // 🔹 영업시간 변환
+                List<String> openHours;
+                try {
+                  openHours = place.getOpenHours() != null
+                          ? objectMapper.readValue(place.getOpenHours(), new TypeReference<List<String>>() {})
+                          : Collections.emptyList();
+                } catch (Exception e) {
+                  openHours = Collections.emptyList();
+                }
+
+                return new PlaceInfo(
+                        place.getTitle(),
+                        place.getDescription(),
+                        place.getAddress(),
+                        images,  // ✅ JSON 변환된 이미지 리스트 적용
+                        place.getPhone(),
+                        place.getWebsite(),
+                        place.getRating(),
+                        openHours  // ✅ JSON 변환된 영업시간 리스트 적용
+                );
+              })
+              .toList();
+
       return UrlResponse.builder()
-              .contentInfos(Collections.emptyList()) // 필요에 따라 빈 리스트로 초기화
-              .placeDetails(Collections.emptyList()) // 필요에 따라 빈 리스트로 초기화
-              .processingTimeSeconds(0) // 초기값 설정
+              .contentInfos(Collections.emptyList())
+              .placeDetails(placeInfoList)
+              .processingTimeSeconds(0)
               .build();
     }
 
