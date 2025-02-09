@@ -28,7 +28,7 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_EXPIRATION_TIME: ${{ secrets.JWT_EXPIRATION_TIME }}   # 또는 86400000
+          JWT_EXPIRATION_TIME: 86400000   # 기본값 24시간 (밀리초)
           OAUTH2_GOOGLE_CLIENT_ID: ${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }}
           OAUTH2_GOOGLE_CLIENT_SECRET: ${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }}
           OAUTH2_GOOGLE_REDIRECT_URI: ${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }}
@@ -62,12 +62,12 @@ jobs:
               -p 9000:9000 \
               -v /home/***/upload:/app/upload \
               -e SPRING_PROFILES_ACTIVE=prod \
-              -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
-              -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} \
-              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+              -e MYSQL_URL=${{ secrets.MYSQL_URL }} \
+              -e MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }} \
+              -e MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
               -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} \
               -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-              -e JWT_EXPIRATION_TIME=${{ secrets.JWT_EXPIRATION_TIME }} \
+              -e JWT_EXPIRATION_TIME=86400000 \
               -e OAUTH2_GOOGLE_CLIENT_ID=${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }} \
               -e OAUTH2_GOOGLE_CLIENT_SECRET=${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }} \
               -e OAUTH2_GOOGLE_REDIRECT_URI=${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }} \
