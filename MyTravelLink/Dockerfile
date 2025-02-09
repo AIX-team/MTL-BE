@@ -1,11 +1,14 @@
-# JDK 17 베이스 이미지 사용
-FROM openjdk:17
+# OpenJDK 17 기반 이미지 사용 (예: alpine 버전)
+FROM openjdk:17-jdk-alpine
 
-# 컨테이너 내부에서 애플리케이션 파일을 저장할 디렉토리 생성
+# 컨테이너 내부 작업 디렉토리 설정
 WORKDIR /app
 
-# 빌드된 jar 파일을 컨테이너의 /app 디렉토리로 복사
+# Maven 빌드 후 생성된 jar 파일 복사
 COPY target/api-mytravellink-0.0.1-SNAPSHOT.jar /app/api-mytravellink.jar
 
-# 컨테이너가 시작될 때 실행될 명령어 설정
+# 애플리케이션이 9000 포트에서 실행되도록 설정 (application-prod.yml의 server.port가 9000이면)
+EXPOSE 9000
+
+# 애플리케이션 실행
 ENTRYPOINT ["java", "-jar", "/app/api-mytravellink.jar"]
