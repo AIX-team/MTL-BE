@@ -22,7 +22,7 @@ jobs:
       - name: Build with Maven
         run: mvn clean package
         env:
-          SPRING_PROFILES_ACTIVE: prod
+          SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: ${{ secrets.MYSQL_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
@@ -61,7 +61,7 @@ jobs:
             sudo docker run -d --name api-mytravellink \
               -p 9000:9000 \
               -v /home/***/upload:/app/upload \
-              -e SPRING_PROFILES_ACTIVE=prod \
+              -e SPRING_PROFILES_ACTIVE=test \
               -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
               -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} \
               -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
