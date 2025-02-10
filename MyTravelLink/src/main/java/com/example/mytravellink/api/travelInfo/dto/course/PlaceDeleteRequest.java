@@ -13,7 +13,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CoursePlaceRequest {
-  private String id;
+public class PlaceDeleteRequest {
+  private String courseId;
   private List<String> placeIds;
 }
+
