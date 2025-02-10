@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookTitleEditRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
@@ -207,18 +208,21 @@ public class TravelInfoController {
      * @param PlaceSelectRequest
      * @return
      */
-    @PostMapping("/guides")
+    @PostMapping("/guidebook")
     public ResponseEntity<String> createGuide(
         @RequestBody PlaceSelectRequest placeSelectRequst) {
         try {
+            int travelInfoPlaceCnt = travelInfoService.getPlaceCnt(placeSelectRequst.getTravelInfoId());
+            String title = "여행 가이드";
             Guide guide = Guide.builder()
                 .travelInfo(travelInfoService.getTravelInfo(placeSelectRequst.getTravelInfoId()))
-                .title(placeSelectRequst.getTitle())
+                .title(title + " " + travelInfoPlaceCnt)
                 .travelDays(placeSelectRequst.getTravelDays())
                 .courseCount(placeSelectRequst.getTravelDays())
                 .bookmark(false)
                 .fixed(false)
                 .isDelete(false)
+                .planTypes(placeSelectRequst.getTravelTaste())
                 .build();
 
             // AI 가이드 코스 생성
@@ -268,5 +272,15 @@ public class TravelInfoController {
         }
     }
     
+    /**
+     * 가이드 북 제목 수정
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/title")
+    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody GuideBookTitleEditRequest request) {
+        guideService.updateGuideBookTitle(guideId, request.getTitle());
+        return new ResponseEntity<>("success", HttpStatus.OK);
+    }
 }
 

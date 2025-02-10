@@ -65,4 +65,12 @@ public class TravelInfoServiceImpl implements TravelInfoService {
   public void updateTravelInfo(String travelInfoId, String travelInfoTitle, Integer travelDays) {
     travelInfoRepository.updateTravelInfo(travelInfoId, travelInfoTitle, travelDays);
   }
+
+  /**
+   * 여행정보 ID 기준 장소 수 조회
+   * @param travelInfoId
+   * 
+   * @return int 
+   */
+  public int getPlaceCnt(String travelInfoId) {return travelInfoPlaceRepository.getPlaceCnt(travelInfoId);}
 }

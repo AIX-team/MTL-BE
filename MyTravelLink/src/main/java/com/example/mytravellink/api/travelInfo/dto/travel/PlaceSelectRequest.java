@@ -9,7 +9,7 @@ import lombok.Data;
 @Builder
 public class PlaceSelectRequest {
   private String travelInfoId;
-  private String title;
   private Integer travelDays;
+  private String travelTaste;
   private List<String> placeIds;
 }
