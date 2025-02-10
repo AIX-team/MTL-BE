@@ -1,6 +1,11 @@
 package com.example.mytravellink.domain.url.service;
 
-import com.example.mytravellink.api.url.dto.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.url.entity.Url;
@@ -25,13 +30,6 @@ public class UrlServiceImpl implements UrlService {
 
   @Value("${ai.server.url}")  // application.yml에서 설정
   private String fastAPiUrl;
-
-  public UrlServiceImpl(RestTemplate restTemplate, UrlRepository urlRepository, PlaceRepository placeRepository, UrlPlaceRepository urlPlaceRepository) {
-    this.restTemplate = restTemplate;
-    this.urlRepository = urlRepository;
-    this.placeRepository = placeRepository;
-    this.urlPlaceRepository = urlPlaceRepository;
-  }
 
   @Override
   public UrlResponse processUrl(UrlRequest urlRequest) {

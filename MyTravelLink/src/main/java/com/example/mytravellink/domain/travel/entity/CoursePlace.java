@@ -46,6 +46,9 @@ public class CoursePlace extends BaseTimeEntity {
     
     @Column(name = "place_num", nullable = false)
     private int placeNum;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted;
     
     @Builder
     public CoursePlace(Place place, Course course, int placeNum) {
@@ -53,5 +56,6 @@ public class CoursePlace extends BaseTimeEntity {
         this.place = place;
         this.course = course;
         this.placeNum = placeNum;
+        this.isDeleted = false;
     }
 } 
