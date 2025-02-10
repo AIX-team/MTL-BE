@@ -13,4 +13,6 @@ public interface UrlPlaceRepository extends JpaRepository<UrlPlace, UrlPlaceId> 
 
   @Query("SELECT p.place.id FROM UrlPlace p WHERE p.url.id = :urlId")
   List<String> findByUrlId(@Param("urlId") String urlId);
+
+    List<UrlPlace> findByUrl_Id(String urlId);
 }

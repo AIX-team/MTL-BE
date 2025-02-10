@@ -13,6 +13,7 @@ import java.util.Map;
 @Getter
 @Setter
 @ToString
+@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 
 public class PlaceInfo {
@@ -42,4 +43,15 @@ public class PlaceInfo {
     @JsonProperty("google_info")
     private Map<String, Object> googleInfo; // Map으로 처리
 
+    public PlaceInfo(String name, String description, String formattedAddress,
+                     List<PlacePhoto> photos, String phone, String website, BigDecimal rating, List<String> open_hours) {
+        this.name = name;
+        this.description = description;
+        this.formattedAddress = formattedAddress;
+        this.photos = photos; // ✅ 리스트 사용
+        this.phone = phone;
+        this.website = website;
+        this.rating = rating;
+        this.open_hours = open_hours; // ✅ 리스트 사용
+    }
 }
