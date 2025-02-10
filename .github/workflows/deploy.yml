@@ -1,63 +1,78 @@
-name: Deploy mysite App
+name: Deploy my travel link website
 
 on:
   push:
     branches:
-      - dev # 'dev' 브랜치로 push될 때 워크플로우 트리거
+      - dev
 
 jobs:
-  build-and-deploy:  # 첫 번째 작업: 빌드 및 배포
-    runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code  # 단계 이름: 'Checkout code (소스 가져오기)'
-        uses: actions/checkout@v3  # GitHub의 checkout@v3 액션 사용
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up JDK 17  # 단계 이름: 'Set up JDK 17 (JDK 17 설치)'
-        uses: actions/setup-java@v2  # GitHub의 setup-java@v2 액션 사용
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
         with:
-          java-version: '17'  # Java 버전 17 설정
-          distribution: 'temurin'  # 'temurin' OpenJDK 배포판 사용
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Build with Maven  # 단계 이름: 'Build with Maven (Maven 빌드)'
-        run: mvn clean package  # Maven 빌드 명령어 실행
+      - name: Build with Maven
+        run: mvn clean package
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: ${{ secrets.MYSQL_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.MYSQL_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION_TIME: ${{ secrets.JWT_EXPIRATION_TIME }}  # 예: 86400000
+          OAUTH2_GOOGLE_CLIENT_ID: ${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }}
+          OAUTH2_GOOGLE_CLIENT_SECRET: ${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }}
+          OAUTH2_GOOGLE_REDIRECT_URI: ${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }}
 
-      - name: Verify Maven Build  # 단계 이름: 'Verify Maven Build (Maven 빌드 확인)'
-        run: ls -la target/  # Maven 빌드 후 'target' 디렉토리의 파일 목록 출력
+      - name: Build Docker image
+        run: docker build -t yuchankim/api-mytravellink:latest .
 
-      - name: Show current directory  # 단계 이름: 'Show current directory (현재 디렉토리 확인)'
-        run: pwd  # 현재 디렉토리 출력
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: List all files  # 단계 이름: 'List all files (모든 파일 목록 출력)'
-        run: ls -la  # 현재 디렉토리의 모든 파일 목록 출력
+      - name: Push Docker image to Docker Hub
+        run: docker push yuchankim/api-mytravellink:latest
 
-      - name: Build Docker image  # 단계 이름: 'Build Docker image (도커 이미지 빌드)'
-        run: docker build -t yuchankim/api-mytravellink:latest .  # 도커 이미지 빌드 및 태그 지정
-
-      - name: Log in to Docker Hub  # 단계 이름: 'Log in to Docker Hub (도커허브 로그인)'
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin  # GitHub Secrets를 사용하여 도커허브 로그인
-
-      - name: Push Docker image to Docker Hub  # 단계 이름: 'Push Docker image to Docker Hub (도커 이미지 푸시)'
-        run: docker push yuchankim/api-mytravellink:latest  # 도커 이미지 도커허브로 푸시
-
-  SSH:  # 두 번째 작업: SSH
-    needs: build-and-deploy  # 첫 번째 작업 완료 후 실행
-    runs-on: ubuntu-latest  # 최신 우분투 환경에서 실행
+  SSH:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code  # 단계 이름: 'Checkout code (소스 가져오기)'
-        uses: actions/checkout@v3  # GitHub의 checkout@v3 액션 사용
-
-      - name: SSH to EC2  # 단계 이름: 'SSH to EC2 (EC2에 SSH로 접근)'
-        uses: appleboy/ssh-action@master  # master 브랜치 사용
+      - name: SSH to EC2
+        uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}  # EC2 서버의 IP (GitHub Secrets에 설정)
-          username: ${{ secrets.EC2_USERNAME }}  # EC2 서버의 사용자명 (GitHub Secrets에 설정)
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # SSH 개인 키 (GitHub Secrets에 설정)
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            sudo mkdir -p /home/***/upload  # 업로드 디렉토리 생성
-            sudo docker pull yuchankim/api-mytravellink:latest  # 최신 도커 이미지 풀
-            sudo docker stop api-mytravellink || true  # 기존 컨테이너 중지 (존재하지 않으면 무시)
-            sudo docker rm api-mytravellink || true  # 기존 컨테이너 제거 (존재하지 않으면 무시)
-            sudo docker run -d --name api-mytravellink -p 9000:9000 -v /home/***/upload:/app/upload yuchankim/api-mytravellink:latest  # 도커 컨테이너 실행
-          
+            sudo mkdir -p /home/***/upload
+            sudo docker pull yuchankim/api-mytravellink:latest
+            sudo docker stop api-mytravellink || true
+            sudo docker rm api-mytravellink || true
+            sudo docker run -d --name api-mytravellink \
+              -p 9000:9000 \
+              -v /home/***/upload:/app/upload \
+              -e SPRING_PROFILES_ACTIVE=test \
+              -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
+              -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} \
+              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+              -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e JWT_EXPIRATION_TIME=${{ secrets.JWT_EXPIRATION_TIME }} \
+              -e OAUTH2_GOOGLE_CLIENT_ID=${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }} \
+              -e OAUTH2_GOOGLE_CLIENT_SECRET=${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }} \
+              -e OAUTH2_GOOGLE_REDIRECT_URI=${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }} \
+              yuchankim/api-mytravellink:latest
+
+defaults:
+  run:
+    working-directory: ./MyTravelLink

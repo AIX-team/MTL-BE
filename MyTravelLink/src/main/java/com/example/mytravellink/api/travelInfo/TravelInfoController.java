@@ -1,3 +1,4 @@
+
 package com.example.mytravellink.api.travelInfo;
 
 import java.util.List;

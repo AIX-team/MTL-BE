@@ -26,7 +26,7 @@ import io.jsonwebtoken.Claims;
 @RequestMapping("/user")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("isAuthenticated()")
+@PreAuthorize("isAuthenticated()") 
 public class UserController {
 
     private final UserServiceImpl userService;
@@ -37,6 +37,7 @@ public class UserController {
         return "travel/info";
     }
 
+    // 최근 검색어 조회   
     @GetMapping("/search/recent")
     public ResponseEntity<?> getRecentSearches(@RequestHeader("Authorization") String token) {
         try {

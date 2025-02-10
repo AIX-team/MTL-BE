@@ -63,7 +63,14 @@ public class Place extends BaseTimeEntity {
     private String intro;
 
     private String type;
+
     private String image;
+
+    private String phone;
+
+    private BigDecimal rating;
+
+    private String website;
 
     @Column(columnDefinition = "DECIMAL(10,8)")
     private BigDecimal latitude;
@@ -75,14 +82,18 @@ public class Place extends BaseTimeEntity {
     private String openHours;
 
     @Builder
-    public Place(String address, String title, String description, String type,
-                String image, BigDecimal latitude, BigDecimal longitude) {
+    public Place(String address, String title, String description, String type, String phone,
+                String image, BigDecimal latitude, BigDecimal longitude,BigDecimal rating, String website, String openHours ) {
         this.address = address;
         this.title = title;
         this.description = description;
         this.type = type;
+        this.phone = phone;
         this.image = image;
+        this.rating = rating;
+        this.website = website;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.openHours = openHours;
     }
 } 
