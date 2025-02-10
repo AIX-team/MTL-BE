@@ -12,4 +12,7 @@ public interface TravelInfoPlaceRepository extends JpaRepository<TravelInfoPlace
 
   @Query("SELECT tip.place.id FROM TravelInfoPlace tip WHERE tip.travelInfo.id = :travelInfoId")
   List<String> findByTravelInfoId(String travelInfoId);  
+
+  @Query("SELECT COUNT(tip) FROM TravelInfoPlace tip WHERE tip.travelInfo.id = :travelInfoId")
+  int getPlaceCnt(String travelInfoId);
 }

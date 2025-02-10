@@ -208,18 +208,21 @@ public class TravelInfoController {
      * @param PlaceSelectRequest
      * @return
      */
-    @PostMapping("/guides")
+    @PostMapping("/guidebook")
     public ResponseEntity<String> createGuide(
         @RequestBody PlaceSelectRequest placeSelectRequst) {
         try {
+            int travelInfoPlaceCnt = travelInfoService.getPlaceCnt(placeSelectRequst.getTravelInfoId());
+            String title = "여행 가이드";
             Guide guide = Guide.builder()
                 .travelInfo(travelInfoService.getTravelInfo(placeSelectRequst.getTravelInfoId()))
-                .title(placeSelectRequst.getTitle())
+                .title(title + " " + travelInfoPlaceCnt)
                 .travelDays(placeSelectRequst.getTravelDays())
                 .courseCount(placeSelectRequst.getTravelDays())
                 .bookmark(false)
                 .fixed(false)
                 .isDelete(false)
+                .planTypes(placeSelectRequst.getTravelTaste())
                 .build();
 
             // AI 가이드 코스 생성
