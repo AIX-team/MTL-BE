@@ -111,4 +111,16 @@ public class GuideServiceImpl implements GuideService {
   public TravelInfo getTravelInfo(String travelInfoId) {
     return travelInfoRepository.findById(travelInfoId).orElseThrow(() -> new RuntimeException("TravelInfo not found"));
   } 
+
+  /**
+   * 가이드 북 제목 수정
+   * @param guideId
+   * @param title
+   */
+  @Override
+  public void updateGuideBookTitle(String guideId, String title) {
+    Guide guide = guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found"));
+    guide.setTitle(title);
+    guideRepository.save(guide);
+  }
 }

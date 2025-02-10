@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookTitleEditRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
@@ -267,5 +268,15 @@ public class TravelInfoController {
         }
     }
     
+    /**
+     * 가이드 북 제목 수정
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/title")
+    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody GuideBookTitleEditRequest request) {
+        guideService.updateGuideBookTitle(guideId, request.getTitle());
+        return new ResponseEntity<>("success", HttpStatus.OK);
+    }
 }
 
