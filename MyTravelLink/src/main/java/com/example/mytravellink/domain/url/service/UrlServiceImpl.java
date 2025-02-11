@@ -4,6 +4,8 @@ import com.example.mytravellink.api.url.dto.*;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
+import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
+import com.example.mytravellink.domain.travel.entity.TravelInfoUrl;
 import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.entity.UrlPlace;
 import com.example.mytravellink.domain.url.repository.TravelInfoUrlRepository;
@@ -14,8 +16,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import java.util.*;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 @Service
 public class UrlServiceImpl implements UrlService {
@@ -25,16 +31,18 @@ public class UrlServiceImpl implements UrlService {
     private final UrlRepository urlRepository;
     private final UrlPlaceRepository urlPlaceRepository;
     private final TravelInfoUrlRepository travelInfoUrlRepository;
+    private final TravelInfoRepository travelInfoRepository;
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
 
-    public UrlServiceImpl(RestTemplate restTemplate, UrlRepository urlRepository, PlaceRepository placeRepository, UrlPlaceRepository urlPlaceRepository, TravelInfoUrlRepository travelInfoUrlRepository) {
+    public UrlServiceImpl(RestTemplate restTemplate, UrlRepository urlRepository, PlaceRepository placeRepository, UrlPlaceRepository urlPlaceRepository, TravelInfoUrlRepository travelInfoUrlRepository, TravelInfoRepository travelInfoRepository) {
         this.restTemplate = restTemplate;
         this.urlRepository = urlRepository;
         this.placeRepository = placeRepository;
         this.urlPlaceRepository = urlPlaceRepository;
         this.travelInfoUrlRepository = travelInfoUrlRepository;
+        this.travelInfoRepository = travelInfoRepository;
     }
 
     @Override
@@ -108,9 +116,9 @@ public class UrlServiceImpl implements UrlService {
 
             // 4. 새로운 URL 엔티티 저장
             Url newUrl = Url.builder()
-                    .url(urlRequest.getUrls())
                     .urlTitle(urlRequest.getUrls())
                     .urlAuthor(urlRequest.getUrls())
+                    .url(urlRequest.getUrls())
                     .build();
             urlRepository.save(newUrl);
 
@@ -150,9 +158,8 @@ public class UrlServiceImpl implements UrlService {
         return urlResponse;
     }
 
+    @Override
     public List<Url> findUrlByTravelInfoId(TravelInfo travelInfo) {
-
-        // 1.TravelInfo 가 null 인지 확인
         if(travelInfo == null) {
             return Collections.emptyList();
         }
@@ -169,6 +176,7 @@ public class UrlServiceImpl implements UrlService {
         return urlRepository.findByIdIn(urlIds);
     }
 
+    @Override
     public List<Place> findPlaceByUrlId(String urlId) {
 
         // 1. URL에 연결된 UrlPlace 리스트 조회
@@ -176,8 +184,85 @@ public class UrlServiceImpl implements UrlService {
 
         // 2. UrlPlace 에서 place 리스트 추출 후 반환
         return urlPlaces.stream()
-                .map(UrlPlace::getPlace) // UrlPlace 객체에서 Place 객체 추출
+                .map(UrlPlace::getPlace)
                 .toList();
     }
 
+    @Override
+    public void saveUrl(String travelInfoId, String url, String title, String author) {
+        Url newUrl = Url.builder()
+            .urlTitle(title)
+            .urlAuthor(author)
+            .url(url)
+            .build();
+        urlRepository.save(newUrl);
+        TravelInfo travelInfo = travelInfoRepository.findById(travelInfoId)
+            .orElseThrow(() -> new RuntimeException("TravelInfo not found"));
+        TravelInfoUrl travelInfoUrl = TravelInfoUrl.builder()
+            .travelInfo(travelInfo)
+            .url(newUrl)
+            .build();
+        travelInfoUrlRepository.save(travelInfoUrl);
+    }
+
+    /**
+     * 사용자 요청으로 URL을 저장하는 메서드.
+     * 생성된 URL의 ID는 SHA-512 해시 값을 사용합니다.
+     */
+    @Override
+    @Transactional
+    public void saveUserUrl(String email, UserUrlRequest request) {
+        String urlStr = request.getUrl();
+        String id = generateUrlId(urlStr);
+        Optional<Url> existingUrl = urlRepository.findById(id);
+        if (existingUrl.isEmpty()) {
+            Url newUrl = Url.builder()
+
+                    .url(urlStr)
+                    .urlTitle(request.getTitle())
+                    .urlAuthor(request.getAuthor())
+                    .build();
+            urlRepository.save(newUrl);
+        }
+    }
+
+    /**
+     * 사용자 요청으로 URL을 삭제하는 메서드.
+     * 해당 URL이 존재하면 삭제합니다.
+     */
+    @Override
+    @Transactional
+    public void deleteUserUrl(String email, String urlId) {
+        if (urlRepository.existsById(urlId)) {
+            urlRepository.deleteById(urlId);
+        }
+    }
+
+    /**
+     * URL 문자열을 입력받아 SHA-512 해시(16진수 문자열 128자리)를 생성하는 헬퍼 메서드
+     */
+    private String generateUrlId(String url) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
+            byte[] hash = digest.digest(url.getBytes(StandardCharsets.UTF_8));
+            BigInteger number = new BigInteger(1, hash);
+            StringBuilder hexString = new StringBuilder(number.toString(16));
+            while (hexString.length() < 128) {
+                hexString.insert(0, '0');
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-512 해시 생성 중 오류 발생", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteUserUrlByUrl(String email, String url) {
+        // 저장 시 사용했던 것과 동일한 SHA-512 해시 생성 로직을 사용
+        String id = generateUrlId(url);
+        if (urlRepository.existsById(id)) {
+            urlRepository.deleteById(id);
+        }
+    }
 }
