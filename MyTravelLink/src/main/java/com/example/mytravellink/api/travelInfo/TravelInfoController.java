@@ -26,6 +26,7 @@ import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.service.CourseServiceImpl;
 import com.example.mytravellink.domain.travel.service.GuideServiceImpl;
+import com.example.mytravellink.domain.travel.service.ImageService;
 import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
 import com.example.mytravellink.domain.url.entity.Url;
@@ -47,6 +48,8 @@ public class TravelInfoController {
     private final PlaceServiceImpl placeService;
     private final GuideServiceImpl guideService;
     private final CourseServiceImpl courseService;
+    private final ImageService imageService;
+
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
      * @param travelId
@@ -92,8 +95,10 @@ public class TravelInfoController {
     public ResponseEntity<TravelInfoPlaceResponse> travelInfoUrl(@PathVariable String urlId) {
         try {
             List<Place> urlPlaceList = urlService.findPlaceByUrlId(urlId);
+            //이미지 URL 리다이렉션
+            List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(urlPlaceList);
 
-            List<TravelInfoPlaceResponse.Place> placeResponseList = urlPlaceList.stream()
+            List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
                     .placeType(place.getType())
@@ -134,8 +139,10 @@ public class TravelInfoController {
             if (placeList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
+            //이미지 URL 리다이렉션
+            List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(placeList);
 
-            List<TravelInfoPlaceResponse.Place> placeResponseList = placeList.stream()
+            List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
                     .placeType(place.getType())
@@ -255,6 +262,8 @@ public class TravelInfoController {
             Guide guide = guideService.getGuide(guideId);
             TravelInfo travelInfo = guideService.getTravelInfo(guide.getTravelInfo().getId());
             List<GuideBookResponse.CourseList> courseListResp = courseService.getCoursePlace(guideId);
+            //이미지 URL 리다이렉션
+            List<GuideBookResponse.CourseList> imageUrlList = imageService.redirectImageUrl(courseListResp);
 
         GuideBookResponse guideBookResponse = GuideBookResponse.builder()
             .success("success")
@@ -263,7 +272,7 @@ public class TravelInfoController {
             .travelInfoTitle(travelInfo.getTitle()) 
             .travelInfoId(travelInfo.getId())
             .courseCnt(guide.getCourseCount())
-            .courses(courseListResp)
+            .courses(imageUrlList)
             .build();
 
             return new ResponseEntity<>(guideBookResponse, HttpStatus.OK);
