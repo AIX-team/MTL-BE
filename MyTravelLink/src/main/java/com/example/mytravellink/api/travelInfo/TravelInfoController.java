@@ -226,7 +226,7 @@ public class TravelInfoController {
                 .title(title + " " + travelInfoPlaceCnt)
                 .travelDays(placeSelectRequst.getTravelDays())
                 .courseCount(placeSelectRequst.getTravelDays())
-                .bookmark(false)
+                .isFavorite(false)
                 .fixed(false)
                 .isDelete(false)
                 .planTypes(placeSelectRequst.getTravelTaste())

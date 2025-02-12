@@ -21,7 +21,6 @@ import com.example.mytravellink.domain.url.service.UrlService;
 import com.example.mytravellink.domain.users.entity.UsersSearchTerm;
 import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
 import com.example.mytravellink.domain.users.service.UserService;
-import com.example.mytravellink.domain.url.service.YoutubeApiService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +41,6 @@ public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final UrlService urlService;
     private final UsersUrlRepository usersUrlRepository;
-    private final YoutubeApiService youtubeApiService;
 
     @GetMapping("/travel/info")
     public String travelInfo() {
@@ -158,14 +156,5 @@ public class UserController {
         }
     }
 
-    @GetMapping("/youtube/checkSubtitles")
-    public ResponseEntity<Boolean> checkYoutubeSubtitles(@RequestParam("videoId") String videoId) {
-        try {
-            boolean hasSubs = youtubeApiService.hasSubtitles(videoId);
-            return ResponseEntity.ok(hasSubs);
-        } catch (Exception e) {
-            log.error("자막 체크 오류", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
-        }
-    }
+    
 }

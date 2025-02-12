@@ -54,7 +54,7 @@ public class Guide extends BaseTimeEntity {
     private String title;
     
     private Integer travelDays;
-    private boolean bookmark;
+    private boolean isFavorite;
     private boolean fixed;
     private boolean isDelete;   
     
@@ -62,12 +62,12 @@ public class Guide extends BaseTimeEntity {
     private String planTypes;
     
     @Builder
-    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, boolean bookmark, boolean fixed, boolean isDelete, String planTypes) {
+    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, boolean isFavorite, boolean fixed, boolean isDelete, String planTypes) {
         this.travelInfo = travelInfo;
         this.title = title;
         this.travelDays = travelDays;
         this.courseCount = courseCount;
-        this.bookmark = bookmark;
+        this.isFavorite = isFavorite;
         this.fixed = fixed;
         this.isDelete = isDelete;
         this.planTypes = planTypes;

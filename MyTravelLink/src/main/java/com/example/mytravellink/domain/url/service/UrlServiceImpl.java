@@ -43,7 +43,6 @@ public class UrlServiceImpl implements UrlService {
     private final TravelInfoRepository travelInfoRepository;
     private final UsersRepository usersRepository;
     private final UsersUrlRepository usersUrlRepository;
-    private final YoutubeApiService youtubeApiService;
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
@@ -217,13 +216,7 @@ public class UrlServiceImpl implements UrlService {
     @Transactional
     public void saveUserUrl(String email, UserUrlRequest request) {
         String urlStr = request.getUrl();
-        // YouTube URL인 경우 자막 체크 수행
-        if (LinkDataResponse.determineType(urlStr).equals("youtube")) {
-            String videoId = extractYoutubeVideoId(urlStr);
-            if (!youtubeApiService.hasSubtitles(videoId)) {
-                throw new RuntimeException("자막이 없는 영상은 선택할 수 없습니다.");
-            }
-        }
+        
 
         // Url 테이블에서 기존 URL 엔티티 조회 또는 생성
         Url urlEntity = urlRepository.findById(generateUrlId(urlStr)).orElseGet(() -> {
