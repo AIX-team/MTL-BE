@@ -1,5 +1,7 @@
 package com.example.mytravellink.domain.travel.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
@@ -122,5 +124,16 @@ public class GuideServiceImpl implements GuideService {
     Guide guide = guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found"));
     guide.setTitle(title);
     guideRepository.save(guide);
+  }
+
+  /**
+   * 가이드 북 목록 조회
+   * @param userEmail
+   * @return List<Guide>
+   */
+  @Override
+  public List<Guide> getGuideList(String userEmail) {
+    List<String> travelInfoIdList = travelInfoRepository.findTravelInfoIdByUserEmail(userEmail);
+    return guideRepository.findByTravelInfoIdList(travelInfoIdList);
   }
 }

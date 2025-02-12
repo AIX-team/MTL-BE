@@ -19,5 +19,7 @@ public interface TravelInfoUrlRepository extends JpaRepository<TravelInfoUrl, Tr
   @Query("SELECT tu.url.id FROM TravelInfoUrl tu WHERE tu.travelInfo = :travelInfo")
   List<String> findUrlIdByTravelInfoId(@Param("travelInfo") TravelInfo travelInfo);
 
-  
+  @Query("SELECT tu.url.id FROM TravelInfoUrl tu WHERE tu.travelInfo.id = :travelInfoId")
+  List<String> findUrlIdByTravelInfoId(@Param("travelInfoId") String travelInfoId);
+
 }

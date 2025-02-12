@@ -18,5 +18,7 @@ public interface TravelInfoService {
   void updateFavorite(String travelInfoId, Boolean isFavorite);
 
   void updateFixed(String travelInfoId, Boolean fixed);
+
+  void deleteTravelInfo(String travelInfoId);
 }
 

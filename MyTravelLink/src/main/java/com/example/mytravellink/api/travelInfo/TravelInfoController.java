@@ -1,4 +1,3 @@
-
 package com.example.mytravellink.api.travelInfo;
 
 import java.util.ArrayList;
@@ -7,7 +6,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,9 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
-import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequst;
+import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
-import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookTitleEditRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.StringRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
@@ -193,6 +195,20 @@ public class TravelInfoController {
     }
 
     /**
+     * 여행정보 ID 기준 여행 정보 삭제
+     * @param travelInfoId
+     * @return
+     */
+    @DeleteMapping("/travelInfos/{travelInfoId}")
+    public ResponseEntity<String> deleteTravelInfo(@PathVariable StringRequest request) {
+        try {
+            travelInfoService.deleteTravelInfo(request.getValue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /**
      * 여행정보 ID 기준 AI 추천 장소
      * @param travelInfoId
      * @return ResponseEntity<TravelInfoPlaceResponse>
@@ -250,7 +266,7 @@ public class TravelInfoController {
      * @return ResponseEntity<TravelInfoListResponse>
      */
     @PutMapping("/travelInfos/{travelInfoId}/favorite")
-    public ResponseEntity<String> updateFavorite(@PathVariable String travelInfoId, @RequestBody BooleanRequst booleanRequst) {
+    public ResponseEntity<String> updateFavorite(@PathVariable String travelInfoId, @RequestBody BooleanRequest booleanRequst) {
         try {
             travelInfoService.updateFavorite(travelInfoId, booleanRequst.getIsTrue());
             return new ResponseEntity<>("success", HttpStatus.OK);
@@ -265,7 +281,7 @@ public class TravelInfoController {
      * @return
      */
     @PutMapping("/travelInfos/{travelInfoId}/fixed")
-    public ResponseEntity<String> updateFixed(@PathVariable String travelInfoId, @RequestBody BooleanRequst booleanRequst) {
+    public ResponseEntity<String> updateFixed(@PathVariable String travelInfoId, @RequestBody BooleanRequest booleanRequst) {
         try {
             travelInfoService.updateFixed(travelInfoId, booleanRequst.getIsTrue());
             return new ResponseEntity<>("success", HttpStatus.OK);
@@ -348,13 +364,53 @@ public class TravelInfoController {
     }
     
     /**
+     * 가이드 북 목록 조회
+     * @param CustomUserDetails
+     * @return ResponseEntity<GuideBookListResponse>
+     */
+    @Transactional(readOnly = true)
+    @GetMapping("/guidebooks/list")
+    public ResponseEntity<GuideBookListResponse> guideBookList(
+        // @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        try {
+            //TO-DO: String userEmail = user.getEmail();
+            String userEmail = "user1@example.com";
+            List<Guide> guideList = guideService.getGuideList(userEmail);
+            List<GuideBookListResponse.GuideList> guideListResponse = new ArrayList<>();
+            for(Guide guide : guideList){
+                List<String> authors = travelInfoService.getUrlAuthors(guide.getTravelInfo().getId());
+                TravelInfo travelInfo = guide.getTravelInfo();
+                GuideBookListResponse.GuideList tmpGuideList = GuideBookListResponse.GuideList.builder()
+                    .id(guide.getId())
+                    .title(guide.getTitle())
+                    .travelInfoTitle(travelInfo.getTitle())
+                    .createAt(guide.getCreateAt().toString())
+                    .isFavorite(guide.isFavorite())
+                    .fixed(guide.isFixed())
+                    .authors(authors)
+                    .build();
+                guideListResponse.add(tmpGuideList);
+            }
+            GuideBookListResponse guideBookListResponse = GuideBookListResponse.builder()
+                .success("success")
+                .message("success")
+                .guideBooks(guideListResponse)
+                .build();
+            return new ResponseEntity<>(guideBookListResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }   
+
+    /**
      * 가이드 북 제목 수정
      * @param guideId
      * @return ResponseEntity<String>
      */
     @PutMapping("/guidebooks/{guideId}/title")
-    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody GuideBookTitleEditRequest request) {
-        guideService.updateGuideBookTitle(guideId, request.getTitle());
+    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody StringRequest request) {
+        guideService.updateGuideBookTitle(guideId, request.getValue());
         return new ResponseEntity<>("success", HttpStatus.OK);
     }
 }

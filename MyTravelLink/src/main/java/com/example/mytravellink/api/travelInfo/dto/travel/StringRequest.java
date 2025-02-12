@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class GuideBookTitleEditRequest {
-  private String title;
+public class StringRequest {
+  private String value;
 }
 
 

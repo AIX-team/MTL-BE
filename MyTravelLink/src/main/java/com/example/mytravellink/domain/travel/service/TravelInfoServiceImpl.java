@@ -10,6 +10,8 @@ import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
+import com.example.mytravellink.domain.url.repository.TravelInfoUrlRepository;
+import com.example.mytravellink.domain.url.repository.UrlRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,7 +23,8 @@ public class TravelInfoServiceImpl implements TravelInfoService {
   private final TravelInfoRepository travelInfoRepository;
   private final TravelInfoPlaceRepository travelInfoPlaceRepository;
   private final PlaceRepository placeRepository;
-
+  private final TravelInfoUrlRepository travelInfoUrlRepository;
+  private final UrlRepository urlRepository;
 
   /**
    * 여행정보 ID 기준 여행정보 조회
@@ -99,5 +102,31 @@ public class TravelInfoServiceImpl implements TravelInfoService {
    */
   public void updateFixed(String travelInfoId, Boolean fixed) {
     travelInfoRepository.updateFixed(travelInfoId, fixed);
+  }
+
+  /**
+   * 여행 정보 ID 기준 여행 정보 삭제
+   * @param travelInfoId
+   */
+  public void deleteTravelInfo(String travelInfoId) {
+    travelInfoRepository.updateDeleted(travelInfoId, true);
+  } 
+
+  /**
+   * 여행 정보 ID 기준 URL 작성자 조회
+   * @param travelInfoId
+   * 
+   * @return List<String>
+   */
+  public List<String> getUrlAuthors(String travelInfoId) {
+    List<String> urlIdList = travelInfoUrlRepository.findUrlIdByTravelInfoId(travelInfoId);
+
+    List<String> urlAuthorList = new ArrayList<>();
+
+    for (String urlId : urlIdList) {
+      urlAuthorList.add(urlRepository.findById(urlId).orElseThrow(() -> new RuntimeException("Url not found")).getUrlAuthor());
+    }
+
+    return urlAuthorList;
   }
 }
