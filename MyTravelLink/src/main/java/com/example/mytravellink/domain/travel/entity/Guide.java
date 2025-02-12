@@ -35,36 +35,41 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
     private String id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "travel_info_id")
     private TravelInfo travelInfo;
-    
+
     @OneToMany(mappedBy = "guide")
     private List<Course> courses = new ArrayList<>();
-    
+
+
     private int courseCount;
-    
+
     @Column(nullable = false)
     private String title;
-    
+
     private Integer travelDays;
-    private boolean bookmark;
+    private boolean isFavorite;
     private boolean fixed;
     private boolean isDelete;
-    
+
+    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
+    private String planTypes;
+
     @Builder
-    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, boolean bookmark, boolean fixed, boolean isDelete) {
+    public Guide(TravelInfo travelInfo, String title, Integer travelDays, int courseCount, boolean isFavorite, boolean fixed, boolean isDelete, String planTypes) {
         this.travelInfo = travelInfo;
         this.title = title;
         this.travelDays = travelDays;
         this.courseCount = courseCount;
-        this.bookmark = bookmark;
+        this.isFavorite = isFavorite;
         this.fixed = fixed;
         this.isDelete = isDelete;
+        this.planTypes = planTypes;
     }
 } 

@@ -2,6 +2,7 @@ package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
 
+import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
@@ -25,8 +26,6 @@ public class PlaceServiceImpl implements PlaceService {
   private final AIGuideInfrastructure aiGuideInfrastructure;
 
 
-
-
   /**
    * 장소 조회
    * @param id 장소 ID
@@ -44,15 +43,17 @@ public class PlaceServiceImpl implements PlaceService {
    * @param dayNum 여행 일수
    * @return AI 코스 추천 응답
    */
+
   @Override
-  public AIGuideCourseResponse getAIGuideCourse(List<String> placeIds, int dayNum) {
-    List<Place> placeList = placeRepository.findByIds(placeIds);
+  public AIGuideCourseResponse getAIGuideCourse(List<AIPlace> placeIds, int dayNum) {
+    List<AIPlace> placeList = placeRepository.findByPlaceIds(placeIds);
     AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
       .placeList(placeList)
       .dayNum(dayNum)
       .build();
     return aiGuideInfrastructure.getGuideRecommendation(aiGuideCourseRequest);
   }
+
   /**
    * AI 장소 선택
    * @param travelInfoId 여행 정보 ID

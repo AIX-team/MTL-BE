@@ -33,8 +33,6 @@ import com.example.mytravellink.domain.url.service.UrlServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-
-
 @RestController
 @RequestMapping("/api/v1/travels")
 @RequiredArgsConstructor
@@ -209,21 +207,23 @@ public class TravelInfoController {
      */
     @PostMapping("/guides")
     public ResponseEntity<String> createGuide(
-        @RequestBody PlaceSelectRequest placeSelectRequst) {
+        @RequestBody PlaceSelectRequest placeSelectRequest) {
         try {
+
+            // 가이드북 생성
             Guide guide = Guide.builder()
-                .travelInfo(travelInfoService.getTravelInfo(placeSelectRequst.getTravelInfoId()))
-                .title(placeSelectRequst.getTitle())
-                .travelDays(placeSelectRequst.getTravelDays())
-                .courseCount(placeSelectRequst.getTravelDays())
-                .bookmark(false)
+                .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+                .title(placeSelectRequest.getTitle())
+                .travelDays(placeSelectRequest.getTravelDays())
+                .courseCount(placeSelectRequest.getTravelDays())
+                .isFavorite(false)
                 .fixed(false)
                 .isDelete(false)
                 .build();
 
             // AI 가이드 코스 생성
             try {
-                AIGuideCourseResponse aiGuideCourseResponse = placeService.getAIGuideCourse(placeSelectRequst.getPlaceIds(), placeSelectRequst.getTravelDays());
+                AIGuideCourseResponse aiGuideCourseResponse = placeService.getAIGuideCourse(placeSelectRequest.getPlaceIds(), placeSelectRequest.getTravelDays());
                 
                 // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
                 guideService.createGuideAndCourses(guide, aiGuideCourseResponse);
@@ -231,8 +231,6 @@ public class TravelInfoController {
             } catch (Exception e) {
                 return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
-
-
 
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {

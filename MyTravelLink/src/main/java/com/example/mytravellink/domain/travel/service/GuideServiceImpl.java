@@ -1,12 +1,12 @@
 package com.example.mytravellink.domain.travel.service;
 
+import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
+import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
+import com.example.mytravellink.domain.travel.entity.*;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
-import com.example.mytravellink.domain.travel.entity.Course;
-import com.example.mytravellink.domain.travel.entity.CoursePlace;
-import com.example.mytravellink.domain.travel.entity.Guide;
-import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
 import com.example.mytravellink.domain.travel.repository.CourseRepository;
 import com.example.mytravellink.domain.travel.repository.GuideRepository;
@@ -15,6 +15,10 @@ import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +68,42 @@ public class GuideServiceImpl implements GuideService {
                     }
                 }
   }
+
+    /**
+     * PlaceSelectRequest를 AIGuideCourseRequest로 변환
+     * @param placeSelectRequest
+     * @return AIGuideCourseRequest
+     */
+    public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
+
+      // Place IDs를 기반으로 DB에서 Place 엔티티 조회
+      List<AIPlace> places = placeRepository.findByPlaceIds(placeSelectRequest.getPlaceIds());
+
+      // Place 엔티티 -> AIPlace DTO 변환
+      List<AIPlace> guidePlaces = places.stream()
+              .map(place -> AIPlace.builder()
+                      .id(place.getId())
+                      .address(place.getAddress())
+                      .title(place.getTitle())
+                      .description(place.getDescription())
+                      .intro(place.getIntro())
+                      .type(place.getType())
+                      .image(place.getImage())
+                      .openHours(place.getOpenHours())
+                      .phone(place.getPhone())
+                      .rating(place.getRating())
+                      .build())
+              .collect(Collectors.toList());
+
+      // AIGuideCourseRequest 객체 생성
+      return AIGuideCourseRequest.builder()
+              .placeList(guidePlaces) // 변환된 AIPlace 리스트 추가
+              .dayNum(placeSelectRequest.getTravelDays()) // 여행 일수
+              .build();
+    }
+
+
+
 
   /**
    * Guide 생성

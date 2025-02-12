@@ -11,15 +11,20 @@ import com.example.mytravellink.domain.url.repository.UrlPlaceRepository;
 import com.example.mytravellink.domain.url.repository.UrlRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.math.BigDecimal;
 import java.util.*;
 
 @Service
 public class UrlServiceImpl implements UrlService {
 
+    private static final Logger log = LoggerFactory.getLogger(UrlServiceImpl.class);
     private final PlaceRepository placeRepository;
     private final RestTemplate restTemplate;
     private final UrlRepository urlRepository;
@@ -72,6 +77,9 @@ public class UrlServiceImpl implements UrlService {
                             openHours = Collections.emptyList();
                         }
 
+                        // Geometry 객체 생성
+                        Geometry geometry = new Geometry(new Location(place.getLatitude(), place.getLongitude()));
+
                         return new PlaceInfo(
                                 place.getTitle(),
                                 place.getDescription(),
@@ -80,7 +88,8 @@ public class UrlServiceImpl implements UrlService {
                                 place.getPhone(),
                                 place.getWebsite(),
                                 place.getRating(),
-                                openHours  // ✅ JSON 변환된 영업시간 리스트 적용
+                                openHours, // ✅ JSON 변환된 영업시간 리스트 적용
+                                geometry
                         );
                     })
                     .toList();
@@ -116,6 +125,8 @@ public class UrlServiceImpl implements UrlService {
 
             // 5. FASTAPI 에서 추출된 장소 관련 데이터 Place에 저장
             for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
+
+                UrlServiceImpl.log.info("PlaceInfo: {}", placeInfo);
                 Place place = placeRepository.findByTitle(placeInfo.getName())
                         .orElseGet(() -> {
 
@@ -134,8 +145,13 @@ public class UrlServiceImpl implements UrlService {
                                     .phone(placeInfo.getPhone()) // 전화번호
                                     .website(placeInfo.getWebsite()) // 웹사이트
                                     .rating(placeInfo.getRating()) // 평점
+                                    .latitude(placeInfo.getGeometry() != null && placeInfo.getGeometry().getLocation() != null
+                                            ? placeInfo.getGeometry().getLocation().getLat() : null) // 위도
+                                    .longitude(placeInfo.getGeometry() != null && placeInfo.getGeometry().getLocation() != null
+                                            ? placeInfo.getGeometry().getLocation().getLng() : null) // 경도
                                     .openHours(openHours)  // 시작 시간
                                     .build();
+
                             return placeRepository.save(newPlace);
                         });
 

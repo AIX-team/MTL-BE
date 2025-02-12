@@ -1,5 +1,6 @@
 package com.example.mytravellink.infrastructure.ai.Guide;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
@@ -15,12 +16,16 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AIGuideInfrastructure {
   private final AIServerClient aiServerClient;
-  private static final String url = "api/v1/ai/route";
+  private static final String url = "api/v1";
 
+  @Value("${ai.server.url}")  // application.yml에서 설정
+  private String fastAPiUrl;
+
+  // AI 코스 추천
   public AIGuideCourseResponse getGuideRecommendation(AIGuideCourseRequest guideCourseRequest) {
     try {
       return aiServerClient.post(
-        url + "/recommend",
+        fastAPiUrl + url + "/generate-plans",
         guideCourseRequest,
         AIGuideCourseResponse.class
       );
@@ -29,6 +34,7 @@ public class AIGuideInfrastructure {
     }
   }
 
+  // AI 장소 추천
   public AISelectedPlaceResponse getAISelectPlace(AISelectedPlaceRequest aiSelectedPlaceRequest) {
     try {
       return aiServerClient.post(
