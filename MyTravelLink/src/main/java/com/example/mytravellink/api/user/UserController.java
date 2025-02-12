@@ -1,31 +1,30 @@
 package com.example.mytravellink.api.user;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.access.prepost.PreAuthorize;
-
-import com.example.mytravellink.domain.users.service.UserService;
-import com.example.mytravellink.auth.handler.JwtTokenProvider;
-import com.example.mytravellink.domain.users.entity.UsersSearchTerm;
 import com.example.mytravellink.api.url.dto.UserUrlRequest;
+import com.example.mytravellink.api.user.dto.LinkDataResponse;
+import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.domain.url.service.UrlService;
-
+import com.example.mytravellink.domain.users.entity.UsersSearchTerm;
+import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
+import com.example.mytravellink.domain.users.service.UserService;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import io.jsonwebtoken.Claims;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * 사용자 관련 API를 처리하는 컨트롤러
@@ -35,19 +34,20 @@ import org.springframework.http.HttpStatus;
 @RequestMapping("/user")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("isAuthenticated()") 
+@PreAuthorize("isAuthenticated()")
 public class UserController {
 
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UrlService urlService;
+    private final UsersUrlRepository usersUrlRepository;
 
     @GetMapping("/travel/info")
     public String travelInfo() {
         return "travel/info";
     }
 
-    // 최근 검색어 조회   
+    // 최근 검색어 조회
     @GetMapping("/search/recent")
     public ResponseEntity<?> getRecentSearches(@RequestHeader("Authorization") String token) {
         try {
@@ -135,13 +135,24 @@ public class UserController {
         }
     }
 
-    @GetMapping("/user/url/list")
-    public ResponseEntity<List<LinkDataResponse>> getActiveLinks(Principal principal) {
-        // principal.getName(): 현재 로그인한 사용자의 이메일이라고 가정
-        String email = principal.getName();
-        Pageable pageable = PageRequest.of(0, 5); // 최대 5건 조회
-        List<LinkDataResponse> links = userUrlRepository.findTopActiveLinks(email, pageable);
-        return ResponseEntity.ok(links);
+    @GetMapping("/url/list")
+    public ResponseEntity<?> getActiveLinks(@RequestHeader("Authorization") String token) {
+        try {
+            Claims claims = jwtTokenProvider.getClaimsFromToken(token.replace("Bearer ", ""));
+            String email = claims.getSubject();
+            List<LinkDataResponse> links = usersUrlRepository.findTopActiveLinks(email, PageRequest.of(0, 5));
+            
+            // 혹시라도 type이 누락된 경우 URL을 기반으로 재설정
+            links.forEach(link -> {
+                if (link.getType() == null || link.getType().isEmpty()) {
+                    link.setType(LinkDataResponse.determineType(link.getUrl()));
+                }
+            });
+            
+            return ResponseEntity.ok(links);
+        } catch (Exception e) {
+            log.error("링크 목록 조회 실패: ", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-
 }
