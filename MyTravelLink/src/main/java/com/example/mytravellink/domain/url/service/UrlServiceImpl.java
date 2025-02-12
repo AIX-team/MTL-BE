@@ -1,5 +1,6 @@
 package com.example.mytravellink.domain.url.service;
 
+import com.example.mytravellink.api.user.dto.LinkDataResponse;
 import com.example.mytravellink.api.url.dto.*;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
@@ -28,6 +29,7 @@ import com.example.mytravellink.domain.users.entity.UsersUrlId;
 import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
 import lombok.RequiredArgsConstructor;
+import java.net.URI;
 
 @Service
 @RequiredArgsConstructor
@@ -214,15 +216,15 @@ public class UrlServiceImpl implements UrlService {
     @Transactional
     public void saveUserUrl(String email, UserUrlRequest request) {
         String urlStr = request.getUrl();
-        String id = generateUrlId(urlStr);
         
-        // Url 테이블에서 URL 엔티티 조회 또는 생성
-        Url urlEntity = urlRepository.findById(id).orElseGet(() -> {
+
+        // Url 테이블에서 기존 URL 엔티티 조회 또는 생성
+        Url urlEntity = urlRepository.findById(generateUrlId(urlStr)).orElseGet(() -> {
             Url newUrl = Url.builder()
-                .url(urlStr)
-                .urlTitle(request.getTitle())
-                .urlAuthor(request.getAuthor())
-                .build();
+                    .url(urlStr)
+                    .urlTitle(request.getTitle())
+                    .urlAuthor(request.getAuthor())
+                    .build();
             return urlRepository.save(newUrl);
         });
         
@@ -275,10 +277,41 @@ public class UrlServiceImpl implements UrlService {
     @Override
     @Transactional
     public void deleteUserUrlByUrl(String email, String url) {
-        // 저장 시 사용했던 것과 동일한 SHA-512 해시 생성 로직을 사용
+        // 저장 시 사용했던 SHA-512 해시 생성 로직을 사용하여 URL ID 생성
         String id = generateUrlId(url);
+        // user_url 매핑 삭제
+        UsersUrlId mappingId = UsersUrlId.builder()
+                            .email(email)
+                            .urlId(id)
+                            .build();
+        if (usersUrlRepository.existsById(mappingId)) {
+            usersUrlRepository.deleteById(mappingId);
+        }
+        // url 테이블의 URL 삭제
         if (urlRepository.existsById(id)) {
             urlRepository.deleteById(id);
         }
+    }
+
+    /**
+     * 유튜브 URL에서 videoId를 추출하는 헬퍼 메서드
+     */
+    private String extractYoutubeVideoId(String url) {
+        try {
+            URI uri = new URI(url);
+            String query = uri.getQuery();
+            if(query != null) {
+                String[] params = query.split("&");
+                for (String param : params) {
+                    String[] keyValue = param.split("=");
+                    if (keyValue[0].equals("v") && keyValue.length > 1) {
+                        return keyValue[1];
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // 추출 실패 시 빈 문자열 반환
+        }
+        return "";
     }
 }

@@ -51,7 +51,7 @@ public class TravelInfo extends BaseTimeEntity {
     @Column(nullable = false)
     private String title;
     
-    private boolean bookmark;
+    private boolean isFavorite;
     private boolean fixed;
     private boolean isDelete;
 
@@ -65,12 +65,12 @@ public class TravelInfo extends BaseTimeEntity {
     private List<TravelInfoUrl> urlList = new ArrayList<>();
     
     @Builder
-    public TravelInfo(Users user, Integer travelDays, int placeCount, String title, boolean bookmark, boolean fixed, boolean isDelete, List<TravelInfoUrl> urlList) {
+    public TravelInfo(Users user, Integer travelDays, int placeCount, String title, boolean isFavorite, boolean fixed, boolean isDelete, List<TravelInfoUrl> urlList) {
         this.user = user;
         this.travelDays = travelDays;
         this.placeCount = placeCount;
         this.title = title;
-        this.bookmark = bookmark;
+        this.isFavorite = isFavorite;
         this.fixed = fixed;
         this.isDelete = isDelete;
         this.urlList = urlList;
