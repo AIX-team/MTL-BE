@@ -275,8 +275,17 @@ public class UrlServiceImpl implements UrlService {
     @Override
     @Transactional
     public void deleteUserUrlByUrl(String email, String url) {
-        // 저장 시 사용했던 것과 동일한 SHA-512 해시 생성 로직을 사용
+        // 저장 시 사용했던 SHA-512 해시 생성 로직을 사용하여 URL ID 생성
         String id = generateUrlId(url);
+        // user_url 매핑 삭제
+        UsersUrlId mappingId = UsersUrlId.builder()
+                            .email(email)
+                            .urlId(id)
+                            .build();
+        if (usersUrlRepository.existsById(mappingId)) {
+            usersUrlRepository.deleteById(mappingId);
+        }
+        // url 테이블의 URL 삭제
         if (urlRepository.existsById(id)) {
             urlRepository.deleteById(id);
         }
