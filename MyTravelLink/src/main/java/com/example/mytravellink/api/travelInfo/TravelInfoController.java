@@ -1,10 +1,12 @@
 
 package com.example.mytravellink.api.travelInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,12 +17,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequst;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookTitleEditRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
+import com.example.mytravellink.auth.service.CustomUserDetails;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
@@ -207,6 +212,67 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * 사용자 email 기준 여행 정보 조회
+     * @param CustomUserDetails
+     * @return TravelInfoListResponse
+     */
+    @GetMapping("/travelInfos/list")
+    public ResponseEntity<TravelInfoListResponse> travelInfoList(
+        // @AuthenticationPrincipal CustomUserDetails user
+        ) {
+        try{
+            //TO-DO: String userEmail = user.getEmail();
+            String userEmail = "user1@example.com";
+            List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(userEmail);
+            List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
+            for(TravelInfo travelInfo : travelInfoList){
+                String imgUrl = placeService.getPlaceImage(travelInfo.getId());
+                String redirectImgUrl = imageService.redirectImageUrl(imgUrl);
+                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, redirectImgUrl);
+                infosList.add(infos);
+            }
+            TravelInfoListResponse travelInfoListResponse = TravelInfoListResponse.builder()
+                .success("success")
+                .message("success")
+                .travelInfoList(infosList)
+                .build();
+            return new ResponseEntity<>(travelInfoListResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 여행 정보 ID 기준 즐겨찾기 여부 수정
+     * @param travelInfoId
+     * @return ResponseEntity<TravelInfoListResponse>
+     */
+    @PutMapping("/travelInfos/{travelInfoId}/favorite")
+    public ResponseEntity<String> updateFavorite(@PathVariable String travelInfoId, @RequestBody BooleanRequst booleanRequst) {
+        try {
+            travelInfoService.updateFavorite(travelInfoId, booleanRequst.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    /**
+     * 여행 정보 ID 기준 고정 여부 수정
+     * @param placeSelectRequst
+     * @return
+     */
+    @PutMapping("/travelInfos/{travelInfoId}/fixed")
+    public ResponseEntity<String> updateFixed(@PathVariable String travelInfoId, @RequestBody BooleanRequst booleanRequst) {
+        try {
+            travelInfoService.updateFixed(travelInfoId, booleanRequst.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     
 
 
@@ -226,7 +292,7 @@ public class TravelInfoController {
                 .title(title + " " + travelInfoPlaceCnt)
                 .travelDays(placeSelectRequst.getTravelDays())
                 .courseCount(placeSelectRequst.getTravelDays())
-                .bookmark(false)
+                .isFavorite(false)
                 .fixed(false)
                 .isDelete(false)
                 .planTypes(placeSelectRequst.getTravelTaste())

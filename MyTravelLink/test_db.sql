@@ -61,7 +61,7 @@ CREATE TABLE travel_info (
     url_id VARCHAR(128) NOT NULL COMMENT '관련 URL ID',
     place_count INT UNSIGNED DEFAULT 0 COMMENT '장소 수',
     title VARCHAR(100) NOT NULL COMMENT '여행 제목',
-    bookmark BOOLEAN NOT NULL DEFAULT FALSE COMMENT '북마크 여부',
+    is_favorite BOOLEAN NOT NULL DEFAULT FALSE COMMENT '북마크 여부',
     fixed BOOLEAN NOT NULL DEFAULT FALSE COMMENT '고정 여부',
     is_delete BOOLEAN NOT NULL DEFAULT FALSE COMMENT '삭제 여부',
     travel_days INTEGER COMMENT '여행 기간 (일)',
@@ -131,7 +131,7 @@ CREATE TABLE guide (
     travel_days INTEGER COMMENT '여행 일수',
     create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
     update_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
-    bookmark BOOLEAN NOT NULL DEFAULT FALSE COMMENT '북마크 여부',
+    is_favorite BOOLEAN NOT NULL DEFAULT FALSE COMMENT '북마크 여부',
     fixed BOOLEAN NOT NULL DEFAULT FALSE COMMENT '고정 여부',
     is_delete BOOLEAN NOT NULL DEFAULT FALSE COMMENT '삭제 여부',
     PRIMARY KEY (id),
@@ -165,6 +165,6 @@ CREATE TABLE course_place (
 
 -- 인덱스 생성
 CREATE INDEX idx_place_location ON place(latitude, longitude);
-CREATE INDEX idx_travel_info_bookmark ON travel_info(bookmark);
-CREATE INDEX idx_guide_bookmark ON guide(bookmark);
+CREATE INDEX idx_travel_info_is_favorite ON travel_info(is_favorite);
+CREATE INDEX idx_guide_is_favorite ON guide(is_favorite);
 CREATE INDEX idx_place_title ON place(title);

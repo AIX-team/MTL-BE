@@ -73,4 +73,31 @@ public class TravelInfoServiceImpl implements TravelInfoService {
    * @return int 
    */
   public int getPlaceCnt(String travelInfoId) {return travelInfoPlaceRepository.getPlaceCnt(travelInfoId);}
+
+  /**
+   * UserID 기준 여행 정보 조회
+   * @param userId
+   * 
+   */
+  public List<TravelInfo> getTravelInfoList(String userEmail) {
+    return travelInfoRepository.findByUserEmail(userEmail);
+    }
+
+  /**
+   * 여행 정보 ID 기준 즐겨찾기 여부 수정
+   * @param travelInfoId
+   * @param isFavorite
+   */
+  public void updateFavorite(String travelInfoId, Boolean isFavorite) {
+    travelInfoRepository.updateFavorite(travelInfoId, isFavorite);
+  }
+
+  /**
+   * 여행 정보 ID 기준 고정 여부 수정
+   * @param travelInfoId
+   * @param fixed
+   */
+  public void updateFixed(String travelInfoId, Boolean fixed) {
+    travelInfoRepository.updateFixed(travelInfoId, fixed);
+  }
 }
