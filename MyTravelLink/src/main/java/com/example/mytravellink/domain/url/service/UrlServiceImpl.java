@@ -22,8 +22,15 @@ import java.util.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import com.example.mytravellink.domain.users.entity.Users;
+import com.example.mytravellink.domain.users.entity.UsersUrl;
+import com.example.mytravellink.domain.users.entity.UsersUrlId;
+import com.example.mytravellink.domain.users.repository.UsersRepository;
+import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class UrlServiceImpl implements UrlService {
 
     private final PlaceRepository placeRepository;
@@ -32,18 +39,11 @@ public class UrlServiceImpl implements UrlService {
     private final UrlPlaceRepository urlPlaceRepository;
     private final TravelInfoUrlRepository travelInfoUrlRepository;
     private final TravelInfoRepository travelInfoRepository;
+    private final UsersRepository usersRepository;
+    private final UsersUrlRepository usersUrlRepository;
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
-
-    public UrlServiceImpl(RestTemplate restTemplate, UrlRepository urlRepository, PlaceRepository placeRepository, UrlPlaceRepository urlPlaceRepository, TravelInfoUrlRepository travelInfoUrlRepository, TravelInfoRepository travelInfoRepository) {
-        this.restTemplate = restTemplate;
-        this.urlRepository = urlRepository;
-        this.placeRepository = placeRepository;
-        this.urlPlaceRepository = urlPlaceRepository;
-        this.travelInfoUrlRepository = travelInfoUrlRepository;
-        this.travelInfoRepository = travelInfoRepository;
-    }
 
     @Override
     public UrlResponse processUrl(UrlRequest urlRequest) {
@@ -207,22 +207,38 @@ public class UrlServiceImpl implements UrlService {
 
     /**
      * 사용자 요청으로 URL을 저장하는 메서드.
-     * 생성된 URL의 ID는 SHA-512 해시 값을 사용합니다.
+     * URL이 존재하지 않으면 Url 테이블에 저장하고, 
+     * 그리고 사용자와 URL의 관계를 user_url 테이블에 저장합니다.
      */
     @Override
     @Transactional
     public void saveUserUrl(String email, UserUrlRequest request) {
         String urlStr = request.getUrl();
         String id = generateUrlId(urlStr);
-        Optional<Url> existingUrl = urlRepository.findById(id);
-        if (existingUrl.isEmpty()) {
+        
+        // Url 테이블에서 URL 엔티티 조회 또는 생성
+        Url urlEntity = urlRepository.findById(id).orElseGet(() -> {
             Url newUrl = Url.builder()
-
-                    .url(urlStr)
-                    .urlTitle(request.getTitle())
-                    .urlAuthor(request.getAuthor())
+                .url(urlStr)
+                .urlTitle(request.getTitle())
+                .urlAuthor(request.getAuthor())
+                .build();
+            return urlRepository.save(newUrl);
+        });
+        
+        // 사용자 엔티티 조회 후 매핑 ID 생성
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        UsersUrlId mappingId = new UsersUrlId(user.getEmail(), urlEntity.getId());
+        
+        if (!usersUrlRepository.existsById(mappingId)) {
+            UsersUrl usersUrlMapping = UsersUrl.builder()
+                    .id(mappingId)
+                    .user(user)
+                    .url(urlEntity)
+                    .isUse(true)
                     .build();
-            urlRepository.save(newUrl);
+            usersUrlRepository.save(usersUrlMapping);
         }
     }
 

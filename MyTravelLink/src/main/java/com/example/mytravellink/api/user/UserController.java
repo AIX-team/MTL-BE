@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
 
-import com.example.mytravellink.domain.users.service.UserServiceImpl;
+import com.example.mytravellink.domain.users.service.UserService;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.domain.users.entity.UsersSearchTerm;
 import com.example.mytravellink.api.url.dto.UserUrlRequest;
@@ -38,7 +38,7 @@ import org.springframework.http.HttpStatus;
 @PreAuthorize("isAuthenticated()") 
 public class UserController {
 
-    private final UserServiceImpl userService;
+    private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final UrlService urlService;
 
@@ -133,6 +133,15 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                                  .body("URL 삭제 중 오류 발생: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/user/url/list")
+    public ResponseEntity<List<LinkDataResponse>> getActiveLinks(Principal principal) {
+        // principal.getName(): 현재 로그인한 사용자의 이메일이라고 가정
+        String email = principal.getName();
+        Pageable pageable = PageRequest.of(0, 5); // 최대 5건 조회
+        List<LinkDataResponse> links = userUrlRepository.findTopActiveLinks(email, pageable);
+        return ResponseEntity.ok(links);
     }
 
 }

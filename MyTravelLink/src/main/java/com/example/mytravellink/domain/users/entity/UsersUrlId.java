@@ -16,14 +16,14 @@ public class UsersUrlId implements Serializable {
   private static final long serialVersionUID = 1L;
 
   @Column(name = "email")
-  private String eid;
+  private String email;
 
   @Column(name = "url_id", columnDefinition = "VARCHAR(128)")
-  private String uid;
+  private String urlId;
 
   @Builder
   public UsersUrlId(String email, String urlId) {
-    this.eid = email;
-    this.uid = urlId;
+    this.email = email;
+    this.urlId = urlId;
   }
 }

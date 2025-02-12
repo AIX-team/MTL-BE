@@ -26,7 +26,7 @@ import java.security.NoSuchAlgorithmException;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserServiceImpl {
+public class UserServiceImpl implements UserService {
     
     private final UsersRepository usersRepository;
     private final UsersSearchTermRepository searchTermRepository;

@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Column;
 
 /**
  * 사용자 URL (UserUrl) 엔티티
@@ -26,23 +27,22 @@ import jakarta.persistence.FetchType;
 @Table(name = "user_url")
 @Getter
 @Setter
-@Builder
+@NoArgsConstructor
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 public class UsersUrl extends BaseTimeEntity {
 
     @EmbeddedId
     private UsersUrlId id;
 
-    @MapsId("eid")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "email")
+    @JoinColumn(name = "email", insertable = false, updatable = false)
     private Users user;
-    
-    @MapsId("uid")
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "url_id", columnDefinition = "VARCHAR(128)")
+    @JoinColumn(name = "url_id", nullable = false, insertable = false, updatable = false)
     private Url url;
+    
     
     private boolean isUse;
     
