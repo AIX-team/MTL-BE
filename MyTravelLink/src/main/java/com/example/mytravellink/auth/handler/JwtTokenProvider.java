@@ -64,7 +64,14 @@ public class JwtTokenProvider {
     // JWT에서 토큰 정보 추출
     public Claims getClaimsFromToken(String token) {
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody(); // 사용자 이메일 반환
+    }
 
+    /**
+     * 토큰에서 이메일(Subject)를 추출하는 메서드
+     */
+    public String getEmailFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.getSubject();
     }
 
 }

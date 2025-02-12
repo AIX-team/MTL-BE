@@ -39,7 +39,7 @@ public class UsersSearchTerm extends BaseTimeEntity {
     
     @Builder
     public UsersSearchTerm(Users user, String word) {
-        this.id = UUID.randomUUID().toString();  // UUID 직접 생성
+        this.id = UUID.randomUUID().toString();
         this.user = user;
         this.word = word;
     }
