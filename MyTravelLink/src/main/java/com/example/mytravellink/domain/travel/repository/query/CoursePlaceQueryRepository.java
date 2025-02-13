@@ -11,4 +11,5 @@ public interface CoursePlaceQueryRepository {
 
   void updateDeleted(String courseId, String placeId, boolean isDeleted, int placeNum);
 
+  void updateCourseMove(String beforeCourseId, String afterCourseId, String placeId);
 }

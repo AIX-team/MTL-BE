@@ -314,4 +314,45 @@ public class UrlServiceImpl implements UrlService {
         }
         return "";
     }
+
+    @Override
+    @Transactional
+    public UrlResponse processUserUrls(List<String> urls, String userEmail) {
+        // 전달받은 URL들에 대해 처리
+        for (String url : urls) {
+            // 1. url 테이블에서 해당 URL의 엔티티 조회
+            Optional<Url> urlEntityOptional = urlRepository.findByUrl(url);
+            if (!urlEntityOptional.isPresent()) {
+                throw new RuntimeException("등록되지 않은 URL입니다: " + url);
+            }
+            String urlId = urlEntityOptional.get().getId();
+
+            // 2. url_place 테이블에서 URL ID 조회
+            List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrl_Id(urlId);
+            // 3. travel_info_url 테이블에도 URL이 등록되어 있는지 확인
+            boolean existsInTravelInfoUrl = travelInfoUrlRepository.existsByUrlId(urlId);
+
+            // 4. 두 테이블 모두에 해당 데이터가 없으면, user_url 테이블의 매핑 상태 변경
+            if ((urlPlaces == null || urlPlaces.isEmpty()) && !existsInTravelInfoUrl) {
+                UsersUrlId mappingId = UsersUrlId.builder()
+                        .email(userEmail)
+                        .urlId(urlId)
+                        .build();
+                if (usersUrlRepository.existsById(mappingId)) {
+                    UsersUrl userUrlMapping = usersUrlRepository.findById(mappingId).get();
+                    // is_use 플래그를 false(또는 0)로 업데이트하여 사용하지 않는 것으로 표시
+                    userUrlMapping.setUse(false);
+                    usersUrlRepository.save(userUrlMapping);
+                }
+            }
+        }
+        // 5. FastAPI의 /contentanalysis 엔드포인트로 해당 URL 목록 전달
+        String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("urls", urls);
+        ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
+                requestUrl, requestBody, UrlResponse.class
+        );
+        return response.getBody();
+    }
 }
