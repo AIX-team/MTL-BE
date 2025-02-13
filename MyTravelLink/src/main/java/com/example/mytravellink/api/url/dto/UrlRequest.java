@@ -1,6 +1,7 @@
 package com.example.mytravellink.api.url.dto;
 
 import lombok.*;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -9,5 +10,7 @@ import lombok.*;
 @ToString
 public class UrlRequest {
 
-    private String urls;
+    private List<String> urls;
+    private String email;
+    private String travelInfoId;
 }

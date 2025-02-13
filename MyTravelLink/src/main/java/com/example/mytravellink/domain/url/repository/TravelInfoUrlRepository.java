@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.url.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.example.mytravellink.domain.url.entity.Url;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,5 +22,7 @@ public interface TravelInfoUrlRepository extends JpaRepository<TravelInfoUrl, Tr
 
   @Query("SELECT tu.url.id FROM TravelInfoUrl tu WHERE tu.travelInfo.id = :travelInfoId")
   List<String> findUrlIdByTravelInfoId(@Param("travelInfoId") String travelInfoId);
+
+  Optional<TravelInfoUrl> findByTravelInfoAndUrl(TravelInfo travelInfo, Url url);
 
 }

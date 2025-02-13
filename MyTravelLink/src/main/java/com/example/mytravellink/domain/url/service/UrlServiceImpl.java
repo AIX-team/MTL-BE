@@ -48,113 +48,129 @@ public class UrlServiceImpl implements UrlService {
     private String fastAPiUrl;
 
     @Override
+    @Transactional
     public UrlResponse processUrl(UrlRequest urlRequest) {
-
-        // 1. DB에서 기존 데이터 조회
-        Optional<Url> existingData = urlRepository.findByUrl(urlRequest.getUrls());
-
-        // 2. 기존 데이터가 있으면 해당 데이터로 반환
-        if (existingData.isPresent()) {
-            Url url = existingData.get();
-            ObjectMapper objectMapper = new ObjectMapper();
-
-            List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
-                    .map(urlPlace -> {
-                        Place place = urlPlace.getPlace();
-
-                        // 🔹 이미지 변환
-                        List<PlacePhoto> images;
-                        try {
-                            images = place.getImage() != null
-                                    ? objectMapper.readValue(place.getImage(), new TypeReference<List<PlacePhoto>>() {})
-                                    : Collections.emptyList();
-                        } catch (Exception e) {
-                            images = Collections.emptyList();
-                        }
-
-                        // 🔹 영업시간 변환
-                        List<String> openHours;
-                        try {
-                            openHours = place.getOpenHours() != null
-                                    ? objectMapper.readValue(place.getOpenHours(), new TypeReference<List<String>>() {})
-                                    : Collections.emptyList();
-                        } catch (Exception e) {
-                            openHours = Collections.emptyList();
-                        }
-
-                        return new PlaceInfo(
-                                place.getTitle(),
-                                place.getDescription(),
-                                place.getAddress(),
-                                images,  // ✅ JSON 변환된 이미지 리스트 적용
-                                place.getPhone(),
-                                place.getWebsite(),
-                                place.getRating(),
-                                openHours  // ✅ JSON 변환된 영업시간 리스트 적용
-                        );
-                    })
-                    .toList();
-
-            return UrlResponse.builder()
-                    .contentInfos(Collections.emptyList())
-                    .placeDetails(placeInfoList)
-                    .processingTimeSeconds(0)
-                    .build();
-        }
-
-        // 3. FASTAPI로 요청 해서 처리된 데이터 가져오기
+        // 1. FASTAPI에 요청하여 데이터 가져오기
         String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
-
-        // 요청 본문 설정
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("urls", Collections.singletonList(urlRequest.getUrls()));
+        requestBody.put("urls", urlRequest.getUrls());
+    
+ 
 
         ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
                 requestUrl, requestBody, UrlResponse.class
         );
-
         UrlResponse urlResponse = response.getBody();
+
         if (urlResponse != null) {
+            // 2. URL 고유 ID 생성
+            for(String singleUrl : urlRequest.getUrls()) {
+                String urlId = generateUrlId(singleUrl);
+                // 3. URL 테이블에서 존재하는지 확인 (새 엔티티 생성 시 빌더에서 id() 호출 없이 생성)
+                Url urlEntity = urlRepository.findById(urlId).orElseGet(() -> {
+                    Url newUrl = Url.builder()
+                            .urlTitle(singleUrl)
+                            .urlAuthor(singleUrl)
+                            .url(singleUrl)
+                            .build();
+                    // 내부 생성자에서 generateHashFromUrl을 사용하므로 생성된 id와 일치함
+                    return urlRepository.save(newUrl);
+                });
 
-            // 4. 새로운 URL 엔티티 저장
-            Url newUrl = Url.builder()
-                    .urlTitle(urlRequest.getUrls())
-                    .urlAuthor(urlRequest.getUrls())
-                    .url(urlRequest.getUrls())
-                    .build();
-            urlRepository.save(newUrl);
+                // 4. 사용자 정보 조회
+                Users user = usersRepository.findByEmail(urlRequest.getEmail())
+                             .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 5. FASTAPI 에서 추출된 장소 관련 데이터 Place에 저장
-            for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
-                Place place = placeRepository.findByTitle(placeInfo.getName())
-                        .orElseGet(() -> {
-
-                            // ✅ opening_hours가 빈 리스트이거나 null이면 null로 변환
-                            String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
-                                    .filter(list -> !list.isEmpty() && list.stream().anyMatch(str -> !str.isBlank()))
-                                    .map(Object::toString)
-                                    .orElse(null);
-
-
-                            Place newPlace = Place.builder()
-                                    .title(placeInfo.getName())
-                                    .description(placeInfo.getDescription())
-                                    .address(placeInfo.getFormattedAddress()) // 주소 필드
-                                    .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null) // 이미지 필드 (필요한 경우)
-                                    .phone(placeInfo.getPhone()) // 전화번호
-                                    .website(placeInfo.getWebsite()) // 웹사이트
-                                    .rating(placeInfo.getRating()) // 평점
-                                    .openHours(openHours)  // 시작 시간
+                // 5. user_url 매핑 존재 여부 및 분석 완료 상태(is_use==0) 체크
+                UsersUrlId mappingId = UsersUrlId.builder()
+                                    .email(user.getEmail())
+                                    .urlId(urlId)
                                     .build();
-                            return placeRepository.save(newPlace);
-                        });
+                Optional<UsersUrl> mappingOpt = usersUrlRepository.findById(mappingId);
+                boolean needAnalysis = false;
+                if (mappingOpt.isPresent()) {
+                    UsersUrl mapping = mappingOpt.get();
+                    if (mapping.isUse()) {
+                        needAnalysis = true;
+                    }
+                } else {
+                    needAnalysis = true;
+                }
 
-                // 6. Url과 Place를 연결하는 UrlPlace 저장
-                UrlPlace urlPlace = UrlPlace.builder()
-                        .url(newUrl)
-                        .place(place)
-                        .build();
-                urlPlaceRepository.save(urlPlace);
+                // 6. 필요 시 분석 처리 및 관련 매핑 업데이트/생성
+                if (needAnalysis) {
+                    // FASTAPI의 분석 결과로부터 각 Place 정보를 처리
+                    for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
+                        Place place = placeRepository.findByTitle(placeInfo.getName())
+                                .orElseGet(() -> {
+                                    String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
+                                            .filter(list -> !list.isEmpty() && list.stream().anyMatch(str -> !str.isBlank()))
+                                            .map(Object::toString)
+                                            .orElse(null);
+                                    Place newPlace = Place.builder()
+                                            .title(placeInfo.getName())
+                                            .description(placeInfo.getDescription())
+                                            .address(placeInfo.getFormattedAddress())
+                                            .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null)
+                                            .phone(placeInfo.getPhone())
+                                            .website(placeInfo.getWebsite())
+                                            .rating(placeInfo.getRating())
+                                            .openHours(openHours)
+                                            .build();
+                                    return placeRepository.save(newPlace);
+                                });
+
+                        Optional<UrlPlace> existingUrlPlace = urlPlaceRepository.findByUrlAndPlace(urlEntity, place);
+                        if (!existingUrlPlace.isPresent()) {
+                            UrlPlace urlPlace = UrlPlace.builder()
+                                    .url(urlEntity)
+                                    .place(place)
+                                    .build();
+                            urlPlaceRepository.save(urlPlace);
+                        }
+
+                        if (urlRequest.getTravelInfoId() != null && !urlRequest.getTravelInfoId().isEmpty()) {
+                            TravelInfo travelInfo = travelInfoRepository.findById(urlRequest.getTravelInfoId())
+                                    .orElseThrow(() -> new RuntimeException("TravelInfo not found"));
+                            Optional<TravelInfoUrl> existingTravelInfoUrl = travelInfoUrlRepository.findByTravelInfoAndUrl(travelInfo, urlEntity);
+                            if (!existingTravelInfoUrl.isPresent()) {
+                                TravelInfoUrl travelInfoUrl = TravelInfoUrl.builder()
+                                        .travelInfo(travelInfo)
+                                        .url(urlEntity)
+                                        .build();
+                                travelInfoUrlRepository.save(travelInfoUrl);
+                            }
+                        }
+                    }
+
+                    // 분석 완료 후 user_url 매핑 상태를 업데이트 (0: 완료)
+                    if (mappingOpt.isPresent()) {
+                        UsersUrl mapping = mappingOpt.get();
+                        mapping.setUse(false);
+                        usersUrlRepository.save(mapping);
+                    } else {
+                        UsersUrl newMapping = UsersUrl.builder()
+                                .id(mappingId)
+                                .user(user)
+                                .url(urlEntity)
+                                .isUse(false)
+                                .build();
+                        usersUrlRepository.save(newMapping);
+                    }
+                } else {
+                    if (urlRequest.getTravelInfoId() != null && !urlRequest.getTravelInfoId().isEmpty()) {
+                        TravelInfo travelInfo = travelInfoRepository.findById(urlRequest.getTravelInfoId())
+                                .orElseThrow(() -> new RuntimeException("TravelInfo not found"));
+                        Optional<TravelInfoUrl> existingTravelInfoUrl = travelInfoUrlRepository.findByTravelInfoAndUrl(travelInfo, urlEntity);
+                        if (!existingTravelInfoUrl.isPresent()) {
+                            TravelInfoUrl travelInfoUrl = TravelInfoUrl.builder()
+                                    .travelInfo(travelInfo)
+                                    .url(urlEntity)
+                                    .build();
+                            travelInfoUrlRepository.save(travelInfoUrl);
+                        }
+                    }
+                }
             }
         }
         return urlResponse;
