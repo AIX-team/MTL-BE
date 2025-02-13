@@ -136,4 +136,33 @@ public class GuideServiceImpl implements GuideService {
     List<String> travelInfoIdList = travelInfoRepository.findTravelInfoIdByUserEmail(userEmail);
     return guideRepository.findByTravelInfoIdList(travelInfoIdList);
   }
+
+  /**
+   * 가이드 북 즐겨찾기 여부 수정
+   * @param guideId
+   * @param isFavorite
+   */
+  @Override
+  public void updateGuideBookFavorite(String guideId, boolean isFavorite) {
+    guideRepository.updateGuideBookFavorite(guideId, isFavorite);
+  }
+
+  /**
+   * 가이드 북 고정 여부 수정
+   * @param guideId
+   * @param isFixed
+   */
+  @Override
+  public void updateGuideBookFixed(String guideId, boolean isFixed) {
+    guideRepository.updateGuideBookFixed(guideId, isFixed);
+  }
+
+  /**
+   * 가이드 북 삭제
+   * @param guideId
+   */
+  @Override
+  public void deleteGuideBook(String guideId) {
+    guideRepository.updateGuideBookDelete(guideId);
+  }
 }

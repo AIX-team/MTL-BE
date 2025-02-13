@@ -25,6 +25,7 @@ public class GuideBookListResponse {
     private String title;
     private String travelInfoTitle;
     private String createAt;
+    private Integer courseCount;
     private Boolean isFavorite;
     private Boolean fixed;
     private List<String> authors;

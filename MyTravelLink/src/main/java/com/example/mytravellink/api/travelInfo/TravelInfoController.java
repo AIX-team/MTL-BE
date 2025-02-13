@@ -386,6 +386,7 @@ public class TravelInfoController {
                     .title(guide.getTitle())
                     .travelInfoTitle(travelInfo.getTitle())
                     .createAt(guide.getCreateAt().toString())
+                    .courseCount(guide.getCourseCount())
                     .isFavorite(guide.isFavorite())
                     .fixed(guide.isFixed())
                     .authors(authors)
@@ -410,8 +411,57 @@ public class TravelInfoController {
      */
     @PutMapping("/guidebooks/{guideId}/title")
     public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody StringRequest request) {
-        guideService.updateGuideBookTitle(guideId, request.getValue());
-        return new ResponseEntity<>("success", HttpStatus.OK);
+        try {
+            guideService.updateGuideBookTitle(guideId, request.getValue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
+
+    /**
+     * 가이드 북 즐겨찾기 여부 수정
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/favorite")
+    public ResponseEntity<String> updateGuideBookFavorite(@PathVariable String guideId, @RequestBody BooleanRequest booleanRequest) {
+        try {
+            guideService.updateGuideBookFavorite(guideId, booleanRequest.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /**
+     * 가이드 북 고정 여부 수정 
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/fixed")
+    public ResponseEntity<String> updateGuideBookFixed(@PathVariable String guideId, @RequestBody BooleanRequest booleanRequest) {
+        try {
+            guideService.updateGuideBookFixed(guideId, booleanRequest.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 가이드 북 삭제
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @DeleteMapping("/guidebooks/{guideId}")
+    public ResponseEntity<String> deleteGuideBook(@PathVariable String guideId) {
+        try {
+            guideService.deleteGuideBook(guideId);
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
 }
 

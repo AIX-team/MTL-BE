@@ -42,5 +42,25 @@ public interface GuideService {
    * @return List<Guide>
    */
   List<Guide> getGuideList(String userEmail);
+
+  /**
+   * 가이드 북 즐겨찾기 여부 수정
+   * @param guideId
+   * @param isFavorite
+   */
+  void updateGuideBookFavorite(String guideId, boolean isFavorite);
+
+  /**
+   * 가이드 북 고정 여부 수정
+   * @param guideId
+   * @param isFixed
+   */
+  void updateGuideBookFixed(String guideId, boolean isFixed);
+
+  /**
+   * 가이드 북 삭제
+   * @param guideId
+   */
+  void deleteGuideBook(String guideId);
 }
 
