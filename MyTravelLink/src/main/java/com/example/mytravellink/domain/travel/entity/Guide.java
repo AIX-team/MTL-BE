@@ -37,7 +37,8 @@ import java.util.List;
 public class Guide extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // AUTO_INCREMENT 사용
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "CHAR(36)")
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)

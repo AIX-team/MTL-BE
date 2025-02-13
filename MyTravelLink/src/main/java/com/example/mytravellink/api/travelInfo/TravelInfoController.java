@@ -217,24 +217,32 @@ public class TravelInfoController {
             System.out.println("AI 요청 데이터: " + aiGuideCourseRequest);
 
             // 2. AI 코스 추천 데이터 받기
-            AIGuideCourseResponse aiGuideCourseResponse = placeService.getAIGuideCourse(aiGuideCourseRequest,placeSelectRequest.getTravelDays());
+            List<AIGuideCourseResponse> aiGuideCourseResponses = placeService.getAIGuideCourse(aiGuideCourseRequest,placeSelectRequest.getTravelDays());
 
-            System.out.println("AI 응답 데이터: " + aiGuideCourseResponse);
+            System.out.println("AI 응답 데이터: " + aiGuideCourseResponses);
 
             // 3. 가이드북 생성
             Guide guide = Guide.builder()
-                .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
-                .title(placeSelectRequest.getTitle())
-                .travelDays(placeSelectRequest.getTravelDays())
-                .courseCount(placeSelectRequest.getTravelDays())
-                .isFavorite(false)
-                .fixed(false)
-                .isDelete(false)
-                .build();
+                    .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+                    .title(placeSelectRequest.getTitle())
+                    .travelDays(placeSelectRequest.getTravelDays())
+                    .courseCount(placeSelectRequest.getTravelDays())
+                    .planTypes("busy")
+                    .isFavorite(false)
+                    .fixed(false)
+                    .isDelete(false)
+                    .build();
 
-                // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
-                System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponse);
-                guideService.createGuideAndCourses(guide, aiGuideCourseResponse);
+            // Guide 객체 확인
+            System.out.println("Created Guide: " + guide);
+
+            // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
+            if (aiGuideCourseResponses == null) {
+                System.out.println("aiGuideCourseResponses is null");
+            } else {
+                System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
+            }
+            guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
 
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {

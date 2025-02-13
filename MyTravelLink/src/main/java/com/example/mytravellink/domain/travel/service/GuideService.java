@@ -5,10 +5,12 @@ import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRespons
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 
+import java.util.List;
+
 public interface GuideService {
   Guide getGuide(String guideId);
   TravelInfo getTravelInfo(String guideId);
-  void createGuideAndCourses(Guide guide, AIGuideCourseResponse aiGuideCourseResponse);
+  void createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
 
 }
 

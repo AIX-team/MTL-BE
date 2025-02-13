@@ -1,6 +1,9 @@
 package com.example.mytravellink.infrastructure.ai.Guide;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -28,15 +31,22 @@ public class AIGuideInfrastructure {
   // AI 코스 추천
   public List<AIGuideCourseResponse> getGuideRecommendation(AIGuideCourseRequest request) {
     try {
-      ResponseEntity<AIGuideCourseResponse> response = restTemplate.postForEntity(
+
+      // 요청 객체를 HttpEntity로 감싼다.
+      HttpEntity<AIGuideCourseRequest> httpEntity = new HttpEntity<>(request);
+
+      // 응답 데이터를 List 타입으로 받는다
+      ResponseEntity<List<AIGuideCourseResponse>> response = restTemplate.exchange(
               fastAPiUrl+ url + "/generate-plans",
-              request,
-              AIGuideCourseResponse.class
+              HttpMethod.POST,
+              httpEntity,
+              new ParameterizedTypeReference<>(){}
       );
 
-      // 응답 본문 로그
-      System.out.println("AI 서버 응답: " + response.getBody());
-      return (List<AIGuideCourseResponse>) response.getBody();
+      List<AIGuideCourseResponse> aiGuideCourseResponses = response.getBody();
+      System.out.println("AI 서버 응답 본문: " + aiGuideCourseResponses);
+
+      return aiGuideCourseResponses;
     } catch (Exception e) {
       e.printStackTrace();
       throw new RuntimeException("AI 서버와의 통신 실패", e);

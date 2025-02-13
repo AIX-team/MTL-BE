@@ -50,37 +50,40 @@ public class GuideServiceImpl implements GuideService {
    */
   @Override
   @Transactional
-  public void createGuideAndCourses(Guide guide, AIGuideCourseResponse aiGuideCourseResponse) {
+  public void createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
     try {
       Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
       System.out.println("가이드 저장 완료: " + savedGuide);
 
-      // 각 일일 계획에 대해 반복
-      for (DailyPlans dailyPlan : aiGuideCourseResponse.getDailyPlans()) {
-        System.out.println("일일 계획: Day " + dailyPlan.getDayNumber());
+      // AI 응답 리스트를 반복하며 각 항목에 대해 처리
+      for (AIGuideCourseResponse aiGuideCourseResponse : aiGuideCourseResponses) {
+        // 각 일일 계획에 대해 반복
+        for (DailyPlans dailyPlan : aiGuideCourseResponse.getDailyPlans()) {
+          System.out.println("일일 계획: Day " + dailyPlan.getDayNumber());
 
-        // 각 일일 계획에 대한 코스 생성
-        Course course = Course.builder()
-                .courseNumber(dailyPlan.getDayNumber())
-                .guide(savedGuide)
-                .build();
-        Course savedCourse = saveCourse(course);
-        System.out.println("코스 저장 완료: " + savedCourse);
-
-        for (PlaceDTO placeResp : dailyPlan.getPlaces()) {
-
-          // Place 조회
-          Place place = placeRepository.findById(placeResp.getName())
-                  .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
-
-          // 각 장소에 대해 CoursePlace 생성
-          CoursePlace coursePlace = CoursePlace.builder()
-                  .course(savedCourse)
-                  .place(place) // 장소 찾기
-                  .placeNum(dailyPlan.getPlaces().indexOf(placeResp) + 1) // 장소 번호
+          // 각 일일 계획에 대한 코스 생성
+          Course course = Course.builder()
+                  .courseNumber(dailyPlan.getDayNumber())
+                  .guide(savedGuide)
                   .build();
-          saveCoursePlace(coursePlace); // CoursePlace 저장
-          System.out.println("CoursePlace 저장 완료: " + coursePlace);
+          Course savedCourse = saveCourse(course);
+          System.out.println("코스 저장 완료: " + savedCourse);
+
+          // 각 장소에 대해 반복하여 CoursePlace 생성
+          for (PlaceDTO placeResp : dailyPlan.getPlaces()) {
+            // Place 조회
+            Place place = placeRepository.findByTitle(placeResp.getName())
+                    .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
+
+            // 각 장소에 대해 CoursePlace 생성
+            CoursePlace coursePlace = CoursePlace.builder()
+                    .course(savedCourse)
+                    .place(place) // 장소 찾기
+                    .placeNum(dailyPlan.getPlaces().indexOf(placeResp) + 1) // 장소 번호
+                    .build();
+            saveCoursePlace(coursePlace); // CoursePlace 저장
+            System.out.println("CoursePlace 저장 완료: " + coursePlace);
+          }
         }
       }
     } catch(Exception e){

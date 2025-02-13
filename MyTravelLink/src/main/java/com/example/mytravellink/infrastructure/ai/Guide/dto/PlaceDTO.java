@@ -29,7 +29,7 @@ public class PlaceDTO {
     @JsonProperty("business_hours")
     private String businessHours;
 
-    private String websites;
+    private String website;
 
     private float latitude;
     private float longitude;

@@ -168,3 +168,18 @@ CREATE INDEX idx_place_location ON place(latitude, longitude);
 CREATE INDEX idx_travel_info_bookmark ON travel_info(bookmark);
 CREATE INDEX idx_guide_bookmark ON guide(bookmark);
 CREATE INDEX idx_place_title ON place(title);
+
+
+
+ALTER TABLE course modify column guide_id char(36) NOT NULL  DEFAULT (UUID());
+ALTER TABLE  course DROP FOREIGN KEY fk_course_guide;
+ALTER TABLE  guide modify column id char(36) NOT NULL DEFAULT (UUID());
+ALTER TABLE  course ADD CONSTRAINT fk_course_guide FOREIGN KEY (guide_id) REFERENCES guide(id);
+ALTER TABLE guide ALTER COLUMN use_count SET DEFAULT 0;
+
+ALTER TABLE course_place DROP FOREIGN KEY fk_course_place_course;
+ALTER TABLE course_place modify  column  course_id char(36) NOT NULL DEFAULT (UUID());
+ALTER TABLE course modify column  id char(36) NOT NULL  DEFAULT (UUID());
+ALTER TABLE course_place ADD CONSTRAINT fk_course_place_course FOREIGN KEY (course_id) REFERENCES course(id);
+
+
