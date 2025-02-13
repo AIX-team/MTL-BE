@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,10 +52,10 @@ public class CourseController {
         }
     }
 
-    @PutMapping("/places/move/{courseId}")
-    public ResponseEntity<String> moveCoursePlace(@PathVariable String courseId, @RequestBody PlaceMoveRequest request) {
+    @PutMapping("/place/move")
+    public ResponseEntity<String> moveCoursePlace( @RequestBody PlaceMoveRequest request) {
         try {
-            courseService.moveCoursePlace(courseId, request.getBeforeCourseId(), request.getAfterCourseId(), request.getPlaceId());
+            courseService.moveCoursePlace(request.getPlaceId(), request.getBeforeCourseId(), request.getAfterCourseId(), request.getPlaceId());
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");

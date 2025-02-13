@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class CoursePlaceId implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    @Column(name = "course_id")
+    @Column(name = "course_id", columnDefinition = "CHAR(36)")
     private String courseId;
     
     @Column(name = "place_id", columnDefinition = "CHAR(36)")
