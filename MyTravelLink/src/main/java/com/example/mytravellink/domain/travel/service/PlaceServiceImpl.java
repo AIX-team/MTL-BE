@@ -45,13 +45,14 @@ public class PlaceServiceImpl implements PlaceService {
    */
 
   @Override
-  public AIGuideCourseResponse getAIGuideCourse(List<AIPlace> placeIds, int dayNum) {
-    List<AIPlace> placeList = placeRepository.findByPlaceIds(placeIds);
-    AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
-      .placeList(placeList)
-      .dayNum(dayNum)
+  public AIGuideCourseResponse getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
+
+    AIGuideCourseRequest request = AIGuideCourseRequest.builder()
+      .places(aiGuideCourseRequest.getPlaces())
+      .travelDays(travelDays)
       .build();
-    return aiGuideInfrastructure.getGuideRecommendation(aiGuideCourseRequest);
+
+    return (AIGuideCourseResponse) aiGuideInfrastructure.getGuideRecommendation(request);
   }
 
   /**

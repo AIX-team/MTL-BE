@@ -4,6 +4,8 @@ import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.DailyPlans;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.PlaceDTO;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
@@ -23,7 +25,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class GuideServiceImpl implements GuideService {
-  
+
   private final GuideRepository guideRepository;
   private final CourseRepository courseRepository;
   private final CoursePlaceRepository coursePlaceRepository;
@@ -49,24 +51,42 @@ public class GuideServiceImpl implements GuideService {
   @Override
   @Transactional
   public void createGuideAndCourses(Guide guide, AIGuideCourseResponse aiGuideCourseResponse) {
+    try {
+      Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
+      System.out.println("가이드 저장 완료: " + savedGuide);
 
-    Guide savedGuide = saveGuide(guide);
+      // 각 일일 계획에 대해 반복
+      for (DailyPlans dailyPlan : aiGuideCourseResponse.getDailyPlans()) {
+        System.out.println("일일 계획: Day " + dailyPlan.getDayNumber());
 
-                for (AIGuideCourseResponse.CourseDTO courseResp : aiGuideCourseResponse.getCourses()) {
-                    Course course = Course.builder()
-                        .courseNumber(courseResp.getCourseNumber())
-                        .guide(savedGuide)
-                        .build();
-                        Course savedCourse = saveCourse(course);
-                    for (AIGuideCourseResponse.CourseDTO.PlaceDTO placeResp : courseResp.getPlaces()) {
-                        CoursePlace coursePlace = CoursePlace.builder()
-                            .course(savedCourse)
-                            .place(placeRepository.findById(placeResp.getPlaceId()).orElseThrow(() -> new RuntimeException("Place not found")))
-                            .placeNum(placeResp.getPlaceNum())
-                            .build();
-                        saveCoursePlace(coursePlace);
-                    }
-                }
+        // 각 일일 계획에 대한 코스 생성
+        Course course = Course.builder()
+                .courseNumber(dailyPlan.getDayNumber())
+                .guide(savedGuide)
+                .build();
+        Course savedCourse = saveCourse(course);
+        System.out.println("코스 저장 완료: " + savedCourse);
+
+        for (PlaceDTO placeResp : dailyPlan.getPlaces()) {
+
+          // Place 조회
+          Place place = placeRepository.findById(placeResp.getName())
+                  .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
+
+          // 각 장소에 대해 CoursePlace 생성
+          CoursePlace coursePlace = CoursePlace.builder()
+                  .course(savedCourse)
+                  .place(place) // 장소 찾기
+                  .placeNum(dailyPlan.getPlaces().indexOf(placeResp) + 1) // 장소 번호
+                  .build();
+          saveCoursePlace(coursePlace); // CoursePlace 저장
+          System.out.println("CoursePlace 저장 완료: " + coursePlace);
+        }
+      }
+    } catch(Exception e){
+      e.printStackTrace(); // 예외 출력
+      throw new RuntimeException("가이드 생성 중 오류 발생" + e.getMessage(), e);
+    }
   }
 
     /**
@@ -77,32 +97,57 @@ public class GuideServiceImpl implements GuideService {
     public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
 
       // Place IDs를 기반으로 DB에서 Place 엔티티 조회
-      List<AIPlace> places = placeRepository.findByPlaceIds(placeSelectRequest.getPlaceIds());
+      // List<AIPlace> places = placeRepository.findByPlaceIds(placeSelectRequest.getPlaceIds());
 
-      // Place 엔티티 -> AIPlace DTO 변환
-      List<AIPlace> guidePlaces = places.stream()
-              .map(place -> AIPlace.builder()
-                      .id(place.getId())
-                      .address(place.getAddress())
-                      .title(place.getTitle())
-                      .description(place.getDescription())
-                      .intro(place.getIntro())
-                      .type(place.getType())
-                      .image(place.getImage())
-                      .openHours(place.getOpenHours())
-                      .phone(place.getPhone())
-                      .rating(place.getRating())
-                      .build())
+      // PlaceSelectRequest에서 입력된 장소 리스트를 기반으로 AIPlace 리스트 생성
+      List<AIPlace> guidePlaces = placeSelectRequest.getPlaces().stream() // places가 List<PlaceInfo>라고 가정
+              .map(place -> {
+
+                // AIPlace로 변환
+                AIPlace aiPlace = AIPlace.builder()
+                        .id(place.getId()) // ID
+                        .address(place.getAddress()) // 주소
+                        .title(place.getTitle()) // 제목
+                        .description(place.getDescription()) // 설명
+                        .intro(place.getIntro()) // 소개
+                        .type(place.getType()) // 타입
+                        .image(place.getImage()) // 이미지
+                        .latitude(place.getLatitude()) // 위도
+                        .longitude(place.getLongitude()) // 경도
+                        .phone(place.getPhone()) // 전화번호
+                        .rating(place.getRating()) // 평점
+                        .openHours(place.getOpenHours()) // 영업시간
+                        .build();
+
+                return aiPlace;
+              })
               .collect(Collectors.toList());
 
+
+//      // Place 엔티티 -> AIPlace DTO 변환
+//      List<AIPlace> guidePlaces = places.stream()
+//              .map(place -> AIPlace.builder()
+//                      .id(place.getId())
+//                      .address(place.getAddress())
+//                      .title(place.getTitle())
+//                      .description(place.getDescription())
+//                      .intro(place.getIntro())
+//                      .type(place.getType())
+//                      .image(place.getImage())
+//                      .openHours(place.getOpenHours())
+//                      .phone(place.getPhone())
+//                      .rating(place.getRating())
+//                      .build())
+//              .collect(Collectors.toList());
+
       // AIGuideCourseRequest 객체 생성
-      return AIGuideCourseRequest.builder()
-              .placeList(guidePlaces) // 변환된 AIPlace 리스트 추가
-              .dayNum(placeSelectRequest.getTravelDays()) // 여행 일수
+      AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
+              .places(guidePlaces) // 변환된 AIPlace 리스트 추가
+              .travelDays(placeSelectRequest.getTravelDays()) // 여행 일수
               .build();
+
+      return aiGuideCourseRequest;
     }
-
-
 
 
   /**
@@ -150,5 +195,5 @@ public class GuideServiceImpl implements GuideService {
   @Override
   public TravelInfo getTravelInfo(String travelInfoId) {
     return travelInfoRepository.findById(travelInfoId).orElseThrow(() -> new RuntimeException("TravelInfo not found"));
-  } 
+  }
 }

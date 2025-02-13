@@ -4,6 +4,7 @@ package com.example.mytravellink.api.travelInfo;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -210,7 +211,17 @@ public class TravelInfoController {
         @RequestBody PlaceSelectRequest placeSelectRequest) {
         try {
 
-            // 가이드북 생성
+            // 1. AI 코스 추천에 요청할 데이터 형식 설정
+            AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
+
+            System.out.println("AI 요청 데이터: " + aiGuideCourseRequest);
+
+            // 2. AI 코스 추천 데이터 받기
+            AIGuideCourseResponse aiGuideCourseResponse = placeService.getAIGuideCourse(aiGuideCourseRequest,placeSelectRequest.getTravelDays());
+
+            System.out.println("AI 응답 데이터: " + aiGuideCourseResponse);
+
+            // 3. 가이드북 생성
             Guide guide = Guide.builder()
                 .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
                 .title(placeSelectRequest.getTitle())
@@ -221,16 +232,9 @@ public class TravelInfoController {
                 .isDelete(false)
                 .build();
 
-            // AI 가이드 코스 생성
-            try {
-                AIGuideCourseResponse aiGuideCourseResponse = placeService.getAIGuideCourse(placeSelectRequest.getPlaceIds(), placeSelectRequest.getTravelDays());
-                
                 // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
+                System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponse);
                 guideService.createGuideAndCourses(guide, aiGuideCourseResponse);
-                
-            } catch (Exception e) {
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            }
 
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -266,5 +270,16 @@ public class TravelInfoController {
         }
     }
     
+//    /**
+//     * 가이드 북 제목 수정
+//     * @param guideId
+//     * @return ResponseEntity<String>
+//     */
+//    @PutMapping("/guidebooks/{guideId}/title")
+//    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody GuideBookTitleEditRequest request) {
+//        guideService.updateGuideBookTitle(guideId, request.getTitle());
+//        return new ResponseEntity<>("success", HttpStatus.OK);
+//    }
+
 }
 

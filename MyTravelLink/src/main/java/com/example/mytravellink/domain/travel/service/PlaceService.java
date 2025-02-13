@@ -3,6 +3,7 @@ package com.example.mytravellink.domain.travel.service;
 import java.util.List;
 
 import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.domain.travel.entity.Place;
@@ -10,7 +11,7 @@ import com.example.mytravellink.domain.travel.entity.Place;
 public interface PlaceService {
 
   // AI 코스 추천
-  AIGuideCourseResponse getAIGuideCourse(List<AIPlace> placeIdList, int dayNum);
+  AIGuideCourseResponse getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int dayNum);
 
   // AI 장소 선택
   TravelInfoPlaceResponse getAISelectPlace(String travelInfoId, int travelDays);

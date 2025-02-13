@@ -16,5 +16,5 @@ public class PlaceSelectRequest {
   private String travelInfoId;
   private String title;
   private Integer travelDays;
-  private List<AIPlace> placeIds;
+  private List<AIPlace> places;
 }

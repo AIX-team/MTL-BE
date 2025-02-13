@@ -5,6 +5,7 @@ import java.util.List;
 import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.url.dto.PlaceInfo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AIGuideCourseRequest {
-  private List<AIPlace> placeList;
-  private int dayNum;
+
+  @JsonProperty("places")
+  private List<AIPlace> places;
+
+  @JsonProperty("travel_days")
+  private int travelDays;
 }
