@@ -116,4 +116,21 @@ public class CourseServiceImpl implements CourseService {
       throw new RuntimeException("CoursePlace 삭제 실패", e);
     }
   }
+
+  /**
+   * 코스 장소 이동
+   * @param courseId
+   * @param beforeCourseId
+   * @param afterCourseId
+   * @param placeId
+   */
+  @Transactional
+  @Override
+  public void moveCoursePlace(String courseId, String beforeCourseId, String afterCourseId, String placeId) {
+    try {
+      coursePlaceRepository.updateCourseMove(beforeCourseId, afterCourseId, placeId);
+    } catch (Exception e) {
+      throw new RuntimeException("CoursePlace 이동 실패", e);
+    }
+  }
 }

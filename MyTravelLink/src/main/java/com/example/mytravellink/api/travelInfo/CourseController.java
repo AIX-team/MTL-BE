@@ -5,12 +5,14 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceAddRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceDeleteRequest;
+import com.example.mytravellink.api.travelInfo.dto.course.PlaceMoveRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceRequest;
 import com.example.mytravellink.domain.travel.service.CourseService;
 
@@ -45,6 +47,16 @@ public class CourseController {
             List<String> placeIds = request.getPlaceIds();
             List<String> courseIds = request.getCourseIds();
             courseService.addCoursePlace(courseIds, placeIds);
+            return ResponseEntity.ok("success");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+        }
+    }
+
+    @PutMapping("/places/move/{courseId}")
+    public ResponseEntity<String> moveCoursePlace(@PathVariable String courseId, @RequestBody PlaceMoveRequest request) {
+        try {
+            courseService.moveCoursePlace(courseId, request.getBeforeCourseId(), request.getAfterCourseId(), request.getPlaceId());
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");

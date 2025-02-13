@@ -89,5 +89,66 @@ public class CoursePlaceQueryRepositoryImpl implements CoursePlaceQueryRepositor
       throw new RuntimeException("CoursePlace 업데이트 실패", e);
     }
   }
+
+  @Transactional
+  @Override
+  public void updateCourseMove(String beforeCourseId, String afterCourseId, String placeId) {
+    try {
+      // afterCourseId CoursePlace count 조회
+      Long afterCoursePlaceCount = queryFactory.select(coursePlace.count())
+        .from(coursePlace)
+        .where(coursePlace.course.id.eq(afterCourseId)
+          .and(coursePlace.isDeleted.eq(false)))
+        .fetchOne();
+
+      // 이동할 코스의 장소 컬럼 isDeleted 조회
+      Boolean isDeleted = queryFactory.select(coursePlace.isDeleted)
+        .from(coursePlace)
+        .where(coursePlace.course.id.eq(afterCourseId)
+          .and(coursePlace.place.id.eq(placeId)))
+        .fetchOne();
+
+      if (isDeleted) { // 이동할 코스의 장소 컬럼 isDeleted가 true일 경우 장소 수정
+        queryFactory.update(coursePlace)
+          .where(coursePlace.course.id.eq(afterCourseId)
+            .and(coursePlace.place.id.eq(placeId)))
+          .set(coursePlace.isDeleted, false)
+          .set(coursePlace.placeNum, Integer.parseInt(afterCoursePlaceCount.toString()) + 1)
+          .execute();
+      }else{ // 이동할 코스의 장소 컬럼 isDeleted가 false일 경우 장소 새로 추가
+        queryFactory.insert(coursePlace)
+          .set(coursePlace.course.id, afterCourseId)
+          .set(coursePlace.place.id, placeId)
+          .set(coursePlace.placeNum, Integer.parseInt(afterCoursePlaceCount.toString()) + 1)
+          .execute();
+      }
+
+      // 기존 코스의 장소 컬럼 isDeleted 수정
+      queryFactory.update(coursePlace)
+        .where(coursePlace.course.id.eq(beforeCourseId)
+          .and(coursePlace.place.id.eq(placeId))
+          .and(coursePlace.isDeleted.eq(false)))
+        .set(coursePlace.isDeleted, true)
+        .execute();
+
+      // 기존 코스의 장소 컬럼 정렬
+      List<String> beforeCoursePlaceList = queryFactory.select(coursePlace.place.id)
+        .from(coursePlace)
+        .where(coursePlace.course.id.eq(beforeCourseId)
+          .and(coursePlace.isDeleted.eq(false)))
+        .orderBy(coursePlace.placeNum.asc())
+        .fetch();
+
+      for (int i = 0; i < beforeCoursePlaceList.size(); i++) {
+        queryFactory.update(coursePlace)
+          .where(coursePlace.course.id.eq(beforeCourseId)
+          .and(coursePlace.isDeleted.eq(false)))
+          .set(coursePlace.placeNum, i + 1)
+          .execute();
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("CoursePlace 이동 실패", e);
+    }
+  }
 }
 
