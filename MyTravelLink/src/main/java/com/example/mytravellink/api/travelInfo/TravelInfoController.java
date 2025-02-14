@@ -345,7 +345,7 @@ public class TravelInfoController {
             TravelInfo travelInfo = guideService.getTravelInfo(guide.getTravelInfo().getId());
             List<GuideBookResponse.CourseList> courseListResp = courseService.getCoursePlace(guideId);
             //이미지 URL 리다이렉션
-            List<GuideBookResponse.CourseList> imageUrlList = imageService.redirectImageUrl(courseListResp);
+            // List<GuideBookResponse.CourseList> imageUrlList = imageService.redirectImageUrl(courseListResp);
 
         GuideBookResponse guideBookResponse = GuideBookResponse.builder()
             .success("success")
@@ -354,7 +354,8 @@ public class TravelInfoController {
             .travelInfoTitle(travelInfo.getTitle()) 
             .travelInfoId(travelInfo.getId())
             .courseCnt(guide.getCourseCount())
-            .courses(imageUrlList)
+            // .courses(imageUrlList)
+            .courses(courseListResp)
             .build();
 
             return new ResponseEntity<>(guideBookResponse, HttpStatus.OK);
