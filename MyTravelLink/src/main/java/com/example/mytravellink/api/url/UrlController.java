@@ -2,11 +2,14 @@ package com.example.mytravellink.api.url;
 
 import com.example.mytravellink.api.url.dto.UrlRequest;
 import com.example.mytravellink.api.url.dto.UrlResponse;
+import com.example.mytravellink.api.url.dto.UserUrlRequest;
 import com.example.mytravellink.domain.url.service.UrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/url")
@@ -19,12 +22,24 @@ public class UrlController {
         this.urlService = urlService;
     }
 
-    @PostMapping("/analysis") // POST 메소드로 설정
+    @PostMapping("/analysis")
     public ResponseEntity<UrlResponse> processUrl(
-            @RequestBody UrlRequest request) { // 요청 본문에서 UrlRequest를 가져옴
-
-        // UrlRequest의 URL로 요청 처리
+            @RequestBody UrlRequest request) {
+        // 여러 URL 중 첫 번째 URL를 기준으로 처리합니다.
         UrlResponse response = urlService.processUrl(request);
         return ResponseEntity.ok(response);
     }
+
+    // /**
+    //  * 매핑 API 엔드포인트
+    //  * payload에 포함된 URL들을 기반으로 travel_info_url과 travel_info_place 매핑을 확인/생성하고,
+    //  * 해당 TravelInfo의 id를 리턴합니다.
+    //  */
+    // @PostMapping("/mapping")
+    // public ResponseEntity<Map<String, String>> mappingUrl(@RequestBody UrlRequest request) {
+    //     String travelInfoId = urlService.mappingUrl(request);
+    //     Map<String, String> response = new HashMap<>();
+    //     response.put("travelInfoId", travelInfoId);
+    //     return ResponseEntity.ok(response);
+    // }
 }

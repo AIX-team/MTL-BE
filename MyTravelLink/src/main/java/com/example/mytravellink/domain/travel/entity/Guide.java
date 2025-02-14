@@ -36,7 +36,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
     
-    @Id
+
     @GeneratedValue(strategy = GenerationType.UUID)  
     @Column(name = "id", columnDefinition = "CHAR(36)")
     private String id;

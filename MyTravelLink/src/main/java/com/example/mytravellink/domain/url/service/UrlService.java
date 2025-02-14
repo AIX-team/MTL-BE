@@ -30,4 +30,7 @@ public interface UrlService {
 
     // 새롭게 추가: URL 문자열을 전달받아 해시 계산 후 삭제
     void deleteUserUrlByUrl(String email, String url);
+
+    
+    
 }
