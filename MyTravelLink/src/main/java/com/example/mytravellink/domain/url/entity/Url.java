@@ -39,7 +39,7 @@ import jakarta.persistence.CascadeType;
 public class Url extends BaseTimeEntity {
     
     @Id
-    @Column(length = 128)  // SHA-512 해시값은 128자
+    @Column(name = "id", length = 128)
     private String id;
     
     // Url -> UrlPlace (1:N)

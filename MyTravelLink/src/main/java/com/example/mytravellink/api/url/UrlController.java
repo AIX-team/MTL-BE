@@ -6,10 +6,10 @@ import com.example.mytravellink.api.url.dto.UserUrlRequest;
 import com.example.mytravellink.domain.url.service.UrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/url")
@@ -22,34 +22,24 @@ public class UrlController {
         this.urlService = urlService;
     }
 
-    @PostMapping("/analysis") // POST 메소드로 설정
+    @PostMapping("/analysis")
     public ResponseEntity<UrlResponse> processUrl(
-            @RequestBody UrlRequest request) { // 요청 본문에서 UrlRequest를 가져옴
-
-        // UrlRequest의 URL로 요청 처리
+            @RequestBody UrlRequest request) {
+        // 여러 URL 중 첫 번째 URL를 기준으로 처리합니다.
         UrlResponse response = urlService.processUrl(request);
         return ResponseEntity.ok(response);
     }
 
-    // 새롭게 추가된 엔드포인트 : 다중 UserUrlRequest를 받아 처리
-    @PostMapping("/user/process")
-    public ResponseEntity<UrlResponse> processUserUrls(@RequestBody List<UserUrlRequest> requests,
-                                                       @RequestHeader("Authorization") String token) {
-        // 요청 배열에서 URL 문자열만 추출하여 List<String> 생성
-        List<String> urls = requests.stream()
-                                    .map(UserUrlRequest::getUrl)
-                                    .collect(Collectors.toList());
-        // JWT 등에서 이메일 추출 (여기서는 단순 더미 처리)
-        String email = extractEmailFromToken(token);
-        UrlResponse response = urlService.processUserUrls(urls, email);
-        return ResponseEntity.ok(response);
-    }
-    
-    // 간단한 더미 이메일 추출 메서드 (실제 환경에서는 JWT 파싱 활용)
-    private String extractEmailFromToken(String token) {
-        if (token != null && token.startsWith("Bearer ")) {
-            return token.substring(7);
-        }
-        return "unknown@example.com";
-    }
+    // /**
+    //  * 매핑 API 엔드포인트
+    //  * payload에 포함된 URL들을 기반으로 travel_info_url과 travel_info_place 매핑을 확인/생성하고,
+    //  * 해당 TravelInfo의 id를 리턴합니다.
+    //  */
+    // @PostMapping("/mapping")
+    // public ResponseEntity<Map<String, String>> mappingUrl(@RequestBody UrlRequest request) {
+    //     String travelInfoId = urlService.mappingUrl(request);
+    //     Map<String, String> response = new HashMap<>();
+    //     response.put("travelInfoId", travelInfoId);
+    //     return ResponseEntity.ok(response);
+    // }
 }

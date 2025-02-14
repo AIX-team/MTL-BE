@@ -25,4 +25,10 @@ public class UrlResponse {
 
     @JsonProperty("processing_time_seconds")
     private float processingTimeSeconds; // 응답 처리 시간
+
+    private String url;
+    private String urlTitle;
+
+    @JsonProperty("travel_info_urls")
+    private List<TravelInfoUrlDto> travelInfoUrls;
 }

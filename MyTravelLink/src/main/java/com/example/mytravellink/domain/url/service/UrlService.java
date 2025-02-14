@@ -31,8 +31,6 @@ public interface UrlService {
     // 새롭게 추가: URL 문자열을 전달받아 해시 계산 후 삭제
     void deleteUserUrlByUrl(String email, String url);
 
-    // 새롭게 추가: 전달받은 URL 리스트와 사용자 이메일을 처리하여
-    // url_place와 travel_info_url 존재 여부에 따라 user_url의 is_use를 업데이트 후
-    // FastAPI의 /contentanalysis 엔드포인트 호출
-    UrlResponse processUserUrls(List<String> urls, String userEmail);
+    
+    
 }

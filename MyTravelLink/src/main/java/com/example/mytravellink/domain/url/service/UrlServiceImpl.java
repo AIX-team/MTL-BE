@@ -30,6 +30,7 @@ import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
 import lombok.RequiredArgsConstructor;
 import java.net.URI;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,11 +50,32 @@ public class UrlServiceImpl implements UrlService {
 
     @Override
     public UrlResponse processUrl(UrlRequest urlRequest) {
+        // URL 리스트가 비어있으면 예외 처리
+        if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
+            throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
+        }
+        // 여기서는 리스트의 첫 번째 URL로 처리합니다.
+        String urlStr = urlRequest.getUrls().get(0);
 
         // 1. DB에서 기존 데이터 조회
-        Optional<Url> existingData = urlRepository.findByUrl(urlRequest.getUrls());
+        Optional<Url> existingData = urlRepository.findByUrl(urlStr);
+        // 기존 매핑을 따로 저장하여 업데이트할 수 있도록 함
+        List<UsersUrl> oldMappings = new ArrayList<>();
 
-        // 2. 기존 데이터가 있으면 해당 데이터로 반환
+        if (existingData.isPresent()) {
+            Url cachedUrl = existingData.get();
+            // URL에 해당하는 매핑 정보들을 모두 조회 (매핑이 여러 건일 수 있으므로)
+            List<UsersUrl> mappings = usersUrlRepository.findAllByUrl(cachedUrl);
+            oldMappings.addAll(mappings);
+            // 매핑 정보 중 하나라도 is_use가 true이면 캐시 사용 안하도록 처리
+            boolean hasActiveMapping = mappings.stream()
+                    .anyMatch(mapping -> mapping.isUse());
+            if (hasActiveMapping) {
+                existingData = Optional.empty();
+            }
+        }
+
+        // 2. 기존 데이터가 있으면 해당 데이터로 반환 (active 매핑이 없는 경우)
         if (existingData.isPresent()) {
             Url url = existingData.get();
             ObjectMapper objectMapper = new ObjectMapper();
@@ -61,8 +83,7 @@ public class UrlServiceImpl implements UrlService {
             List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
                     .map(urlPlace -> {
                         Place place = urlPlace.getPlace();
-
-                        // 🔹 이미지 변환
+                        // 이미지 변환
                         List<PlacePhoto> images;
                         try {
                             images = place.getImage() != null
@@ -71,8 +92,7 @@ public class UrlServiceImpl implements UrlService {
                         } catch (Exception e) {
                             images = Collections.emptyList();
                         }
-
-                        // 🔹 영업시간 변환
+                        // 영업시간 변환
                         List<String> openHours;
                         try {
                             openHours = place.getOpenHours() != null
@@ -86,11 +106,11 @@ public class UrlServiceImpl implements UrlService {
                                 place.getTitle(),
                                 place.getDescription(),
                                 place.getAddress(),
-                                images,  // ✅ JSON 변환된 이미지 리스트 적용
+                                images,
                                 place.getPhone(),
                                 place.getWebsite(),
                                 place.getRating(),
-                                openHours  // ✅ JSON 변환된 영업시간 리스트 적용
+                                openHours
                         );
                     })
                     .toList();
@@ -102,12 +122,12 @@ public class UrlServiceImpl implements UrlService {
                     .build();
         }
 
-        // 3. FASTAPI로 요청 해서 처리된 데이터 가져오기
+        // 3. 기존 데이터가 없거나 active 매핑(is_use==true)이 존재할 경우 -> FastAPI 호출하여 데이터 처리
         String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
 
-        // 요청 본문 설정
+        // DTO에 전달된 URL 리스트 그대로 전송 (여러 URL 지원)
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("urls", Collections.singletonList(urlRequest.getUrls()));
+        requestBody.put("urls", urlRequest.getUrls());
 
         ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
                 requestUrl, requestBody, UrlResponse.class
@@ -116,40 +136,49 @@ public class UrlServiceImpl implements UrlService {
         UrlResponse urlResponse = response.getBody();
         if (urlResponse != null) {
 
-            // 4. 새로운 URL 엔티티 저장
+            // ★ 기존 active 매핑(is_use==true)이 있었다면, new analysis를 위해 해당 매핑들을 모두 false로 업데이트합니다.
+            for (UsersUrl mapping : oldMappings) {
+                if (mapping.isUse()) {
+                    mapping.setUse(false);
+                    usersUrlRepository.save(mapping);
+                }
+            }
+
+            // 4. 새로운 URL 엔티티 저장 (첫 번째 URL 사용)
             Url newUrl = Url.builder()
-                    .urlTitle(urlRequest.getUrls())
-                    .urlAuthor(urlRequest.getUrls())
-                    .url(urlRequest.getUrls())
+                    .urlTitle(urlStr)
+                    .urlAuthor(urlStr)
+                    .url(urlStr)
                     .build();
             urlRepository.save(newUrl);
 
-            // 5. FASTAPI 에서 추출된 장소 관련 데이터 Place에 저장
+            
+
+            // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
+            // (기존 로직 그대로)
             for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
                 Place place = placeRepository.findByTitle(placeInfo.getName())
                         .orElseGet(() -> {
-
-                            // ✅ opening_hours가 빈 리스트이거나 null이면 null로 변환
+                            // opening_hours가 빈 리스트이거나 null이면 null 처리
                             String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
                                     .filter(list -> !list.isEmpty() && list.stream().anyMatch(str -> !str.isBlank()))
                                     .map(Object::toString)
                                     .orElse(null);
 
-
                             Place newPlace = Place.builder()
                                     .title(placeInfo.getName())
                                     .description(placeInfo.getDescription())
-                                    .address(placeInfo.getFormattedAddress()) // 주소 필드
-                                    .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null) // 이미지 필드 (필요한 경우)
-                                    .phone(placeInfo.getPhone()) // 전화번호
-                                    .website(placeInfo.getWebsite()) // 웹사이트
-                                    .rating(placeInfo.getRating()) // 평점
-                                    .openHours(openHours)  // 시작 시간
+                                    .address(placeInfo.getFormattedAddress())
+                                    .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null)
+                                    .phone(placeInfo.getPhone())
+                                    .website(placeInfo.getWebsite())
+                                    .rating(placeInfo.getRating())
+                                    .openHours(openHours)
                                     .build();
                             return placeRepository.save(newPlace);
                         });
 
-                // 6. Url과 Place를 연결하는 UrlPlace 저장
+                // Url과 Place 연관 매핑 저장
                 UrlPlace urlPlace = UrlPlace.builder()
                         .url(newUrl)
                         .place(place)
@@ -160,31 +189,26 @@ public class UrlServiceImpl implements UrlService {
         return urlResponse;
     }
 
+    // 나머지 메서드들은 기존 로직 유지...
+    
     @Override
     public List<Url> findUrlByTravelInfoId(TravelInfo travelInfo) {
         if(travelInfo == null) {
             return Collections.emptyList();
         }
 
-        // 2. TravelInfo에 해당하는 URL ID 리스트 조회
         List<String> urlIds = travelInfoUrlRepository.findUrlIdByTravelInfoId(travelInfo);
 
-        // 3. ID 목록이 비어있으면 빈 리스트 반환
         if (urlIds == null || urlIds.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 4. ID를 기반으로 Url 엔티티 조회
         return urlRepository.findByIdIn(urlIds);
     }
 
     @Override
     public List<Place> findPlaceByUrlId(String urlId) {
-
-        // 1. URL에 연결된 UrlPlace 리스트 조회
         List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrl_Id(urlId);
-
-        // 2. UrlPlace 에서 place 리스트 추출 후 반환
         return urlPlaces.stream()
                 .map(UrlPlace::getPlace)
                 .toList();
@@ -207,18 +231,10 @@ public class UrlServiceImpl implements UrlService {
         travelInfoUrlRepository.save(travelInfoUrl);
     }
 
-    /**
-     * 사용자 요청으로 URL을 저장하는 메서드.
-     * URL이 존재하지 않으면 Url 테이블에 저장하고, 
-     * 그리고 사용자와 URL의 관계를 user_url 테이블에 저장합니다.
-     */
     @Override
     @Transactional
     public void saveUserUrl(String email, UserUrlRequest request) {
         String urlStr = request.getUrl();
-        
-
-        // Url 테이블에서 기존 URL 엔티티 조회 또는 생성
         Url urlEntity = urlRepository.findById(generateUrlId(urlStr)).orElseGet(() -> {
             Url newUrl = Url.builder()
                     .url(urlStr)
@@ -228,7 +244,6 @@ public class UrlServiceImpl implements UrlService {
             return urlRepository.save(newUrl);
         });
         
-        // 사용자 엔티티 조회 후 매핑 ID 생성
         Users user = usersRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         UsersUrlId mappingId = new UsersUrlId(user.getEmail(), urlEntity.getId());
@@ -244,10 +259,6 @@ public class UrlServiceImpl implements UrlService {
         }
     }
 
-    /**
-     * 사용자 요청으로 URL을 삭제하는 메서드.
-     * 해당 URL이 존재하면 삭제합니다.
-     */
     @Override
     @Transactional
     public void deleteUserUrl(String email, String urlId) {
@@ -256,9 +267,6 @@ public class UrlServiceImpl implements UrlService {
         }
     }
 
-    /**
-     * URL 문자열을 입력받아 SHA-512 해시(16진수 문자열 128자리)를 생성하는 헬퍼 메서드
-     */
     private String generateUrlId(String url) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-512");
@@ -277,9 +285,7 @@ public class UrlServiceImpl implements UrlService {
     @Override
     @Transactional
     public void deleteUserUrlByUrl(String email, String url) {
-        // 저장 시 사용했던 SHA-512 해시 생성 로직을 사용하여 URL ID 생성
         String id = generateUrlId(url);
-        // user_url 매핑 삭제
         UsersUrlId mappingId = UsersUrlId.builder()
                             .email(email)
                             .urlId(id)
@@ -287,15 +293,11 @@ public class UrlServiceImpl implements UrlService {
         if (usersUrlRepository.existsById(mappingId)) {
             usersUrlRepository.deleteById(mappingId);
         }
-        // url 테이블의 URL 삭제
         if (urlRepository.existsById(id)) {
             urlRepository.deleteById(id);
         }
     }
 
-    /**
-     * 유튜브 URL에서 videoId를 추출하는 헬퍼 메서드
-     */
     private String extractYoutubeVideoId(String url) {
         try {
             URI uri = new URI(url);
@@ -315,44 +317,5 @@ public class UrlServiceImpl implements UrlService {
         return "";
     }
 
-    @Override
-    @Transactional
-    public UrlResponse processUserUrls(List<String> urls, String userEmail) {
-        // 전달받은 URL들에 대해 처리
-        for (String url : urls) {
-            // 1. url 테이블에서 해당 URL의 엔티티 조회
-            Optional<Url> urlEntityOptional = urlRepository.findByUrl(url);
-            if (!urlEntityOptional.isPresent()) {
-                throw new RuntimeException("등록되지 않은 URL입니다: " + url);
-            }
-            String urlId = urlEntityOptional.get().getId();
-
-            // 2. url_place 테이블에서 URL ID 조회
-            List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrl_Id(urlId);
-            // 3. travel_info_url 테이블에도 URL이 등록되어 있는지 확인
-            boolean existsInTravelInfoUrl = travelInfoUrlRepository.existsByUrlId(urlId);
-
-            // 4. 두 테이블 모두에 해당 데이터가 없으면, user_url 테이블의 매핑 상태 변경
-            if ((urlPlaces == null || urlPlaces.isEmpty()) && !existsInTravelInfoUrl) {
-                UsersUrlId mappingId = UsersUrlId.builder()
-                        .email(userEmail)
-                        .urlId(urlId)
-                        .build();
-                if (usersUrlRepository.existsById(mappingId)) {
-                    UsersUrl userUrlMapping = usersUrlRepository.findById(mappingId).get();
-                    // is_use 플래그를 false(또는 0)로 업데이트하여 사용하지 않는 것으로 표시
-                    userUrlMapping.setUse(false);
-                    usersUrlRepository.save(userUrlMapping);
-                }
-            }
-        }
-        // 5. FastAPI의 /contentanalysis 엔드포인트로 해당 URL 목록 전달
-        String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("urls", urls);
-        ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
-                requestUrl, requestBody, UrlResponse.class
-        );
-        return response.getBody();
-    }
+    
 }
