@@ -36,8 +36,9 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
     
-    @Id
-    @Column(name = "id", columnDefinition = "char(36)")  // AUTO_INCREMENT 사용
+
+    @GeneratedValue(strategy = GenerationType.UUID)  
+    @Column(name = "id", columnDefinition = "CHAR(36)")
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)

@@ -12,4 +12,6 @@ public interface CourseService {
   void addCoursePlace(List<String> courseIds, List<String> placeIds);
 
   void deleteCoursePlace(String courseId, List<String> placeIds);
+
+  void moveCoursePlace(String courseId, String beforeCourseId, String afterCourseId, String placeId);
 }
