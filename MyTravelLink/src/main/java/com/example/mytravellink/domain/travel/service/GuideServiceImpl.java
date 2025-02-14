@@ -71,16 +71,22 @@ public class GuideServiceImpl implements GuideService {
 
           // 각 장소에 대해 반복하여 CoursePlace 생성
           for (PlaceDTO placeResp : dailyPlan.getPlaces()) {
+
+            int placeNum = dailyPlan.getPlaces().indexOf(placeResp)+1;
+
+            System.out.println("현재 장소 번호: " + placeNum + "- 장소:  " + placeResp);
+
             // Place 조회
-            Place place = placeRepository.findByTitle(placeResp.getName())
+            Place place = placeRepository.findById(placeResp.getId())
                     .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
 
             // 각 장소에 대해 CoursePlace 생성
             CoursePlace coursePlace = CoursePlace.builder()
                     .course(savedCourse)
                     .place(place) // 장소 찾기
-                    .placeNum(dailyPlan.getPlaces().indexOf(placeResp) + 1) // 장소 번호
+                    .placeNum(placeNum) // 장소 번호
                     .build();
+
             saveCoursePlace(coursePlace); // CoursePlace 저장
             System.out.println("CoursePlace 저장 완료: " + coursePlace);
           }
@@ -199,4 +205,5 @@ public class GuideServiceImpl implements GuideService {
   public TravelInfo getTravelInfo(String travelInfoId) {
     return travelInfoRepository.findById(travelInfoId).orElseThrow(() -> new RuntimeException("TravelInfo not found"));
   }
+
 }

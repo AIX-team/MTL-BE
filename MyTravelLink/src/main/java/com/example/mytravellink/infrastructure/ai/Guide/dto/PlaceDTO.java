@@ -10,7 +10,9 @@ import lombok.*;
 @ToString
 public class PlaceDTO {
 
+    private String id;
     private String name;
+    private String address;
 
     @JsonProperty("official_description")
     private String officialDescription;

@@ -20,6 +20,6 @@ public class AIGuideCourseRequest {
   @JsonProperty("places")
   private List<AIPlace> places;
 
-  @JsonProperty("travel_days")
+  @JsonProperty("travelDays")
   private int travelDays;
 }
