@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceAddRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceDeleteRequest;
+import com.example.mytravellink.api.travelInfo.dto.course.PlaceMoveRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceRequest;
 import com.example.mytravellink.domain.travel.service.CourseService;
 
@@ -45,6 +46,16 @@ public class CourseController {
             List<String> placeIds = request.getPlaceIds();
             List<String> courseIds = request.getCourseIds();
             courseService.addCoursePlace(courseIds, placeIds);
+            return ResponseEntity.ok("success");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
+        }
+    }
+
+    @PutMapping("/place/move")
+    public ResponseEntity<String> moveCoursePlace( @RequestBody PlaceMoveRequest request) {
+        try {
+            courseService.moveCoursePlace(request.getPlaceId(), request.getBeforeCourseId(), request.getAfterCourseId(), request.getPlaceId());
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");
