@@ -2,6 +2,7 @@ package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.domain.url.entity.UrlPlace;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,20 +41,23 @@ public class Place extends BaseTimeEntity {
     private String id;
     
     // Place -> TravelInfoPlace (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "place")
     private List<TravelInfoPlace> travelInfoPlaces = new ArrayList<>();
 
     // Place -> CoursePlace (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "place")
     private List<CoursePlace> coursePlaces = new ArrayList<>();
 
     // Place -> UrlPlace (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "place")
     private List<UrlPlace> urlPlaces = new ArrayList<>();
 
     private String address;
     
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
     private String title;
     
     @Column(columnDefinition = "TEXT")

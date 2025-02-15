@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,8 +37,8 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
     
-
-    @GeneratedValue(strategy = GenerationType.UUID)  
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", columnDefinition = "CHAR(36)")
     private String id;
     
@@ -45,10 +46,10 @@ public class Guide extends BaseTimeEntity {
     @JoinColumn(name = "travel_info_id")
     private TravelInfo travelInfo;
     
+    @JsonIgnore
     @OneToMany(mappedBy = "guide")
     private List<Course> courses = new ArrayList<>();
     
-
     private int courseCount;
     
     @Column(nullable = false)

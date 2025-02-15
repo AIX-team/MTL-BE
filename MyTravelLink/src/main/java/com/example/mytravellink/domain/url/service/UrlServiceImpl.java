@@ -4,9 +4,12 @@ import com.example.mytravellink.api.user.dto.LinkDataResponse;
 import com.example.mytravellink.api.url.dto.*;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
+import com.example.mytravellink.domain.travel.entity.TravelInfoPlace;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
+import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 import com.example.mytravellink.domain.travel.entity.TravelInfoUrl;
+import com.example.mytravellink.domain.travel.entity.TravelInfoUrlId;
 import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.entity.UrlPlace;
 import com.example.mytravellink.domain.url.repository.TravelInfoUrlRepository;
@@ -44,6 +47,7 @@ public class UrlServiceImpl implements UrlService {
     private final TravelInfoRepository travelInfoRepository;
     private final UsersRepository usersRepository;
     private final UsersUrlRepository usersUrlRepository;
+    private final TravelInfoPlaceRepository travelInfoPlaceRepository;
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
@@ -174,6 +178,9 @@ public class UrlServiceImpl implements UrlService {
                                     .website(placeInfo.getWebsite())
                                     .rating(placeInfo.getRating())
                                     .openHours(openHours)
+                                    .type(placeInfo.getType())  // type 설정
+                                    .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)  // latitude 설정
+                                    .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)  // longitude 설정
                                     .build();
                             return placeRepository.save(newPlace);
                         });
@@ -228,6 +235,10 @@ public class UrlServiceImpl implements UrlService {
             .travelInfo(travelInfo)
             .url(newUrl)
             .build();
+        travelInfoUrl.setId(TravelInfoUrlId.builder()
+                .travelInfoId(travelInfo.getId())
+                .urlId(newUrl.getId())
+                .build());
         travelInfoUrlRepository.save(travelInfoUrl);
     }
 
@@ -317,5 +328,72 @@ public class UrlServiceImpl implements UrlService {
         return "";
     }
 
-    
+    @Override
+    @Transactional
+    public String mappingUrl(UrlRequest request, String email) {
+        if (request.getUrls() == null || request.getUrls().isEmpty()) {
+            throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
+        }
+
+        // 사용자 조회
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // TravelInfo 생성
+        TravelInfo travelInfo = TravelInfo.builder()
+                .user(user)
+                .travelDays(request.getDays())
+                .placeCount(0)  // 초기값 0으로 설정
+                .title("여행지")  // 첫 번째 URL을 title로 설정
+                .isFavorite(false)
+                .fixed(false)
+                .isDelete(false)
+                .extPlaceListId("")  // 빈 문자열로 초기화
+                .travelTasteId("")  // 빈 문자열로 초기화
+                .build();
+
+        travelInfo = travelInfoRepository.save(travelInfo);
+
+        // URL들의 모든 Place를 중복 없이 저장하기 위한 Set
+        Set<Place> uniquePlaces = new HashSet<>();
+
+        // URL 처리 및 매핑
+        for (String urlStr : request.getUrls()) {
+            Url url = urlRepository.findByUrl(urlStr)
+                    .orElseGet(() -> {
+                        Url newUrl = Url.builder()
+                                .url(urlStr)
+                                .urlTitle(urlStr)
+                                .urlAuthor(email)
+                                .build();
+                        return urlRepository.save(newUrl);
+                    });
+
+            // TravelInfo와 URL 연결
+            TravelInfoUrl travelInfoUrl = TravelInfoUrl.builder()
+                    .travelInfo(travelInfo)
+                    .url(url)
+                    .build();
+            travelInfoUrlRepository.save(travelInfoUrl);
+
+            // URL에 연결된 모든 Place 수집
+            List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrl_Id(url.getId());
+            urlPlaces.forEach(urlPlace -> uniquePlaces.add(urlPlace.getPlace()));
+        }
+
+        // 수집된 모든 Place를 TravelInfo와 매핑
+        for (Place place : uniquePlaces) {
+            TravelInfoPlace travelInfoPlace = TravelInfoPlace.builder()
+                    .travelInfo(travelInfo)
+                    .place(place)
+                    .build();
+            travelInfoPlaceRepository.save(travelInfoPlace);
+        }
+
+        // 최종 placeCount 업데이트
+        travelInfo.setPlaceCount(uniquePlaces.size());
+        travelInfoRepository.save(travelInfo);
+
+        return travelInfo.getId();
+    }
 }
