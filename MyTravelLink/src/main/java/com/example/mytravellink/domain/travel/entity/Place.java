@@ -57,7 +57,7 @@ public class Place extends BaseTimeEntity {
 
     private String address;
     
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
     private String title;
     
     @Column(columnDefinition = "TEXT")

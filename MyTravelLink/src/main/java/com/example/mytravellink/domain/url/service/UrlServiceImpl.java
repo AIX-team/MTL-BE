@@ -178,6 +178,9 @@ public class UrlServiceImpl implements UrlService {
                                     .website(placeInfo.getWebsite())
                                     .rating(placeInfo.getRating())
                                     .openHours(openHours)
+                                    .type(placeInfo.getType())  // type 설정
+                                    .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)  // latitude 설정
+                                    .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)  // longitude 설정
                                     .build();
                             return placeRepository.save(newPlace);
                         });

@@ -18,6 +18,8 @@ import java.util.Map;
 
 public class PlaceInfo {
     private String name;
+    private String type;
+    private PlaceGeometry geometry;
 
     @JsonProperty("source_url")
     private String sourceUrl;

@@ -140,15 +140,12 @@ public class TravelInfoController {
      */
     @GetMapping("/travelInfos/{travelId}/places")
     public ResponseEntity<TravelInfoPlaceResponse> travelInfoPlace(@PathVariable String travelId) {
-        try{
+        try {
+            log.info("Fetching places for travelId: {}", travelId);
             List<Place> placeList = travelInfoService.getTravelInfoPlace(travelId);
 
-            if (placeList.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            //이미지 URL 리다이렉션
+            // 빈 리스트인 경우에도 정상적인 응답을 반환
             List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(placeList);
-
             List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
@@ -164,14 +161,20 @@ public class TravelInfoController {
                 .collect(Collectors.toList());
 
             TravelInfoPlaceResponse travelInfoPlaceResponse = TravelInfoPlaceResponse.builder()
-                .success("success") 
+                .success("success")
                 .message("success")
                 .content(placeResponseList)
                 .build();
 
             return new ResponseEntity<>(travelInfoPlaceResponse, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Error fetching places for travelId: {} - {}", travelId, e.getMessage(), e);
+            TravelInfoPlaceResponse errorResponse = TravelInfoPlaceResponse.builder()
+                .success("error")
+                .message(e.getMessage())
+                .content(new ArrayList<>())
+                .build();
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
