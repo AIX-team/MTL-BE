@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +55,7 @@ public class GuideServiceImpl implements GuideService {
     try {
       Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
       System.out.println("가이드 저장 완료: " + savedGuide);
+      System.out.println("저장된 가이드 번호: " +savedGuide.getId());
 
       // AI 응답 리스트를 반복하며 각 항목에 대해 처리
       for (AIGuideCourseResponse aiGuideCourseResponse : aiGuideCourseResponses) {
@@ -61,9 +63,13 @@ public class GuideServiceImpl implements GuideService {
         for (DailyPlans dailyPlan : aiGuideCourseResponse.getDailyPlans()) {
           System.out.println("일일 계획: Day " + dailyPlan.getDayNumber());
 
+          // guide_id에 대해 가장 큰 course_number를 찾고, 그 값보다 1을 더하여 courseNumber 생성
+          Integer maxCourseNumber = courseRepository.findMaxCourseNumberByGuideId(savedGuide.getId());
+          int courseNumber = maxCourseNumber == null ? 1 : maxCourseNumber + 1;
+
           // 각 일일 계획에 대한 코스 생성
           Course course = Course.builder()
-                  .courseNumber(dailyPlan.getDayNumber())
+                  .courseNumber(courseNumber)
                   .guide(savedGuide)
                   .build();
           Course savedCourse = saveCourse(course);
@@ -177,6 +183,7 @@ public class GuideServiceImpl implements GuideService {
    * @param courseList
    */
   private Course saveCourse(Course course) {
+
     try {
         return courseRepository.save(course);
     } catch (Exception e) {
