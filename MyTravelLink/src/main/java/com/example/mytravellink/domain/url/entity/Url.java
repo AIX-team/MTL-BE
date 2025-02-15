@@ -3,6 +3,7 @@ package com.example.mytravellink.domain.url.entity;
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.domain.travel.entity.TravelInfoUrl;
 import com.example.mytravellink.domain.users.entity.UsersUrl;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,14 +44,17 @@ public class Url extends BaseTimeEntity {
     private String id;
     
     // Url -> UrlPlace (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
     private List<UrlPlace> urlPlaces = new ArrayList<>();
     
     // Url -> UserUrl (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
     private List<UsersUrl> usersUrls = new ArrayList<>();
     
     // Url -> TravelInfoUrl (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
     private List<TravelInfoUrl> travelInfoUrls = new ArrayList<>();
     

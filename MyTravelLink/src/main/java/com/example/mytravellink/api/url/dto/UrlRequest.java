@@ -13,6 +13,7 @@ public class UrlRequest {
     private String travelInfoId;
     private List<String> urls;
     private String email;
+    private Integer days;
 
     public String getTravelInfoId() {
         return travelInfoId;

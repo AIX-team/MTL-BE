@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -30,12 +31,12 @@ public class TravelInfoPlace extends BaseTimeEntity {
     @EmbeddedId
     private TravelInfoPlaceId id;
 
-    @MapsId
+    @MapsId("tid")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "travel_info_id", columnDefinition = "VARCHAR(36)")
     private TravelInfo travelInfo;
     
-    @MapsId
+    @MapsId("pid")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id", columnDefinition = "CHAR(36)")
     private Place place;
