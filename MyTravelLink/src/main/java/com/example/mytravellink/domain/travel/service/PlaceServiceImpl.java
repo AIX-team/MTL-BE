@@ -94,6 +94,17 @@ public class PlaceServiceImpl implements PlaceService {
     return placeRepository.findByIds(placeIds);
   }
 
+  /**
+   * 여행 정보 첫 장소 이미지 조회
+   * @param travelInfoId 여행 정보 ID
+   * @return 장소 이미지
+   */
+  @Override
+  public String getPlaceImage(String travelInfoId) {
+    String placeId = travelInfoPlaceRepository.findByTravelInfoId(travelInfoId).get(0);
+    Place place = placeRepository.findById(placeId).orElseThrow(() -> new RuntimeException("Place not found"));
+    String imageUrl = place.getImage();
+    return imageUrl;
+  }
 }
-
 

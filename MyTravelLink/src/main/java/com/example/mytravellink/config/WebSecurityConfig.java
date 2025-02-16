@@ -47,6 +47,9 @@ public class WebSecurityConfig {
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
                     auth.anyRequest().permitAll();
                 })
+                // JWT 필터 추가
+                .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), 
+                               UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(withDefaults())
                 .build();
     }

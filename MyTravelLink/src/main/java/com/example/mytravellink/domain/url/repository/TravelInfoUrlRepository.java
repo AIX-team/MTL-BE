@@ -19,5 +19,11 @@ public interface TravelInfoUrlRepository extends JpaRepository<TravelInfoUrl, Tr
   @Query("SELECT tu.url.id FROM TravelInfoUrl tu WHERE tu.travelInfo = :travelInfo")
   List<String> findUrlIdByTravelInfoId(@Param("travelInfo") TravelInfo travelInfo);
 
-  
+  @Query("SELECT tu.url.id FROM TravelInfoUrl tu WHERE tu.travelInfo.id = :travelInfoId")
+  List<String> findUrlIdByTravelInfoId(@Param("travelInfoId") String travelInfoId);
+
+  // 새롭게 추가: 해당 URL ID가 travel_info_url 테이블에 존재하는지 여부를 반환
+  @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END FROM TravelInfoUrl t WHERE t.url.id = :urlId")
+  boolean existsByUrlId(@Param("urlId") String urlId);
+
 }

@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
@@ -39,6 +40,7 @@ public class CoursePlace extends BaseTimeEntity {
     private Place place;
     
     @MapsId("courseId")
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", columnDefinition = "CHAR(36)")
     private Course course;

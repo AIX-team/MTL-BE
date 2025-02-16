@@ -1,12 +1,15 @@
-
 package com.example.mytravellink.api.travelInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,16 +18,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
+import com.example.mytravellink.api.travelInfo.dto.travel.StringRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
+import com.example.mytravellink.auth.service.CustomUserDetails;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.service.CourseServiceImpl;
 import com.example.mytravellink.domain.travel.service.GuideServiceImpl;
+import com.example.mytravellink.domain.travel.service.ImageService;
 import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
 import com.example.mytravellink.domain.url.entity.Url;
@@ -44,6 +54,8 @@ public class TravelInfoController {
     private final PlaceServiceImpl placeService;
     private final GuideServiceImpl guideService;
     private final CourseServiceImpl courseService;
+    private final ImageService imageService;
+
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
      * @param travelId
@@ -89,8 +101,10 @@ public class TravelInfoController {
     public ResponseEntity<TravelInfoPlaceResponse> travelInfoUrl(@PathVariable String urlId) {
         try {
             List<Place> urlPlaceList = urlService.findPlaceByUrlId(urlId);
+            //이미지 URL 리다이렉션
+            List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(urlPlaceList);
 
-            List<TravelInfoPlaceResponse.Place> placeResponseList = urlPlaceList.stream()
+            List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
                     .placeType(place.getType())
@@ -125,14 +139,13 @@ public class TravelInfoController {
      */
     @GetMapping("/travelInfos/{travelId}/places")
     public ResponseEntity<TravelInfoPlaceResponse> travelInfoPlace(@PathVariable String travelId) {
-        try{
+        try {
+            log.info("Fetching places for travelId: {}", travelId);
             List<Place> placeList = travelInfoService.getTravelInfoPlace(travelId);
 
-            if (placeList.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-
-            List<TravelInfoPlaceResponse.Place> placeResponseList = placeList.stream()
+            // 빈 리스트인 경우에도 정상적인 응답을 반환
+            List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(placeList);
+            List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
                     .placeType(place.getType())
@@ -147,14 +160,20 @@ public class TravelInfoController {
                 .collect(Collectors.toList());
 
             TravelInfoPlaceResponse travelInfoPlaceResponse = TravelInfoPlaceResponse.builder()
-                .success("success") 
+                .success("success")
                 .message("success")
                 .content(placeResponseList)
                 .build();
 
             return new ResponseEntity<>(travelInfoPlaceResponse, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("Error fetching places for travelId: {} - {}", travelId, e.getMessage(), e);
+            TravelInfoPlaceResponse errorResponse = TravelInfoPlaceResponse.builder()
+                .success("error")
+                .message(e.getMessage())
+                .content(new ArrayList<>())
+                .build();
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -178,6 +197,20 @@ public class TravelInfoController {
     }
 
     /**
+     * 여행정보 ID 기준 여행 정보 삭제
+     * @param travelInfoId
+     * @return
+     */
+    @DeleteMapping("/travelInfos/{travelInfoId}")
+    public ResponseEntity<String> deleteTravelInfo(@PathVariable StringRequest request) {
+        try {
+            travelInfoService.deleteTravelInfo(request.getValue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /**
      * 여행정보 ID 기준 AI 추천 장소
      * @param travelInfoId
      * @return ResponseEntity<TravelInfoPlaceResponse>
@@ -197,7 +230,68 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
+
+    /**
+     * 사용자 email 기준 여행 정보 조회
+     * @param CustomUserDetails
+     * @return TravelInfoListResponse
+     */
+    @GetMapping("/travelInfos/list")
+    public ResponseEntity<TravelInfoListResponse> travelInfoList(
+        // @AuthenticationPrincipal CustomUserDetails user
+        ) {
+        try{
+            //TO-DO: String userEmail = user.getEmail();
+            String userEmail = "user1@example.com";
+            List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(userEmail);
+            List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
+            for(TravelInfo travelInfo : travelInfoList){
+                String imgUrl = placeService.getPlaceImage(travelInfo.getId());
+                String redirectImgUrl = imageService.redirectImageUrl(imgUrl);
+                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, redirectImgUrl);
+                infosList.add(infos);
+            }
+            TravelInfoListResponse travelInfoListResponse = TravelInfoListResponse.builder()
+                .success("success")
+                .message("success")
+                .travelInfoList(infosList)
+                .build();
+            return new ResponseEntity<>(travelInfoListResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 여행 정보 ID 기준 즐겨찾기 여부 수정
+     * @param travelInfoId
+     * @return ResponseEntity<TravelInfoListResponse>
+     */
+    @PutMapping("/travelInfos/{travelInfoId}/favorite")
+    public ResponseEntity<String> updateFavorite(@PathVariable String travelInfoId, @RequestBody BooleanRequest booleanRequst) {
+        try {
+            travelInfoService.updateFavorite(travelInfoId, booleanRequst.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 여행 정보 ID 기준 고정 여부 수정
+     * @param placeSelectRequst
+     * @return
+     */
+    @PutMapping("/travelInfos/{travelInfoId}/fixed")
+    public ResponseEntity<String> updateFixed(@PathVariable String travelInfoId, @RequestBody BooleanRequest booleanRequst) {
+        try {
+            travelInfoService.updateFixed(travelInfoId, booleanRequst.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 
     /**
@@ -205,7 +299,7 @@ public class TravelInfoController {
      * @param PlaceSelectRequest
      * @return
      */
-    @PostMapping("/guides")
+    @PostMapping("/guidebook")
     public ResponseEntity<String> createGuide(
         @RequestBody PlaceSelectRequest placeSelectRequest) {
         try {
@@ -260,6 +354,8 @@ public class TravelInfoController {
             Guide guide = guideService.getGuide(guideId);
             TravelInfo travelInfo = guideService.getTravelInfo(guide.getTravelInfo().getId());
             List<GuideBookResponse.CourseList> courseListResp = courseService.getCoursePlace(guideId);
+            //이미지 URL 리다이렉션
+            List<GuideBookResponse.CourseList> imageUrlList = imageService.redirectImageUrl(courseListResp);
 
         GuideBookResponse guideBookResponse = GuideBookResponse.builder()
             .success("success")
@@ -268,7 +364,7 @@ public class TravelInfoController {
             .travelInfoTitle(travelInfo.getTitle()) 
             .travelInfoId(travelInfo.getId())
             .courseCnt(guide.getCourseCount())
-            .courses(courseListResp)
+            .courses(imageUrlList)
             .build();
 
             return new ResponseEntity<>(guideBookResponse, HttpStatus.OK);
@@ -276,17 +372,106 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
-//    /**
-//     * 가이드 북 제목 수정
-//     * @param guideId
-//     * @return ResponseEntity<String>
-//     */
-//    @PutMapping("/guidebooks/{guideId}/title")
-//    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody GuideBookTitleEditRequest request) {
-//        guideService.updateGuideBookTitle(guideId, request.getTitle());
-//        return new ResponseEntity<>("success", HttpStatus.OK);
-//    }
+
+    /**
+     * 가이드 북 목록 조회
+     * @param CustomUserDetails
+     * @return ResponseEntity<GuideBookListResponse>
+     */
+    @Transactional(readOnly = true)
+    @GetMapping("/guidebooks/list")
+    public ResponseEntity<GuideBookListResponse> guideBookList(
+        // @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        try {
+            //TO-DO: String userEmail = user.getEmail();
+            String userEmail = "user1@example.com";
+            List<Guide> guideList = guideService.getGuideList(userEmail);
+            List<GuideBookListResponse.GuideList> guideListResponse = new ArrayList<>();
+            for(Guide guide : guideList){
+                List<String> authors = travelInfoService.getUrlAuthors(guide.getTravelInfo().getId());
+                TravelInfo travelInfo = guide.getTravelInfo();
+                GuideBookListResponse.GuideList tmpGuideList = GuideBookListResponse.GuideList.builder()
+                    .id(guide.getId())
+                    .title(guide.getTitle())
+                    .travelInfoTitle(travelInfo.getTitle())
+                    .createAt(guide.getCreateAt().toString())
+                    .courseCount(guide.getCourseCount())
+                    .isFavorite(guide.isFavorite())
+                    .fixed(guide.isFixed())
+                    .authors(authors)
+                    .build();
+                guideListResponse.add(tmpGuideList);
+            }
+            GuideBookListResponse guideBookListResponse = GuideBookListResponse.builder()
+                .success("success")
+                .message("success")
+                .guideBooks(guideListResponse)
+                .build();
+            return new ResponseEntity<>(guideBookListResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 가이드 북 제목 수정
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/title")
+    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody StringRequest request) {
+        try {
+            guideService.updateGuideBookTitle(guideId, request.getValue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 가이드 북 즐겨찾기 여부 수정
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/favorite")
+    public ResponseEntity<String> updateGuideBookFavorite(@PathVariable String guideId, @RequestBody BooleanRequest booleanRequest) {
+        try {
+            guideService.updateGuideBookFavorite(guideId, booleanRequest.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /**
+     * 가이드 북 고정 여부 수정
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @PutMapping("/guidebooks/{guideId}/fixed")
+    public ResponseEntity<String> updateGuideBookFixed(@PathVariable String guideId, @RequestBody BooleanRequest booleanRequest) {
+        try {
+            guideService.updateGuideBookFixed(guideId, booleanRequest.getIsTrue());
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 가이드 북 삭제
+     * @param guideId
+     * @return ResponseEntity<String>
+     */
+    @DeleteMapping("/guidebooks/{guideId}")
+    public ResponseEntity<String> deleteGuideBook(@PathVariable String guideId) {
+        try {
+            guideService.deleteGuideBook(guideId);
+            return new ResponseEntity<>("success", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
 }
 

@@ -2,6 +2,7 @@ package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.domain.users.entity.Users;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,7 +46,7 @@ public class TravelInfo extends BaseTimeEntity {
     private Users user;
 
     private Integer travelDays;
-
+    
     private int placeCount;
 
     @Column(nullable = false)
@@ -55,17 +56,31 @@ public class TravelInfo extends BaseTimeEntity {
     private boolean fixed;
     private boolean isDelete;
 
+    @Column(name = "use_count", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private int useCount;
+
+    @Column(name = "ext_place_list_id", nullable = false, columnDefinition = "VARCHAR(36) DEFAULT ''")
+    private String extPlaceListId;
+
+    @Column(name = "travel_taste_id", nullable = false, columnDefinition = "VARCHAR(36) DEFAULT ''")
+    private String travelTasteId;
+
+    @JsonIgnore
     @OneToMany(mappedBy = "travelInfo")
     private List<Guide> guides = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "travelInfo")
     private List<TravelInfoPlace> travelInfoPlaces = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "travelInfo")
     private List<TravelInfoUrl> urlList = new ArrayList<>();
-
+    
     @Builder
-    public TravelInfo(Users user, Integer travelDays, int placeCount, String title, boolean isFavorite, boolean fixed, boolean isDelete, List<TravelInfoUrl> urlList) {
+    public TravelInfo(Users user, Integer travelDays, int placeCount, String title,
+                     boolean isFavorite, boolean fixed, boolean isDelete,
+                     List<TravelInfoUrl> urlList, String extPlaceListId, String travelTasteId) {
         this.user = user;
         this.travelDays = travelDays;
         this.placeCount = placeCount;
@@ -73,6 +88,9 @@ public class TravelInfo extends BaseTimeEntity {
         this.isFavorite = isFavorite;
         this.fixed = fixed;
         this.isDelete = isDelete;
-        this.urlList = urlList;
+        this.urlList = urlList != null ? urlList : new ArrayList<>();
+        this.useCount = 0;
+        this.extPlaceListId = extPlaceListId != null ? extPlaceListId : "";
+        this.travelTasteId = travelTasteId != null ? travelTasteId : "";
     }
 } 

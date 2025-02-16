@@ -23,11 +23,11 @@ public class Course extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "CHAR(36)")
+    @Column(name = "id", columnDefinition = "CHAR(36)")
     private String id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "guide_id")
+    @JoinColumn(name = "guide_id", columnDefinition = "CHAR(36)")
     private Guide guide;
     
     private int courseNumber;

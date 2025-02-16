@@ -3,6 +3,7 @@ package com.example.mytravellink.domain.url.entity;
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.domain.travel.entity.TravelInfoUrl;
 import com.example.mytravellink.domain.users.entity.UsersUrl;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -39,18 +40,21 @@ import jakarta.persistence.CascadeType;
 public class Url extends BaseTimeEntity {
     
     @Id
-    @Column(length = 128)  // SHA-512 해시값은 128자
+    @Column(name = "id", length = 128)
     private String id;
     
     // Url -> UrlPlace (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
     private List<UrlPlace> urlPlaces = new ArrayList<>();
     
     // Url -> UserUrl (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
     private List<UsersUrl> usersUrls = new ArrayList<>();
     
     // Url -> TravelInfoUrl (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "url", cascade = CascadeType.ALL)
     private List<TravelInfoUrl> travelInfoUrls = new ArrayList<>();
     
@@ -66,36 +70,23 @@ public class Url extends BaseTimeEntity {
 
     @Builder
     public Url(String urlTitle, String urlAuthor, String url) {
-        this.id = generateHashFromUrl(Arrays.asList(url));
+        this.id = generateHashFromUrl(url);
         this.urlTitle = urlTitle;
         this.urlAuthor = urlAuthor;
         this.url = url;
     }
     
-    private String generateHashFromUrl(List<String> urls) {
+    private String generateHashFromUrl(String url) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-512");
-            StringBuilder combinedUrls = new StringBuilder();
-            
-            // URL 리스트를 알파벳 순으로 정렬
-            List<String> sortedUrls = new ArrayList<>(urls);
-            Collections.sort(sortedUrls);
-            
-            // 정렬된 URL들을 하나의 문자열로 결합
-            for (String url : sortedUrls) {
-                combinedUrls.append(url);
-            }
-            
-            byte[] hash = digest.digest(combinedUrls.toString().getBytes(StandardCharsets.UTF_8));
+            byte[] hash = digest.digest(url.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
-            
             for (byte b : hash) {
                 hexString.append(String.format("%02x", b));
             }
-            
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("해시 알고리즘 생성 중 오류 발생", e);
+            throw new RuntimeException("SHA-512 해시 생성 오류", e);
         }
     }
 

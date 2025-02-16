@@ -4,6 +4,8 @@ import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
@@ -191,4 +193,55 @@ public class GuideServiceImpl implements GuideService {
     return travelInfoRepository.findById(travelInfoId).orElseThrow(() -> new RuntimeException("TravelInfo not found"));
   }
 
+  /**
+   * 가이드 북 제목 수정
+   * @param guideId
+   * @param title
+   */
+  @Override
+  public void updateGuideBookTitle(String guideId, String title) {
+    Guide guide = guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found"));
+    guide.setTitle(title);
+    guideRepository.save(guide);
+  }
+
+  /**
+   * 가이드 북 목록 조회
+   * @param userEmail
+   * @return List<Guide>
+   */
+  @Override
+  public List<Guide> getGuideList(String userEmail) {
+    List<String> travelInfoIdList = travelInfoRepository.findTravelInfoIdByUserEmail(userEmail);
+    return guideRepository.findByTravelInfoIdList(travelInfoIdList);
+  }
+
+  /**
+   * 가이드 북 즐겨찾기 여부 수정
+   * @param guideId
+   * @param isFavorite
+   */
+  @Override
+  public void updateGuideBookFavorite(String guideId, boolean isFavorite) {
+    guideRepository.updateGuideBookFavorite(guideId, isFavorite);
+  }
+
+  /**
+   * 가이드 북 고정 여부 수정
+   * @param guideId
+   * @param isFixed
+   */
+  @Override
+  public void updateGuideBookFixed(String guideId, boolean isFixed) {
+    guideRepository.updateGuideBookFixed(guideId, isFixed);
+  }
+
+  /**
+   * 가이드 북 삭제
+   * @param guideId
+   */
+  @Override
+  public void deleteGuideBook(String guideId) {
+    guideRepository.updateGuideBookDelete(guideId);
+  }
 }
