@@ -23,6 +23,7 @@ import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.StringRequest;
+import com.example.mytravellink.api.travelInfo.dto.travel.StringResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoListResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
@@ -300,10 +301,12 @@ public class TravelInfoController {
      * @return
      */
     @PostMapping("/guidebook")
-    public ResponseEntity<String> createGuide(
+    public ResponseEntity<StringResponse> createGuide(
+        // @AuthenticationPrincipal CustomUserDetails user,
         @RequestBody PlaceSelectRequest placeSelectRequest) {
         try {
-
+            //TO-DO: String email = user.getEmail();
+            String email = "user1@example.com";
             // 1. AI 코스 추천에 요청할 데이터 형식 설정
             AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
 
@@ -314,13 +317,15 @@ public class TravelInfoController {
 
             System.out.println("AI 응답 데이터: " + aiGuideCourseResponses);
 
+            String title = "가이드북" + travelInfoService.getGuideCount(email);
+
             // 3. 가이드북 생성
             Guide guide = Guide.builder()
                     .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
-                    .title(placeSelectRequest.getTitle())
+                    .title(title)
                     .travelDays(placeSelectRequest.getTravelDays())
                     .courseCount(placeSelectRequest.getTravelDays())
-                    .planTypes("busy") // 타입별 수정해야됨
+                    .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
                     .isFavorite(false)
                     .fixed(false)
                     .isDelete(false)
@@ -332,12 +337,16 @@ public class TravelInfoController {
             // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
             if (aiGuideCourseResponses == null) {
                 System.out.println("aiGuideCourseResponses is null");
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
                 System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
             }
-            guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
-
-            return new ResponseEntity<>("success", HttpStatus.OK);
+            String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+            return new ResponseEntity<>(StringResponse.builder()
+                .success("success")
+                .message("success")
+                .value(guideId)
+                .build(), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }

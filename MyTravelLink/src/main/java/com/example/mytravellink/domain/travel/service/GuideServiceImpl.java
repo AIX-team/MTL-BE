@@ -17,10 +17,6 @@ import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,7 +47,7 @@ public class GuideServiceImpl implements GuideService {
    */
   @Override
   @Transactional
-  public void createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+  public String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
     try {
       Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
       System.out.println("가이드 저장 완료: " + savedGuide);
@@ -98,6 +94,7 @@ public class GuideServiceImpl implements GuideService {
           }
         }
       }
+      return savedGuide.getId();
     } catch(Exception e){
       e.printStackTrace(); // 예외 출력
       throw new RuntimeException("가이드 생성 중 오류 발생" + e.getMessage(), e);
@@ -111,8 +108,10 @@ public class GuideServiceImpl implements GuideService {
      */
     public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
 
+
+      List<Place> places = placeRepository.findAllById(placeSelectRequest.getPlaceIds());
       // PlaceSelectRequest에서 입력된 장소 리스트를 기반으로 AIPlace 리스트 생성
-      List<AIPlace> guidePlaces = placeSelectRequest.getPlaces().stream() // places가 List<PlaceInfo>라고 가정
+      List<AIPlace> guidePlaces = places.stream() // places가 List<PlaceInfo>라고 가정
               .map(place -> {
 
                 // AIPlace로 변환
@@ -124,8 +123,8 @@ public class GuideServiceImpl implements GuideService {
                         .intro(place.getIntro()) // 소개
                         .type(place.getType()) // 타입
                         .image(place.getImage()) // 이미지
-                        .latitude(place.getLatitude()) // 위도
-                        .longitude(place.getLongitude()) // 경도
+                        .latitude(place.getLatitude().floatValue()) // 위도
+                        .longitude(place.getLongitude().floatValue()) // 경도
                         .phone(place.getPhone()) // 전화번호
                         .rating(place.getRating()) // 평점
                         .openHours(place.getOpenHours()) // 영업시간

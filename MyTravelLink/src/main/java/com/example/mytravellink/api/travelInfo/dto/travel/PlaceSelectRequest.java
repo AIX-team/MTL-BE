@@ -2,7 +2,6 @@ package com.example.mytravellink.api.travelInfo.dto.travel;
 
 import java.util.List;
 
-import com.example.mytravellink.domain.travel.entity.Place;
 import lombok.*;
 
 @NoArgsConstructor
@@ -14,7 +13,7 @@ import lombok.*;
 @Builder
 public class PlaceSelectRequest {
   private String travelInfoId;
-  private String title;
   private Integer travelDays;
-  private List<AIPlace> places;
+  private String travelTaste;
+  private List<String> placeIds;
 }
