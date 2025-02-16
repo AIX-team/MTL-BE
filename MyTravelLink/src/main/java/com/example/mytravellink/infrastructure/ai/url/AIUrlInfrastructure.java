@@ -1,5 +1,6 @@
 package com.example.mytravellink.infrastructure.ai.url;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.example.mytravellink.infrastructure.ai.common.AIServerClient;
@@ -12,13 +13,17 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class AIUrlInfrastructure {
+
+  @Value("${ai.server.url}")  // application.yml에서 설정
+  private String fastAPiUrl;
+
   private final AIServerClient aiServerClient;
-  private static final String url = "api/v1/ai/url";
+  private static final String url = "/url";
 
   public AIUrlExtPlaceResponse getUrlPlaces(AIUrlExtPlaceRequest urlExtPlaceRequest) {
     try {
       return aiServerClient.post(
-        url + "/places",
+        fastAPiUrl + url + "/analysis",
         urlExtPlaceRequest,
         AIUrlExtPlaceResponse.class
         );

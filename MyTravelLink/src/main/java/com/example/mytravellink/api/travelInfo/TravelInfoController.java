@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,8 +42,6 @@ import com.example.mytravellink.domain.url.service.UrlServiceImpl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-
 
 @RestController
 @RequestMapping("/api/v1/travels")
@@ -277,7 +276,7 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
+
     /**
      * 여행 정보 ID 기준 고정 여부 수정
      * @param placeSelectRequst
@@ -292,7 +291,7 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
+
 
 
     /**
@@ -302,33 +301,41 @@ public class TravelInfoController {
      */
     @PostMapping("/guidebook")
     public ResponseEntity<String> createGuide(
-        @RequestBody PlaceSelectRequest placeSelectRequst) {
+        @RequestBody PlaceSelectRequest placeSelectRequest) {
         try {
-            int travelInfoPlaceCnt = travelInfoService.getPlaceCnt(placeSelectRequst.getTravelInfoId());
-            String title = "여행 가이드";
+
+            // 1. AI 코스 추천에 요청할 데이터 형식 설정
+            AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
+
+            System.out.println("AI 요청 데이터: " + aiGuideCourseRequest);
+
+            // 2. AI 코스 추천 데이터 받기
+            List<AIGuideCourseResponse> aiGuideCourseResponses = placeService.getAIGuideCourse(aiGuideCourseRequest,placeSelectRequest.getTravelDays());
+
+            System.out.println("AI 응답 데이터: " + aiGuideCourseResponses);
+
+            // 3. 가이드북 생성
             Guide guide = Guide.builder()
-                .travelInfo(travelInfoService.getTravelInfo(placeSelectRequst.getTravelInfoId()))
-                .title(title + " " + travelInfoPlaceCnt)
-                .travelDays(placeSelectRequst.getTravelDays())
-                .courseCount(placeSelectRequst.getTravelDays())
-                .isFavorite(false)
-                .fixed(false)
-                .isDelete(false)
-                .planTypes(placeSelectRequst.getTravelTaste())
-                .build();
+                    .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+                    .title(placeSelectRequest.getTitle())
+                    .travelDays(placeSelectRequest.getTravelDays())
+                    .courseCount(placeSelectRequest.getTravelDays())
+                    .planTypes("busy") // 타입별 수정해야됨
+                    .isFavorite(false)
+                    .fixed(false)
+                    .isDelete(false)
+                    .build();
 
-            // AI 가이드 코스 생성
-            try {
-                AIGuideCourseResponse aiGuideCourseResponse = placeService.getAIGuideCourse(placeSelectRequst.getPlaceIds(), placeSelectRequst.getTravelDays());
-                
-                // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
-                guideService.createGuideAndCourses(guide, aiGuideCourseResponse);
-                
-            } catch (Exception e) {
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            // Guide 객체 확인
+            System.out.println("Created Guide: " + guide);
+
+            // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
+            if (aiGuideCourseResponses == null) {
+                System.out.println("aiGuideCourseResponses is null");
+            } else {
+                System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
             }
-
-
+            guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
 
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -365,7 +372,7 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
+
     /**
      * 가이드 북 목록 조회
      * @param CustomUserDetails
@@ -405,7 +412,7 @@ public class TravelInfoController {
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }   
+    }
 
     /**
      * 가이드 북 제목 수정
@@ -437,7 +444,7 @@ public class TravelInfoController {
         }
     }
     /**
-     * 가이드 북 고정 여부 수정 
+     * 가이드 북 고정 여부 수정
      * @param guideId
      * @return ResponseEntity<String>
      */
@@ -465,6 +472,6 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    
+
 }
 

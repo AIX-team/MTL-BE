@@ -36,11 +36,11 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TravelInfo extends BaseTimeEntity {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)  // UUID 사용
     private String id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "email")
     private Users user;
@@ -48,10 +48,10 @@ public class TravelInfo extends BaseTimeEntity {
     private Integer travelDays;
     
     private int placeCount;
-        
+
     @Column(nullable = false)
     private String title;
-    
+
     private boolean isFavorite;
     private boolean fixed;
     private boolean isDelete;
@@ -78,8 +78,8 @@ public class TravelInfo extends BaseTimeEntity {
     private List<TravelInfoUrl> urlList = new ArrayList<>();
     
     @Builder
-    public TravelInfo(Users user, Integer travelDays, int placeCount, String title, 
-                     boolean isFavorite, boolean fixed, boolean isDelete, 
+    public TravelInfo(Users user, Integer travelDays, int placeCount, String title,
+                     boolean isFavorite, boolean fixed, boolean isDelete,
                      List<TravelInfoUrl> urlList, String extPlaceListId, String travelTasteId) {
         this.user = user;
         this.travelDays = travelDays;

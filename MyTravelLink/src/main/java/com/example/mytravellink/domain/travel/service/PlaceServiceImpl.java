@@ -1,14 +1,12 @@
 package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
+import java.util.Optional;
 
+import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceRequest;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
@@ -23,8 +21,6 @@ public class PlaceServiceImpl implements PlaceService {
   private final PlaceRepository placeRepository;
   private final TravelInfoPlaceRepository travelInfoPlaceRepository;
   private final AIGuideInfrastructure aiGuideInfrastructure;
-
-
 
 
   /**
@@ -44,15 +40,21 @@ public class PlaceServiceImpl implements PlaceService {
    * @param dayNum 여행 일수
    * @return AI 코스 추천 응답
    */
+
   @Override
-  public AIGuideCourseResponse getAIGuideCourse(List<String> placeIds, int dayNum) {
-    List<Place> placeList = placeRepository.findByIds(placeIds);
-    AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
-      .placeList(placeList)
-      .dayNum(dayNum)
+  public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
+
+    AIGuideCourseRequest request = AIGuideCourseRequest.builder()
+      .places(aiGuideCourseRequest.getPlaces())
+      .travelDays(travelDays)
       .build();
-    return aiGuideInfrastructure.getGuideRecommendation(aiGuideCourseRequest);
+
+    List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
+
+
+    return aiGuideCourseResponses;
   }
+
   /**
    * AI 장소 선택
    * @param travelInfoId 여행 정보 ID

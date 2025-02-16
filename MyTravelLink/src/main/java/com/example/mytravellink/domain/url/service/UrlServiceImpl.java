@@ -156,7 +156,7 @@ public class UrlServiceImpl implements UrlService {
                     .build();
             urlRepository.save(newUrl);
 
-            
+
 
             // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
             // (기존 로직 그대로)
@@ -197,7 +197,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     // 나머지 메서드들은 기존 로직 유지...
-    
+
     @Override
     public List<Url> findUrlByTravelInfoId(TravelInfo travelInfo) {
         if(travelInfo == null) {
@@ -254,11 +254,11 @@ public class UrlServiceImpl implements UrlService {
                     .build();
             return urlRepository.save(newUrl);
         });
-        
+
         Users user = usersRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         UsersUrlId mappingId = new UsersUrlId(user.getEmail(), urlEntity.getId());
-        
+
         if (!usersUrlRepository.existsById(mappingId)) {
             UsersUrl usersUrlMapping = UsersUrl.builder()
                     .id(mappingId)
