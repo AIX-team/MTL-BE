@@ -4,7 +4,7 @@ package com.example.mytravellink.api.travelInfo;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
@@ -227,7 +226,7 @@ public class TravelInfoController {
                     .title(placeSelectRequest.getTitle())
                     .travelDays(placeSelectRequest.getTravelDays())
                     .courseCount(placeSelectRequest.getTravelDays())
-                    .planTypes("busy")
+                    .planTypes("busy") // 타입별 수정해야됨
                     .isFavorite(false)
                     .fixed(false)
                     .isDelete(false)

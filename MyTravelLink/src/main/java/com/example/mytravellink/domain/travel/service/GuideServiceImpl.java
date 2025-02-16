@@ -3,12 +3,9 @@ package com.example.mytravellink.domain.travel.service;
 import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.domain.travel.entity.*;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.DailyPlans;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.PlaceDTO;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
 
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
 import com.example.mytravellink.domain.travel.repository.CourseRepository;
 import com.example.mytravellink.domain.travel.repository.GuideRepository;
@@ -18,6 +15,7 @@ import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -111,9 +109,6 @@ public class GuideServiceImpl implements GuideService {
      */
     public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
 
-      // Place IDs를 기반으로 DB에서 Place 엔티티 조회
-      // List<AIPlace> places = placeRepository.findByPlaceIds(placeSelectRequest.getPlaceIds());
-
       // PlaceSelectRequest에서 입력된 장소 리스트를 기반으로 AIPlace 리스트 생성
       List<AIPlace> guidePlaces = placeSelectRequest.getPlaces().stream() // places가 List<PlaceInfo>라고 가정
               .map(place -> {
@@ -137,23 +132,6 @@ public class GuideServiceImpl implements GuideService {
                 return aiPlace;
               })
               .collect(Collectors.toList());
-
-
-//      // Place 엔티티 -> AIPlace DTO 변환
-//      List<AIPlace> guidePlaces = places.stream()
-//              .map(place -> AIPlace.builder()
-//                      .id(place.getId())
-//                      .address(place.getAddress())
-//                      .title(place.getTitle())
-//                      .description(place.getDescription())
-//                      .intro(place.getIntro())
-//                      .type(place.getType())
-//                      .image(place.getImage())
-//                      .openHours(place.getOpenHours())
-//                      .phone(place.getPhone())
-//                      .rating(place.getRating())
-//                      .build())
-//              .collect(Collectors.toList());
 
       // AIGuideCourseRequest 객체 생성
       AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()

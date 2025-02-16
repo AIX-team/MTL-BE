@@ -2,7 +2,6 @@ package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
 
-import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
@@ -19,5 +18,7 @@ public interface PlaceService {
   // 장소 조회
   Place findById(String id);
   List<Place> getPlacesByIds(List<String> placeIds);
+
+
 }
 

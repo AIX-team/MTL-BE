@@ -3,6 +3,8 @@ package com.example.mytravellink.infrastructure.ai.Guide.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -23,7 +25,7 @@ public class PlaceDTO {
     @JsonProperty("place_type")
     private String placeType;
 
-    private float rating;
+    private BigDecimal rating;
 
     @JsonProperty("image_url")
     private String imageUrl;
@@ -33,6 +35,6 @@ public class PlaceDTO {
 
     private String website;
 
-    private float latitude;
-    private float longitude;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
 }

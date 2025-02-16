@@ -1,15 +1,12 @@
 package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
+import java.util.Optional;
 
-import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceRequest;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AISelectedPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
@@ -96,5 +93,7 @@ public class PlaceServiceImpl implements PlaceService {
   public List<Place> getPlacesByIds(List<String> placeIds) {
     return placeRepository.findByIds(placeIds);
   }
+
 }
+
 
