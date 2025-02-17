@@ -48,7 +48,7 @@ jwt:
 
 ai:
   server:
-    url: ${AI_SERVER_URL:http://localhost:8000}
+    url: ${AI_SERVER_URL:http://221.148.97.237:28001}
 
 resilience4j:
   circuitbreaker:
