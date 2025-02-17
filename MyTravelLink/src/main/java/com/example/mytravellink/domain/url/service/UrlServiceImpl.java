@@ -116,7 +116,8 @@ public class UrlServiceImpl implements UrlService {
                                 place.getPhone(),
                                 place.getWebsite(),
                                 place.getRating(),
-                                openHours
+                                openHours,
+                                place.getIntro()
                         );
                     })
                     .toList();
@@ -185,6 +186,7 @@ public class UrlServiceImpl implements UrlService {
                                     .address(placeInfo.getFormattedAddress())
                                     .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null)
                                     .phone(placeInfo.getPhone())
+                                    .intro(placeInfo.getOfficialDescription())
                                     .website(placeInfo.getWebsite())
                                     .rating(placeInfo.getRating())
                                     .openHours(openHours)

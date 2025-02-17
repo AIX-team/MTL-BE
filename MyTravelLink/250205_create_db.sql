@@ -160,3 +160,4 @@ CREATE INDEX idx_guide_is_favorite ON guide(is_favorite);
 CREATE INDEX idx_place_title ON place(title);
 
 ALTER TABLE place MODIFY open_hours TEXT NULL;
+ALTER TABLE place MODIFY intro TEXT;
