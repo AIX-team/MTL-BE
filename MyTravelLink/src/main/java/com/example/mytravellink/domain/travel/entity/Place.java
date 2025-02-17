@@ -86,13 +86,14 @@ public class Place extends BaseTimeEntity {
     private String openHours;
 
     @Builder
-    public Place(String address, String title, String description, String type, String phone,
+    public Place(String address, String title, String description, String type, String phone, String intro,
                 String image, BigDecimal latitude, BigDecimal longitude,BigDecimal rating, String website, String openHours ) {
         this.address = address;
         this.title = title;
         this.description = description;
         this.type = type;
         this.phone = phone;
+        this.intro = intro;
         this.image = image;
         this.rating = rating;
         this.website = website;
