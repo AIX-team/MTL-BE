@@ -110,6 +110,12 @@ public class AuthController {
                 .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
     }
 
+    // Added alias mapping for /loginSuccess to support front-end redirect URI
+    @GetMapping("/loginSuccess")
+    public ResponseEntity<?> loginSuccess(@RequestParam("code") String code) {
+        return googleCallback(code);
+    }
+
     // JSON 파싱을 통해 access token 추출
     private String extractAccessToken(String responseBody) {
         try {
