@@ -20,7 +20,6 @@ import com.example.mytravellink.domain.travel.entity.Place;
 public class ImageServiceImpl implements ImageService  {
 
   private static final Logger log = LoggerFactory.getLogger(ImageServiceImpl.class);
-  private final ObjectMapper objectMapper = new ObjectMapper();
   private static final String DEFAULT_IMAGE_URL = "https://images.unsplash.com/photo-1542051841857-5f90071e7989?ixlib=rb-4.0.3";
 
   /**
