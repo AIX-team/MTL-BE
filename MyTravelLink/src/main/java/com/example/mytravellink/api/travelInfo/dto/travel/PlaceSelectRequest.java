@@ -2,19 +2,25 @@ package com.example.mytravellink.api.travelInfo.dto.travel;
 
 import java.util.List;
 
-import com.example.mytravellink.domain.travel.entity.Place;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@ToString
+@Data
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter
-@Getter
-@ToString
-@Data
-@Builder
+@Builder(toBuilder = true)
+
 public class PlaceSelectRequest {
   private String travelInfoId;
-  private String title;
   private Integer travelDays;
-  private List<AIPlace> places;
+  private String travelTaste;
+  private List<String> placeIds;
 }

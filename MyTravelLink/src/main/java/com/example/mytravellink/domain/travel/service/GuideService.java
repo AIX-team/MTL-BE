@@ -29,7 +29,7 @@ public interface GuideService {
      * @param guide
      * @param aiGuideCourseResponse
      */
-  void createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
+  String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
 
     /**
      * 가이드 북 제목 수정
