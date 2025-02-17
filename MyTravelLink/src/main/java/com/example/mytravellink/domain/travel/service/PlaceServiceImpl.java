@@ -1,11 +1,14 @@
 package com.example.mytravellink.domain.travel.service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
+import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
@@ -43,8 +46,27 @@ public class PlaceServiceImpl implements PlaceService {
   @Override
   public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
 
+    List<AIPlace> places = new ArrayList<>();
+    for(AIPlace place : aiGuideCourseRequest.getPlaces()) {
+      AIPlace tmpPlace =AIPlace.builder()
+        .id(place.getId())
+        .address(place.getAddress())
+        .title(place.getTitle())
+        .description(place.getDescription() != null ? place.getDescription() : "")
+        .intro(place.getIntro() != null ? place.getIntro() : "")
+        .type(place.getType() != null ? place.getType() : "")
+        .image(place.getImage() != null ? place.getImage() : "")
+        .latitude(place.getLatitude())
+        .longitude(place.getLongitude())
+        .openHours(place.getOpenHours() != null ? place.getOpenHours() : "")
+        .phone(place.getPhone() != null ? place.getPhone() : "")
+        .rating(place.getRating() != null ? place.getRating() : BigDecimal.ZERO)
+        .build();
+      places.add(tmpPlace);
+    }
+
     AIGuideCourseRequest request = AIGuideCourseRequest.builder()
-      .places(aiGuideCourseRequest.getPlaces())
+      .places(places)
       .travelDays(travelDays)
       .build();
 

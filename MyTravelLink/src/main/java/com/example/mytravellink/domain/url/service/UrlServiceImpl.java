@@ -7,6 +7,7 @@ import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import com.example.mytravellink.domain.travel.entity.TravelInfoPlace;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
+import com.example.mytravellink.domain.travel.service.ImageService;
 import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 import com.example.mytravellink.domain.travel.entity.TravelInfoUrl;
 import com.example.mytravellink.domain.travel.entity.TravelInfoUrlId;
@@ -48,6 +49,7 @@ public class UrlServiceImpl implements UrlService {
     private final UsersRepository usersRepository;
     private final UsersUrlRepository usersUrlRepository;
     private final TravelInfoPlaceRepository travelInfoPlaceRepository;
+    private final ImageService imageService;
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
@@ -161,6 +163,14 @@ public class UrlServiceImpl implements UrlService {
             // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
             // (기존 로직 그대로)
             for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
+                if(placeInfo.getPhotos() != null) {
+                    List<PlacePhoto> photos = placeInfo.getPhotos();
+                    for(PlacePhoto photo : photos) {
+                        String imageUrl = photo.getUrl();
+                        String redirectImageUrl = imageService.redirectImageUrl(imageUrl);
+                        photo.setUrl(redirectImageUrl);
+                    }
+                }
                 Place place = placeRepository.findByTitle(placeInfo.getName())
                         .orElseGet(() -> {
                             // opening_hours가 빈 리스트이거나 null이면 null 처리
