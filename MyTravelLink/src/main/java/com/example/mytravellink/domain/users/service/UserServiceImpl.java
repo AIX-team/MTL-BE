@@ -22,6 +22,7 @@ import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -106,6 +107,12 @@ public class UserServiceImpl implements UserService {
                 
             searchTermRepository.save(searchTermEntity);
         }
+    }
+
+
+    @Transactional
+    public Optional<Users> getUserByEmail(String email){
+        return usersRepository.findByEmail(email);
     }
 
 }
