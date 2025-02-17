@@ -2,15 +2,22 @@ package com.example.mytravellink.api.travelInfo.dto.travel;
 
 import java.util.List;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@ToString
+@Data
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter
-@Getter
-@ToString
-@Data
-@Builder
+@Builder(toBuilder = true)
+
 public class PlaceSelectRequest {
   private String travelInfoId;
   private Integer travelDays;

@@ -3,6 +3,9 @@ package com.example.mytravellink.api.travelInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
@@ -219,16 +223,108 @@ public class TravelInfoController {
     @GetMapping("travelInfos/{travelInfoId}/aiSelect")
     public ResponseEntity<TravelInfoPlaceResponse> aiSelect(@PathVariable String travelInfoId) {
         try {
-            Integer travelDays = travelInfoService.getTravelInfo(travelInfoId).getTravelDays();            
-            // AI 장소 선택
-            try{
-                TravelInfoPlaceResponse aiSelectPlaceList = placeService.getAISelectPlace(travelInfoId, travelDays);
-                return new ResponseEntity<>(aiSelectPlaceList, HttpStatus.OK);
-            } catch (Exception e) {
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            // 1. 여행 정보 조회
+            TravelInfo travelInfo = travelInfoService.getTravelInfo(travelInfoId);
+            Integer travelDays = travelInfo.getTravelDays();
+            
+            // 2. 여행 정보에 포함된 모든 장소 조회
+            List<Place> places = travelInfoService.getTravelInfoPlace(travelInfoId);
+            
+            if (places.isEmpty()) {
+                return new ResponseEntity<>(
+                    TravelInfoPlaceResponse.builder()
+                        .success("error")
+                        .message("No places found for recommendation")
+                        .content(new ArrayList<>())
+                        .build(),
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+            
+            // 3. FastAPI AI 서비스 호출을 위한 요청 데이터 준비
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("travelInfoId", travelInfoId);
+            requestBody.put("travelDays", travelDays);
+            requestBody.put("places", places.stream().map(place -> {
+                Map<String, Object> placeMap = new HashMap<>();
+                placeMap.put("placeId", place.getId().toString());
+                placeMap.put("placeType", place.getType() != null ? place.getType() : "unknown");
+                placeMap.put("placeName", place.getTitle());
+                placeMap.put("placeAddress", place.getAddress());
+                placeMap.put("placeImage", place.getImage());
+                placeMap.put("placeDescription", place.getDescription());
+                placeMap.put("intro", place.getIntro());
+                placeMap.put("latitude", place.getLatitude() != null ? place.getLatitude() : BigDecimal.ZERO);
+                placeMap.put("longitude", place.getLongitude() != null ? place.getLongitude() : BigDecimal.ZERO);
+                return placeMap;
+            }).filter(placeMap -> placeMap.get("placeType") != null).collect(Collectors.toList()));
+            
+            log.info("Sending request to AI service: {}", requestBody);
+            
+            // 4. FastAPI AI 서비스 호출
+            RestTemplate restTemplate = new RestTemplate();
+            String aiServiceUrl = "http://127.0.0.1:8000/api/v1/ai/recommend/places";
+            ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
+                aiServiceUrl,
+                requestBody,
+                Map.class
+            );
+            
+            // 5. AI 서비스 응답 처리
+            if (aiResponse.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseBody = aiResponse.getBody();
+                List<Map<String, Object>> recommendedPlaces = (List<Map<String, Object>>) responseBody.get("content");
+                
+                List<TravelInfoPlaceResponse.Place> placeResponseList = recommendedPlaces.stream()
+                    .map(placeData -> {
+                        // null 체크 추가
+                        String placeId = String.valueOf(placeData.getOrDefault("placeId", ""));
+                        String placeType = String.valueOf(placeData.getOrDefault("placeType", "unknown"));
+                        String placeName = String.valueOf(placeData.getOrDefault("placeName", ""));
+                        String placeAddress = String.valueOf(placeData.getOrDefault("placeAddress", ""));
+                        String placeImage = String.valueOf(placeData.getOrDefault("placeImage", ""));
+                        String placeDescription = String.valueOf(placeData.getOrDefault("placeDescription", ""));
+                        String intro = String.valueOf(placeData.getOrDefault("intro", ""));
+                        
+                        // 숫자 데이터 안전하게 변환
+                        BigDecimal latitude = new BigDecimal(String.valueOf(placeData.getOrDefault("latitude", "0.0")));
+                        BigDecimal longitude = new BigDecimal(String.valueOf(placeData.getOrDefault("longitude", "0.0")));
+                        
+                        return TravelInfoPlaceResponse.Place.builder()
+                            .placeId(placeId)
+                            .placeType(placeType)
+                            .placeName(placeName)
+                            .placeAddress(placeAddress)
+                            .placeImage(placeImage)
+                            .placeDescription(placeDescription)
+                            .intro(intro)
+                            .latitude(latitude)
+                            .longitude(longitude)
+                            .build();
+                    })
+                    .collect(Collectors.toList());
+                
+                return new ResponseEntity<>(
+                    TravelInfoPlaceResponse.builder()
+                        .success("success")
+                        .message("Successfully recommended places")
+                        .content(placeResponseList)
+                        .build(),
+                    HttpStatus.OK
+                );
+            } else {
+                throw new RuntimeException("AI service returned error: " + aiResponse.getStatusCode());
             }
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("AI 추천 실패: {}", e.getMessage(), e);
+            return new ResponseEntity<>(
+                TravelInfoPlaceResponse.builder()
+                    .success("error")
+                    .message("Failed to get AI recommendations: " + e.getMessage())
+                    .content(new ArrayList<>())
+                    .build(),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
