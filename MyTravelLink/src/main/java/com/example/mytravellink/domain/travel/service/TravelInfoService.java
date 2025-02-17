@@ -20,5 +20,6 @@ public interface TravelInfoService {
   void updateFixed(String travelInfoId, Boolean fixed);
 
   void deleteTravelInfo(String travelInfoId);
-}
 
+  int getGuideCount(String userEmail);
+}

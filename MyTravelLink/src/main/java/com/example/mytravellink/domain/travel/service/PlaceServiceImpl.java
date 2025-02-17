@@ -1,7 +1,6 @@
 package com.example.mytravellink.domain.travel.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
