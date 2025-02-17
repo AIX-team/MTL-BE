@@ -174,4 +174,12 @@ public class TravelInfoServiceImpl implements TravelInfoService {
 
     return urlAuthorList;
   }
+
+  /**
+   * UserID 기준 가이드 수 조회
+   * @param userId
+   * 
+   * @return int
+   */
+  public int getGuideCount(String userEmail) {return travelInfoRepository.getGuideCount(userEmail);}  
 }

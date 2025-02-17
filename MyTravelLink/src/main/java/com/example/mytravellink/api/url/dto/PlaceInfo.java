@@ -28,6 +28,7 @@ public class PlaceInfo {
     @JsonProperty("formatted_address")
     private String formattedAddress;
     private BigDecimal rating;
+
     private String phone;
     private String website;
 
@@ -42,6 +43,7 @@ public class PlaceInfo {
     @JsonProperty("best_review")
     private String bestReview; // Optional 처리
 
+
     @JsonProperty("google_info")
     private Map<String, Object> googleInfo; // Map으로 처리
 
@@ -55,5 +57,7 @@ public class PlaceInfo {
         this.website = website;
         this.rating = rating;
         this.open_hours = open_hours; // ✅ 리스트 사용
+
     }
+
 }

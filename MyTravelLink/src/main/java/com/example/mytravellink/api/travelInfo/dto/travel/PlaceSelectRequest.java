@@ -11,9 +11,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@ToString
+@Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
+
 public class PlaceSelectRequest {
   private String travelInfoId;
   private Integer travelDays;

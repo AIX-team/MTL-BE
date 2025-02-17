@@ -40,6 +40,8 @@ public class CourseController {
         }
     }
 
+
+
     @PutMapping("/places/add")
     public ResponseEntity<String> addCoursePlace(@RequestBody PlaceAddRequest request) {
         try {

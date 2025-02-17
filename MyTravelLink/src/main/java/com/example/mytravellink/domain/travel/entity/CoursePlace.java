@@ -27,7 +27,6 @@ import lombok.Setter;
 @Table(name = "course_place")
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CoursePlace extends BaseTimeEntity {
@@ -54,7 +53,7 @@ public class CoursePlace extends BaseTimeEntity {
     
     @Builder
     public CoursePlace(Place place, Course course, int placeNum) {
-        this.id = new CoursePlaceId(course.getId(), place.getId());
+        this.id = new CoursePlaceId(course.getId(), place.getId()); // 복합 키 생성
         this.place = place;
         this.course = course;
         this.placeNum = placeNum;
