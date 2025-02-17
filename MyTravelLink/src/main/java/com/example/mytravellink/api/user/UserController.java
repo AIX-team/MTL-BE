@@ -3,6 +3,9 @@ package com.example.mytravellink.api.user;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.example.mytravellink.domain.users.entity.Users;
+import com.example.mytravellink.domain.users.service.UserServiceImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +44,7 @@ public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final UrlService urlService;
     private final UsersUrlRepository usersUrlRepository;
+    private final UserServiceImpl userServiceImpl;
 
     @GetMapping("/travel/info")
     public String travelInfo() {
@@ -154,6 +158,13 @@ public class UserController {
             log.error("링크 목록 조회 실패: ", e);
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<Users> getUser(@RequestParam String email) {
+        return userServiceImpl.getUserByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     

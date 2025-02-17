@@ -130,6 +130,7 @@ public class AuthController {
 
             String name = jsonNode.get("name").asText();
             String email = jsonNode.get("email").asText();
+            String picture = jsonNode.get("picture").asText();
 
             Optional<Users> optionalUser = memberRepository.findByEmail(email);
             Users user;
@@ -139,6 +140,7 @@ public class AuthController {
                 user = Users.builder()
                         .email(email)
                         .name(name)
+                        .profileImg(picture)
                         .build();
                 memberRepository.save(user);
             }
