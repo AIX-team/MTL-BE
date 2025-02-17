@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,8 +47,8 @@ public class AuthController {
     @Value("${url.google.profile}")
     private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
 
-    @GetMapping("/auth/google/callback")
-    public ResponseEntity<ResponseMessage> googleCallback(@RequestParam("code") String code) {
+    @GetMapping("/loginSuccess")
+    public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
         // 1. 구글에 access token 요청
         String tokenUrl = accessTokenUrl;
         RestTemplate restTemplate = new RestTemplate();
@@ -109,30 +108,6 @@ public class AuthController {
         return ResponseEntity
                 .ok()
                 .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
-    }
-
-    // /loginSuccess 엔드포인트에서 OAuth 인증 후 프론트엔드로 리디렉션하도록 수정
-    @GetMapping("/loginSuccess")
-    public RedirectView loginSuccess(@RequestParam("code") String code) {
-        // googleCallback을 호출하여 OAuth 인증 처리
-        ResponseEntity<ResponseMessage> responseEntity = googleCallback(code);
-        ResponseMessage responseMessage = responseEntity.getBody();
-
-        // results에 token과 user가 포함되어 있음
-        // results가 Map 타입으로 저장되어 있다고 가정 (예: Map<String, Object>)
-        String token = "";
-        if (responseMessage != null && responseMessage.getResults() instanceof Map) {
-            Map resultsMap = (Map) responseMessage.getResults();
-            if (resultsMap.get("token") != null) {
-                token = resultsMap.get("token").toString();
-            }
-        }
-
-        // 프론트엔드 URL로 리디렉션 (토큰을 쿼리 파라미터로 전달)
-        String redirectUrl = "https://mytravellink.site/?token=" + token;
-        RedirectView redirectView = new RedirectView();
-        redirectView.setUrl(redirectUrl);
-        return redirectView;
     }
 
     // JSON 파싱을 통해 access token 추출
