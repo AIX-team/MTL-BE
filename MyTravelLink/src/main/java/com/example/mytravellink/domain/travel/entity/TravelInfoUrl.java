@@ -12,9 +12,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Setter;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @EqualsAndHashCode
 public class TravelInfoUrl {
@@ -22,19 +24,20 @@ public class TravelInfoUrl {
   @EmbeddedId
   private TravelInfoUrlId id;
 
-  @MapsId
+  @MapsId("tid")
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "travel_info_id", columnDefinition = "VARCHAR(36)")
   private TravelInfo travelInfo;
 
-  @MapsId
+  @MapsId("uid")
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "url_id", columnDefinition = "VARCHAR(128)")  // 명시적으로 컬럼 타입 지정
+  @JoinColumn(name = "url_id", columnDefinition = "VARCHAR(128)")
   private Url url;
 
   @Builder
   public TravelInfoUrl(TravelInfo travelInfo, Url url) {
     this.travelInfo = travelInfo;
     this.url = url;
+    this.id = new TravelInfoUrlId(travelInfo.getId(), url.getId());
   }
 }

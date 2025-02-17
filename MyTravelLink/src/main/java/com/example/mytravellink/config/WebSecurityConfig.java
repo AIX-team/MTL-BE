@@ -41,7 +41,7 @@ public class WebSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/**").permitAll();
-                    auth.requestMatchers("/", "/login/**","/auth/google/callback","/auth/kakao/callback",
+                    auth.requestMatchers("/", "/login/**","/auth/google/callback","/travels/guides",
                             "/images/**","/swagger-ui/**","/api-docs/**","/api*","/v3/api-docs/**", 
                             "/swagger-resources/**","/auth/send-code","/auth/verify-code").permitAll();
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();

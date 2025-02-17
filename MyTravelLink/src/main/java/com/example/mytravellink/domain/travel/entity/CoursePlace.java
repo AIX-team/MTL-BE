@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
@@ -26,7 +27,6 @@ import lombok.Setter;
 @Table(name = "course_place")
 @Getter
 @Setter
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CoursePlace extends BaseTimeEntity {
@@ -40,6 +40,7 @@ public class CoursePlace extends BaseTimeEntity {
     private Place place;
     
     @MapsId("courseId")
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", columnDefinition = "CHAR(36)")
     private Course course;
@@ -52,7 +53,7 @@ public class CoursePlace extends BaseTimeEntity {
     
     @Builder
     public CoursePlace(Place place, Course course, int placeNum) {
-        this.id = new CoursePlaceId(course.getId(), place.getId());
+        this.id = new CoursePlaceId(course.getId(), place.getId()); // 복합 키 생성
         this.place = place;
         this.course = course;
         this.placeNum = placeNum;

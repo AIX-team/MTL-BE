@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,20 +36,20 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Guide extends BaseTimeEntity {
-    
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)  
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", columnDefinition = "CHAR(36)")
     private String id;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "travel_info_id")
     private TravelInfo travelInfo;
-    
+
+    @JsonIgnore
     @OneToMany(mappedBy = "guide")
     private List<Course> courses = new ArrayList<>();
     
-
     private int courseCount;
     
     @Column(nullable = false)
@@ -57,8 +58,8 @@ public class Guide extends BaseTimeEntity {
     private Integer travelDays;
     private boolean isFavorite;
     private boolean fixed;
-    private boolean isDelete;   
-    
+    private boolean isDelete;
+
     @Column(nullable = false, columnDefinition = "VARCHAR(20)")
     private String planTypes;
     

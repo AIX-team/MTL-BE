@@ -2,6 +2,7 @@ package com.example.mytravellink.domain.users.entity;
 
 import com.example.mytravellink.domain.BaseTimeEntity;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -37,14 +38,17 @@ public class Users extends BaseTimeEntity {
     private boolean isDelete;
 
     // User -> TravelInfo (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<TravelInfo> travelInfos = new ArrayList<TravelInfo>();
 
     // User -> UserSearchTerm (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<UsersSearchTerm> searchTerms = new ArrayList<UsersSearchTerm>();
 
     // User -> UserUrl (1:N)
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<UsersUrl> userUrls = new ArrayList<UsersUrl>();
 
