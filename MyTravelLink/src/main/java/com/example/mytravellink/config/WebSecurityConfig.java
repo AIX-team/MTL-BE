@@ -46,6 +46,7 @@ public class WebSecurityConfig {
                             "/swagger-resources/**","/auth/send-code","/auth/verify-code","/url/**").permitAll();
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
                     auth.anyRequest().permitAll();
+                    
                 })
                 // JWT 필터 추가
                 .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), 
@@ -59,7 +60,7 @@ public class WebSecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://mytravellink.site"));
         configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(Arrays.asList("Authorization","Content-Type"));
