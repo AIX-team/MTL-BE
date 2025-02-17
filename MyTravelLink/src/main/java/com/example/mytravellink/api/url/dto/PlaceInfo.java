@@ -43,12 +43,16 @@ public class PlaceInfo {
     @JsonProperty("best_review")
     private String bestReview; // Optional 처리
 
+    @JsonProperty("official_description")
+    private String officialDescription;
+
 
     @JsonProperty("google_info")
     private Map<String, Object> googleInfo; // Map으로 처리
 
     public PlaceInfo(String name, String description, String formattedAddress,
-                     List<PlacePhoto> photos, String phone, String website, BigDecimal rating, List<String> open_hours) {
+                     List<PlacePhoto> photos, String phone, String website, BigDecimal rating, List<String> open_hours,
+                     String officialDescription) {
         this.name = name;
         this.description = description;
         this.formattedAddress = formattedAddress;
@@ -57,6 +61,7 @@ public class PlaceInfo {
         this.website = website;
         this.rating = rating;
         this.open_hours = open_hours; // ✅ 리스트 사용
+        this.officialDescription = officialDescription;
 
     }
 
