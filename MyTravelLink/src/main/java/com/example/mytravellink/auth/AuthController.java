@@ -106,7 +106,7 @@ public class AuthController {
         String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
         String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
         response.sendRedirect(redirectUrl);
-    }
+    } //gkgkgkgkg
 
     // JSON 파싱을 통해 access token 추출
     private String extractAccessToken(String responseBody) {
