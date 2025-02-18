@@ -10,7 +10,7 @@ spring:
     name: MyTravelLink
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 기본값은 테스트 DB URL을 넣었지만, 실제 환경에서는 환경변수 SPRING_DATASOURCE_URL이 주입됩니다.
+    # 실제 환경에서는 환경변수 SPRING_DATASOURCE_URL이 주입됩니다.
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mytravellink.czaw4ussgprp.ap-northeast-2.rds.amazonaws.com:3306/test_db}
     username: ${SPRING_DATASOURCE_USERNAME:travellink}
     password: ${SPRING_DATASOURCE_PASSWORD:mytravellinkmytravellink}
@@ -27,7 +27,7 @@ spring:
       client:
         registration:
           google:
-            # 환경 변수 OAUTH2_GOOGLE_CLIENT_ID, OAUTH2_GOOGLE_CLIENT_SECRET, OAUTH2_GOOGLE_REDIRECT_URI가 주입됩니다.
+            # 환경변수로 OAUTH2_GOOGLE_CLIENT_ID, OAUTH2_GOOGLE_CLIENT_SECRET, OAUTH2_GOOGLE_REDIRECT_URI가 주입됩니다.
             client-id: ${OAUTH2_GOOGLE_CLIENT_ID:493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com}
             client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET: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}
             redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://back.mytravellink.site/auth/google/callback}
@@ -42,9 +42,8 @@ url:
     profile: https://www.googleapis.com/oauth2/v3/userinfo
 
 jwt:
-  # JWT_SECRET와 JWT_EXPIRATION_TIME도 환경변수로 주입받도록 수정
   secret: ${JWT_SECRET:wERjtIdxQ8lNjF0w/AAiN6HqTASaCAUzSq6nbKefMwf5CbPE8GvwLsClz94uVt9Q1esxYwwXVU+BYn7/mR01Qg}
-  expiration-time: ${JWT_EXPIRATION_TIME:86400000}  # 기본값 86400000 (24시간)
+  expiration-time: ${JWT_EXPIRATION_TIME:86400000}  # 24시간
 
 ai:
   server:
