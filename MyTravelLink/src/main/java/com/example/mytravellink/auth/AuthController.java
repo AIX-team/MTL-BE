@@ -18,9 +18,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import javax.servlet.http.HttpServletResponse;
 
 @RestController
 @RequiredArgsConstructor
@@ -48,7 +51,7 @@ public class AuthController {
     private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
 
     @GetMapping("/loginSuccess")
-    public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
+    public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
         // 1. 구글에 access token 요청
         String tokenUrl = accessTokenUrl;
         RestTemplate restTemplate = new RestTemplate();
@@ -72,9 +75,8 @@ public class AuthController {
         // 2. 액세스 토큰 추출
         String accessToken = extractAccessToken(tokenResponse.getBody());
         if (accessToken == null) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(new ResponseMessage(HttpStatus.BAD_REQUEST, "액세스 토큰 추출 실패", null));
+            response.sendRedirect("https://mytravellink.site/loginError");
+            return;
         }
 
         // 3. 사용자 정보 요청 (access token을 HTTP Header에 담아 전송)
@@ -97,17 +99,11 @@ public class AuthController {
         log.info("Processed user: {}", member);
 
         // 5. 백엔드 서버 access token 생성 후 프론트에 전달
-        String backendAccessToken = jwtTokenProvider.generateToken(member); // 사용자 정보를 기반으로 JWT 생성
-
-        Map<String, Object> responseMap = new HashMap<>();
-        responseMap.put("token", backendAccessToken);
-        responseMap.put("user", member);
-
-        log.info("Backend access token: {}", backendAccessToken);
-
-        return ResponseEntity
-                .ok()
-                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
+        String backendAccessToken = jwtTokenProvider.generateToken(member);
+        
+        // 6. FE로 redirect (예: /loginSuccess?token=xxx)
+        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + backendAccessToken;
+        response.sendRedirect(redirectUrl);
     }
 
     // JSON 파싱을 통해 access token 추출
