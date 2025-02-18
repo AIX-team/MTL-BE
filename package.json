@@ -40,6 +40,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "postbuild": "cp -r build/* /Users/yuchan/Desktop/Project/MTL-BE/MyTravelLink/src/main/resources/static/",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -59,5 +60,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "https://back.mytravellink.site"
 }

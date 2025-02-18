@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import LoginModal from './LoginModal';
 
 function Login() {
-    const [isModalOpen, setModalOpen] = useState(true); 
+    const [isModalOpen, setModalOpen] = useState(true);
 
-   /* const openLoginModal = () => {
-        setModalOpen(true);
-    }; */
+    /* const openLoginModal = () => {
+         setModalOpen(true);
+     }; */
 
     const closeModal = () => {
         setModalOpen(false);

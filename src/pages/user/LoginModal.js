@@ -10,12 +10,12 @@ const LoginModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const handleGoogleLogin = () => {
-        const clientId = '197908814644-velr9kl1pr3ej9k416evvgr19880iuvu.apps.googleusercontent.com'; // 구글 클라이언트 ID
-        const redirectUri = process.env.REACT_APP_FRONTEND_URL + '/loginSuccess'; // 리디렉션 URI
-        const scope = 'profile email'; // 요청할 권한
+        const clientId = '493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com';
+        // 백엔드 도메인 + '/auth/google/callback' 로 설정
+        const redirectUri = process.env.REACT_APP_BACKEND_URL + '/auth/google/callback';
+        const scope = 'profile email';
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
-
-        window.location.href = authUrl; // 구글 로그인 페이지로 리디렉션
+        window.location.href = authUrl;
     };
 
     const handleClose = () => {
@@ -32,11 +32,11 @@ const LoginModal = ({ isOpen, onClose }) => {
             <div className="WS-login-body-container" onClick={e => e.stopPropagation()}>
 
                 <div className='WS-login-logo'>
-                    <img src={Logo}></img>
+                    <img src={Logo} alt="Logo" />
                 </div>
 
                 <div className='WS-login-button' onClick={handleGoogleLogin}>
-                    <img src={googleLogo}></img>
+                    <img src={googleLogo} alt="Google Logo" />
                     <span>구글 계정으로 시작하기</span>
                 </div>
 

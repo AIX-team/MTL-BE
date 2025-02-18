@@ -1,62 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch } from "react-redux";
-import { callLoginAPI } from "../../apis/UserAPICalls";
 import '../../css/login/LoginSuccess.css';
 
 function LoginSuccess() {
     const location = useLocation();
     const navigate = useNavigate();
-    const dispatch = useDispatch();
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
-        const code = params.get('code');
-        console.log('Received code:', code);
+        const token = params.get('token');
+        const error = params.get('error');
 
-        if (code) {
-            const loginResult = async () => {
-                const result = await dispatch(callLoginAPI(code));
-
-                if (result) {
-                    // 로그인 성공 처리
-                    alert("로그인 성공");
-                    navigate('/link'); // 메인 화면으로 이동
-                } else {
-                    alert("로그인 실패");
-                    console.log('로그인 실패 응답:', result);
-                    navigate('/link'); // 메인 페이지 이동
-                }
-            };
-            loginResult(); // 비동기 함수 호출
+        if (token) {
+            // 토큰이 있으면 저장하고 /link로 이동
+            localStorage.setItem("token", "Bearer " + token);
+            navigate('/link');
+        } else if (error) {
+            // 에러가 있으면 에러 메시지 표시
+            let errorMessage = "로그인에 실패했습니다.";
+            if (error === 'token') errorMessage = "토큰 발급에 실패했습니다.";
+            if (error === 'user') errorMessage = "사용자 정보를 가져오는데 실패했습니다.";
+            alert(errorMessage);
+            navigate('/login');
+        } else {
+            // 토큰도 에러도 없으면 로그인 페이지로
+            navigate('/login');
         }
-    }, [location, navigate, dispatch]);
-
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token || token === "Bearer undefined" || token === "Bearerundefined") {
-            alert("로그인이 필요합니다.");
-            navigate("/login");
-            return;
-        }
-        // 토큰 유효성 검증 추가
-        try {
-            // 토큰이 유효한지 확인하는 로직 추가
-            const tokenWithoutBearer = token.replace("Bearer ", "");
-            if (!tokenWithoutBearer) {
-                throw new Error("Invalid token");
-            }
-        } catch (error) {
-            localStorage.removeItem("token");
-            alert("로그인이 필요합니다.");
-            navigate("/login");
-        }
-    }, [navigate]);
+    }, [location, navigate]);
 
     return (
-        <div>
-            <h2> 로그인 처리 중... </h2>
-
+        <div className="login-success-loading">
+            <h2>로그인 처리 중...</h2>
         </div>
     );
 }
