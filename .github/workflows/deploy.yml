@@ -59,7 +59,7 @@ jobs:
             sudo docker stop api-mytravellink || true
             sudo docker rm api-mytravellink || true
             sudo docker run -d --name api-mytravellink \
-              -p 9000:9000 \
+              -p 80:9000 \
               -v /home/***/upload:/app/upload \
               -e SPRING_PROFILES_ACTIVE=test \
               -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
