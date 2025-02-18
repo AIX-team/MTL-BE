@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UrlQueryRepositoryImpl implements UrlQueryRepository {
   
   private final JPAQueryFactory queryFactory;
-  private static final QUrl url = new QUrl("url");
+  private final QUrl url = new QUrl("url");
 
   @Override
   public List<Url> findAllByEmailId(String emailId) {
