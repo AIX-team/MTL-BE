@@ -30,7 +30,7 @@ spring:
             # 환경 변수 OAUTH2_GOOGLE_CLIENT_ID, OAUTH2_GOOGLE_CLIENT_SECRET, OAUTH2_GOOGLE_REDIRECT_URI가 주입됩니다.
             client-id: ${OAUTH2_GOOGLE_CLIENT_ID:493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com}
             client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET: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}
-            redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://mytravellink.site/loginSuccess}
+            redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://back.mytravellink.site/auth/google/callback}
   webflux:
     client:
       connect-timeout: 5000

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +51,7 @@ public class AuthController {
     @Value("${url.google.profile}")
     private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
 
-    @GetMapping("/loginSuccess")
+    @GetMapping("/auth/google/callback")
     public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
         // 1. 구글에 access token 요청
         String tokenUrl = accessTokenUrl;
@@ -102,7 +103,8 @@ public class AuthController {
         String backendAccessToken = jwtTokenProvider.generateToken(member);
         
         // 6. FE로 redirect (예: /loginSuccess?token=xxx)
-        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + backendAccessToken;
+        String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
+        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
         response.sendRedirect(redirectUrl);
     }
 
