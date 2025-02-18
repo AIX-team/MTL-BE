@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -45,66 +45,72 @@ public class AuthController {
     private String accessTokenUrl;
     
     @Value("${url.google.profile}")
-    private String profileUrl; // "https://www.googleapis.com/oauth2/v3/userinfo" 여야 합니다.
+    private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
 
-    // 기존 /loginSuccess 대신 /auth/google/callback로 변경
     @GetMapping("/auth/google/callback")
-    public RedirectView googleCallback(@RequestParam("code") String code) {
-        try {
-            // 1. 구글에 access token 요청
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    public ResponseEntity<?> googleCallback(@RequestParam("code") String code) {
+        // 1. 구글에 access token 요청
+        String tokenUrl = accessTokenUrl;
+        RestTemplate restTemplate = new RestTemplate();
 
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("code", code);
-            params.add("client_id", clientId);
-            params.add("client_secret", clientSecret);
-            params.add("redirect_uri", redirectUri);
-            params.add("grant_type", "authorization_code");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
-            ResponseEntity<String> tokenResponse = restTemplate.exchange(accessTokenUrl, HttpMethod.POST, requestEntity, String.class);
-            
-            // 2. 액세스 토큰 추출
-            String accessToken = extractAccessToken(tokenResponse.getBody());
-            if (accessToken == null) {
-                RedirectView errorRedirect = new RedirectView();
-                errorRedirect.setUrl("https://mytravellink.site/login?error=token");
-                return errorRedirect;
-            }
+        // 요청 본문을 MultiValueMap으로 생성
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("code", code);
+        params.add("client_id", clientId);
+        params.add("client_secret", clientSecret);
+        params.add("redirect_uri", redirectUri);
+        params.add("grant_type", "authorization_code");
 
-            // 3. 사용자 정보 요청
-            HttpHeaders userInfoHeaders = new HttpHeaders();
-            userInfoHeaders.set("Authorization", "Bearer " + accessToken);
-            HttpEntity<?> userInfoEntity = new HttpEntity<>(userInfoHeaders);
-            
-            ResponseEntity<String> userInfoResponse = restTemplate.exchange(profileUrl, HttpMethod.GET, userInfoEntity, String.class);
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-            // 4. 사용자 정보 처리
-            Users member = processUserInfo(userInfoResponse.getBody());
-            if (member == null) {
-                RedirectView errorRedirect = new RedirectView();
-                errorRedirect.setUrl("https://mytravellink.site/login?error=user");
-                return errorRedirect;
-            }
+        ResponseEntity<String> tokenResponse = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+        log.info("Token Response: {}", tokenResponse.getBody());
 
-            // 5. JWT 토큰 생성
-            String backendAccessToken = jwtTokenProvider.generateToken(member);
-            
-            // 6. 프론트엔드로 리다이렉트 (예: /link 경로로)
-            RedirectView redirectView = new RedirectView();
-            redirectView.setUrl("https://mytravellink.site/link?token=" + backendAccessToken);
-            return redirectView;
-            
-        } catch (Exception e) {
-            log.error("Login redirect error", e);
-            RedirectView errorRedirect = new RedirectView();
-            errorRedirect.setUrl("https://mytravellink.site/login?error=true");
-            return errorRedirect;
+        // 2. 액세스 토큰 추출
+        String accessToken = extractAccessToken(tokenResponse.getBody());
+        if (accessToken == null) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ResponseMessage(HttpStatus.BAD_REQUEST, "액세스 토큰 추출 실패", null));
         }
+
+        // 3. 사용자 정보 요청 (access token을 HTTP Header에 담아 전송)
+        String userInfoUrl = profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
+        HttpHeaders userInfoHeaders = new HttpHeaders();
+        userInfoHeaders.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<?> userInfoEntity = new HttpEntity<>(userInfoHeaders);
+
+        ResponseEntity<String> userInfoResponse = restTemplate.exchange(
+                userInfoUrl,
+                HttpMethod.GET,
+                userInfoEntity,
+                String.class
+        );
+        log.info("UserInfo Response: {}", userInfoResponse.getBody());
+
+        // 4. 사용자 정보 처리 및 회원가입 로직
+        String userInfo = userInfoResponse.getBody();
+        Users member = processUserInfo(userInfo);
+        log.info("Processed user: {}", member);
+
+        // 5. 백엔드 서버 access token 생성 후 프론트에 전달
+        String backendAccessToken = jwtTokenProvider.generateToken(member); // 사용자 정보를 기반으로 JWT 생성
+
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("token", backendAccessToken);
+        responseMap.put("user", member);
+
+        log.info("Backend access token: {}", backendAccessToken);
+
+        return ResponseEntity
+                .ok()
+                .body(new ResponseMessage(HttpStatus.CREATED, "로그인 성공", responseMap));
     }
 
+    // JSON 파싱을 통해 access token 추출
     private String extractAccessToken(String responseBody) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -116,6 +122,7 @@ public class AuthController {
         }
     }
 
+    // 사용자 정보를 처리하여 기존 사용자가 없으면 저장 후 반환
     private Users processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -123,7 +130,6 @@ public class AuthController {
 
             String name = jsonNode.get("name").asText();
             String email = jsonNode.get("email").asText();
-            String picture = jsonNode.get("picture").asText();
 
             Optional<Users> optionalUser = memberRepository.findByEmail(email);
             Users user;
@@ -133,7 +139,6 @@ public class AuthController {
                 user = Users.builder()
                         .email(email)
                         .name(name)
-                        .profileImg(picture)
                         .build();
                 memberRepository.save(user);
             }
