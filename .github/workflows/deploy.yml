@@ -54,12 +54,24 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            sudo mkdir -p /home/***/upload
+            sudo mkdir -p /home/ec2-user/upload
             sudo docker pull yuchankim/api-mytravellink:latest
             sudo docker stop api-mytravellink || true
             sudo docker rm api-mytravellink || true
-            sudo docker run -d --name api-mytravellink -p 80:9000 -v /home/***/upload:/app/upload -e SPRING_PROFILES_ACTIVE=test -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} -e JWT_SECRET=${{ secrets.JWT_SECRET }} -e JWT_EXPIRATION_TIME=${{ secrets.JWT_EXPIRATION_TIME }} -e OAUTH2_GOOGLE_CLIENT_ID=${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }} -e OAUTH2_GOOGLE_CLIENT_SECRET=${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }} -e OAUTH2_GOOGLE_REDIRECT_URI=${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }} yuchankim/api-mytravellink:latest
-
+            sudo docker run -d --name api-mytravellink \
+              -p 80:9000 \
+              -v /home/ec2-user/upload:/app/upload \
+              -e SPRING_PROFILES_ACTIVE=test \
+              -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
+              -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} \
+              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+              -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e JWT_EXPIRATION_TIME=${{ secrets.JWT_EXPIRATION_TIME }} \
+              -e OAUTH2_GOOGLE_CLIENT_ID=${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }} \
+              -e OAUTH2_GOOGLE_CLIENT_SECRET=${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }} \
+              -e OAUTH2_GOOGLE_REDIRECT_URI=${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }} \
+              yuchankim/api-mytravellink:latest
 
 defaults:
   run:
