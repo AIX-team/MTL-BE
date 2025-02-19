@@ -3,7 +3,6 @@ package com.example.mytravellink.auth.filter;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.auth.service.CustomUserDetails;
 import com.example.mytravellink.domain.users.entity.Users;
-import com.example.mytravellink.domain.users.repository.UsersRepository;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -15,7 +14,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -28,12 +26,10 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider; // JWT 토큰을 생성하고 검증하는 클래스
     private final UserDetailsService userDetailsService; // 사용자 세부 정보를 로드하는 서비스
-    private final UsersRepository userRepository; // 사용자 정보를 조회하는 리포지토리
 
-    public JwtAuthorizationFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService, UsersRepository userRepository) {
+    public JwtAuthorizationFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
-        this.userRepository = userRepository;
     }
 
     @Override
@@ -58,39 +54,34 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = request.getHeader("Authorization");
-        
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.replace("Bearer ", "");
-        }
-        
+        // 헤더에서 토큰 꺼내기
+        String token = jwtTokenProvider.resolveToken(request); // 요청에서 JWT 토큰 추출
         log.info("추출한 토큰: {}", token);
 
+        // 토큰 유효성 검사
         if (token != null && jwtTokenProvider.validateToken(token)) {
-            String email = jwtTokenProvider.getEmailFromToken(token);
-            Users member = userRepository.findByEmail(email).orElse(null);
-            
-            if (member != null) {
-                CustomUserDetails userDetails = new CustomUserDetails();
-                userDetails.setMember(member);
-                
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        }
-        
-        filterChain.doFilter(request, response);
-    }
+            Claims claims = jwtTokenProvider.getClaimsFromToken(token); // JWT에서 사용자 고유 넘버 추출
 
-    private String extractToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            Users member = Users.builder()
+                    .email(claims.getSubject())
+                    .name(claims.get("name").toString())
+                    .build();
+
+            // 토큰에 담겨있던 정보로 인증 객체를 만든다.
+            CustomUserDetails userDetails = new CustomUserDetails();
+            userDetails.setMember(member);
+
+            // Authentication 객체 생성 및 SecurityContext에 설정
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication); // SecurityContext에 인증 정보 설정
         }
-        return null;
+
+        
+        // 모든 요청을 허용하도록 수정
+        filterChain.doFilter(request, response);
     }
 
 }
