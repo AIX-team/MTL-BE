@@ -40,6 +40,7 @@ public class WebSecurityConfig {
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/auth/**", "/login/**", "/loginSuccess/**").permitAll();
                     auth.requestMatchers("/api/**").permitAll();
                     auth.requestMatchers("/", "/login/**", "/auth/google/callback", "/loginSuccess",
                             "/travels/guides","/user/check",
@@ -52,7 +53,9 @@ public class WebSecurityConfig {
                 // JWT 필터 추가
                 .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), 
                                UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(withDefaults())
+                .oauth2Login(oauth2 -> oauth2
+                    .defaultSuccessUrl("https://mytravellink.site/loginSuccess", true)
+                )
                 .build();
     }
 
