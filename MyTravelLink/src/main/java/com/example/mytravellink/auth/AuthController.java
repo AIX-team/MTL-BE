@@ -51,7 +51,7 @@ public class AuthController {
     @Value("${url.google.profile}")
     private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
 
-    @GetMapping("/auth/google/callback")
+    @GetMapping("/loginSuccess")
     public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
         try {
             // 1. 구글에 access token 요청
