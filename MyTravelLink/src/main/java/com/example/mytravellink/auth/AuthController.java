@@ -60,7 +60,7 @@ public class AuthController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        // 요청 본문을 MultiValueMap으로 생성
+        // 요청 본문을 MultiValueMap으로 생성 gg
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("code", code);
         params.add("client_id", clientId);
