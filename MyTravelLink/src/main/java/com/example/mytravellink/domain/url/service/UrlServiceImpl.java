@@ -408,4 +408,25 @@ public class UrlServiceImpl implements UrlService {
 
         return travelInfo.getId();
     }
+
+    @Override
+    public boolean checkYoutubeSubtitles(String videoUrl) {
+        try {
+            // FastAPI의 유튜브 자막 체크 엔드포인트 호출 (예: http://.../api/v1/youtube/check_subtitles)
+            String subtitleUrl = fastAPiUrl + "/api/v1/youtube/check_subtitles";
+            Map<String, String> payload = new HashMap<>();
+            payload.put("video_url", videoUrl);
+            ResponseEntity<Map> response = restTemplate.postForEntity(subtitleUrl, payload, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Object hasSubtitles = response.getBody().get("has_subtitles");
+                if (hasSubtitles instanceof Boolean) {
+                    return (Boolean) hasSubtitles;
+                }
+            }
+        } catch (Exception e) {
+            // 에러 로그 기록 (필요 시)
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
