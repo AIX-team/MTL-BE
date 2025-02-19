@@ -53,59 +53,65 @@ public class AuthController {
 
     @GetMapping("/auth/google/callback")
     public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
-        // 1. 구글에 access token 요청
-        String tokenUrl = accessTokenUrl;
-        RestTemplate restTemplate = new RestTemplate();
+        try {
+            // 1. 구글에 access token 요청
+            String tokenUrl = accessTokenUrl;
+            RestTemplate restTemplate = new RestTemplate();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        // 요청 본문을 MultiValueMap으로 생성
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("code", code);
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
-        params.add("redirect_uri", redirectUri);
-        params.add("grant_type", "authorization_code");
+            // 요청 본문을 MultiValueMap으로 생성
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("code", code);
+            params.add("client_id", clientId);
+            params.add("client_secret", clientSecret);
+            params.add("redirect_uri", redirectUri);
+            params.add("grant_type", "authorization_code");
 
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-        ResponseEntity<String> tokenResponse = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
-        log.info("Token Response: {}", tokenResponse.getBody());
+            ResponseEntity<String> tokenResponse = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
+            log.info("Token Response: {}", tokenResponse.getBody());
 
-        // 2. 액세스 토큰 추출
-        String accessToken = extractAccessToken(tokenResponse.getBody());
-        if (accessToken == null) {
+            // 2. 액세스 토큰 추출
+            String accessToken = extractAccessToken(tokenResponse.getBody());
+            if (accessToken == null) {
+                response.sendRedirect("https://mytravellink.site/loginError");
+                return;
+            }
+
+            // 3. 사용자 정보 요청 (access token을 HTTP Header에 담아 전송)
+            String userInfoUrl = profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
+            HttpHeaders userInfoHeaders = new HttpHeaders();
+            userInfoHeaders.set("Authorization", "Bearer " + accessToken);
+            HttpEntity<?> userInfoEntity = new HttpEntity<>(userInfoHeaders);
+
+            ResponseEntity<String> userInfoResponse = restTemplate.exchange(
+                    userInfoUrl,
+                    HttpMethod.GET,
+                    userInfoEntity,
+                    String.class
+            );
+            log.info("UserInfo Response: {}", userInfoResponse.getBody());
+
+            // 4. 사용자 정보 처리 및 회원가입 로직
+            String userInfo = userInfoResponse.getBody();
+            Users member = processUserInfo(userInfo);
+            log.info("Processed user: {}", member);
+
+            // 5. 백엔드 서버 access token 생성 후 프론트에 전달
+            String backendAccessToken = jwtTokenProvider.generateToken(member);
+            
+            // 6. FE로 redirect (예: /loginSuccess?token=xxx)
+            String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
+            // 프론트엔드 도메인으로 리디렉션
+            String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
+            response.sendRedirect(redirectUrl);
+        } catch (Exception e) {
+            log.error("Google callback error", e);
             response.sendRedirect("https://mytravellink.site/loginError");
-            return;
         }
-
-        // 3. 사용자 정보 요청 (access token을 HTTP Header에 담아 전송)
-        String userInfoUrl = profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
-        HttpHeaders userInfoHeaders = new HttpHeaders();
-        userInfoHeaders.set("Authorization", "Bearer " + accessToken);
-        HttpEntity<?> userInfoEntity = new HttpEntity<>(userInfoHeaders);
-
-        ResponseEntity<String> userInfoResponse = restTemplate.exchange(
-                userInfoUrl,
-                HttpMethod.GET,
-                userInfoEntity,
-                String.class
-        );
-        log.info("UserInfo Response: {}", userInfoResponse.getBody());
-
-        // 4. 사용자 정보 처리 및 회원가입 로직
-        String userInfo = userInfoResponse.getBody();
-        Users member = processUserInfo(userInfo);
-        log.info("Processed user: {}", member);
-
-        // 5. 백엔드 서버 access token 생성 후 프론트에 전달
-        String backendAccessToken = jwtTokenProvider.generateToken(member);
-        
-        // 6. FE로 redirect (예: /loginSuccess?token=xxx)
-        String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
-        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
-        response.sendRedirect(redirectUrl);
     } 
 
     // JSON 파싱을 통해 access token 추출
