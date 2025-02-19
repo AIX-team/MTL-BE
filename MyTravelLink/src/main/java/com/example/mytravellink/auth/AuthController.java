@@ -1,7 +1,6 @@
 package com.example.mytravellink.auth;
 
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
-import com.example.mytravellink.common.ResponseMessage;
 import com.example.mytravellink.domain.users.entity.Users;
 import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,14 +16,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
-
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-
-import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequiredArgsConstructor
@@ -49,18 +44,17 @@ public class AuthController {
     private String accessTokenUrl;
     
     @Value("${url.google.profile}")
-    private String profileUrl; // profileUrl은 "https://www.googleapis.com/oauth2/v3/userinfo" 이어야 합니다.
+    private String profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
 
     @GetMapping("/auth/google/callback")
     public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
+        log.debug("OAuth2 callback 호출됨. 받은 code: {}", code);
+        
         // 1. 구글에 access token 요청
-        String tokenUrl = accessTokenUrl;
         RestTemplate restTemplate = new RestTemplate();
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        // 요청 본문을 MultiValueMap으로 생성 gg
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("code", code);
         params.add("client_id", clientId);
@@ -68,54 +62,65 @@ public class AuthController {
         params.add("redirect_uri", redirectUri);
         params.add("grant_type", "authorization_code");
 
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
+        log.debug("Google access token 요청 파라미터: {}", params);
 
-        ResponseEntity<String> tokenResponse = restTemplate.exchange(tokenUrl, HttpMethod.POST, requestEntity, String.class);
-        log.info("Token Response: {}", tokenResponse.getBody());
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
+        ResponseEntity<String> tokenResponse = restTemplate.exchange(accessTokenUrl, HttpMethod.POST, requestEntity, String.class);
+        log.debug("Google Token Response: {}", tokenResponse.getBody());
 
         // 2. 액세스 토큰 추출
         String accessToken = extractAccessToken(tokenResponse.getBody());
         if (accessToken == null) {
+            log.error("Google access token 추출 실패");
             response.sendRedirect("https://mytravellink.site/loginError");
             return;
         }
+        log.debug("추출된 Google Access Token: {}", accessToken);
 
-        // 3. 사용자 정보 요청 (access token을 HTTP Header에 담아 전송)
-        String userInfoUrl = profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
+        // 3. 사용자 정보 요청
         HttpHeaders userInfoHeaders = new HttpHeaders();
         userInfoHeaders.set("Authorization", "Bearer " + accessToken);
         HttpEntity<?> userInfoEntity = new HttpEntity<>(userInfoHeaders);
+        log.debug("Google UserInfo 요청 헤더: {}", userInfoHeaders);
 
         ResponseEntity<String> userInfoResponse = restTemplate.exchange(
-                userInfoUrl,
+                profileUrl,
                 HttpMethod.GET,
                 userInfoEntity,
                 String.class
         );
-        log.info("UserInfo Response: {}", userInfoResponse.getBody());
+        log.debug("Google UserInfo Response: {}", userInfoResponse.getBody());
 
         // 4. 사용자 정보 처리 및 회원가입 로직
-        String userInfo = userInfoResponse.getBody();
-        Users member = processUserInfo(userInfo);
-        log.info("Processed user: {}", member);
+        Users member = processUserInfo(userInfoResponse.getBody());
+        if (member == null) {
+            log.error("사용자 정보 처리 실패");
+            response.sendRedirect("https://mytravellink.site/loginError");
+            return;
+        }
+        log.debug("처리된 사용자 정보: {}", member);
 
-        // 5. 백엔드 서버 access token 생성 후 프론트에 전달
+        // 5. 백엔드 토큰 생성 후 프론트로 전달
         String backendAccessToken = jwtTokenProvider.generateToken(member);
-        
-        // 6. FE로 redirect (예: /loginSuccess?token=xxx)
+        log.debug("생성된 백엔드 JWT 토큰: {}", backendAccessToken);
+
+        // 6. 리다이렉트 URL 구성 후 프론트로 전달
         String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
         String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
+        log.debug("리다이렉트할 URL: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
-    } 
+    }
 
-    // JSON 파싱을 통해 access token 추출
+    // 응답 본문에서 access_token 추출
     private String extractAccessToken(String responseBody) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(responseBody);
-            return jsonNode.get("access_token").asText();
+            String token = jsonNode.get("access_token").asText();
+            log.debug("응답 본문에서 추출한 access_token: {}", token);
+            return token;
         } catch (Exception e) {
-            log.error("Access token extraction error", e);
+            log.error("Access token 추출 중 오류 발생", e);
             return null;
         }
     }
@@ -125,25 +130,26 @@ public class AuthController {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(userInfo);
-
             String name = jsonNode.get("name").asText();
             String email = jsonNode.get("email").asText();
+            log.debug("Google UserInfo - name: {}, email: {}", name, email);
 
             Optional<Users> optionalUser = memberRepository.findByEmail(email);
             Users user;
             if (optionalUser.isPresent()) {
                 user = optionalUser.get();
+                log.debug("기존 사용자 발견: {}", user);
             } else {
                 user = Users.builder()
                         .email(email)
                         .name(name)
                         .build();
                 memberRepository.save(user);
+                log.debug("새로운 사용자 등록: {}", user);
             }
-            log.info("User info: {}", user);
             return user;
         } catch (Exception e) {
-            log.error("Error processing user info", e);
+            log.error("사용자 정보 처리 중 오류 발생", e);
             return null;
         }
     }

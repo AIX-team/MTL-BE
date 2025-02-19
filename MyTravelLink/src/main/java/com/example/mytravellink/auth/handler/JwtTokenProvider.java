@@ -4,13 +4,13 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import com.example.mytravellink.domain.users.entity.Users;
-
 import java.util.Date;
 
+@Slf4j
 @Service
 public class JwtTokenProvider {
 
@@ -21,57 +21,62 @@ public class JwtTokenProvider {
     private long expirationTime;
 
     public String generateToken(Users user) {
-        Claims claims = Jwts.claims().setSubject(user.getEmail()); // 사용자 이메일을 주제로 설정
-        claims.put("name", user.getName()); // 토큰에 사용자 이름 넣기
+        Claims claims = Jwts.claims().setSubject(user.getEmail());
+        claims.put("name", user.getName());
         claims.put("email", user.getEmail());
 
         Date now = new Date();
-        Date validity = new Date(now.getTime() + expirationTime); // 만료 시간 설정
+        Date validity = new Date(now.getTime() + expirationTime);
 
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(validity)
-                .signWith(SignatureAlgorithm.HS256, secretKey) // 비밀 키로 서명
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
+        log.debug("생성된 JWT 토큰: {}", token);
+        return token;
     }
 
     public String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
+        log.debug("요청 헤더 'Authorization': {}", bearerToken);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            String token = bearerToken.substring(7);
+            log.debug("추출된 JWT 토큰: {}", token);
+            return token;
         }
+        log.debug("Bearer 토큰 형식이 아니거나 헤더에 값이 없음");
         return null;
     }
 
-    // JWT 검증 메서드
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token); // 서명 키로 검증
-            return true; // 유효한 토큰
+            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
+            log.debug("JWT 토큰 검증 성공");
+            return true;
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            System.out.println("JWT expired: " + e.getMessage());
-            return false; // 만료된 토큰
+            log.error("JWT 만료: {}", e.getMessage());
+            return false;
         } catch (io.jsonwebtoken.SignatureException e) {
-            System.out.println("Invalid JWT signature: " + e.getMessage());
-            return false; // 유효하지 않은 서명
+            log.error("잘못된 JWT 서명: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
-            System.out.println("Invalid JWT: " + e.getMessage());
-            return false; // 기타 예외
+            log.error("JWT 검증 오류: {}", e.getMessage());
+            return false;
         }
     }
 
-    // JWT에서 토큰 정보 추출
     public Claims getClaimsFromToken(String token) {
-        return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody(); // 사용자 이메일 반환
+        Claims claims = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
+        log.debug("JWT 토큰에서 추출한 Claims: {}", claims);
+        return claims;
     }
 
-    /**
-     * 토큰에서 이메일(Subject)를 추출하는 메서드
-     */
     public String getEmailFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
-        return claims.getSubject();
+        String email = claims.getSubject();
+        log.debug("토큰에서 추출한 이메일: {}", email);
+        return email;
     }
-
 }
