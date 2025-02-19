@@ -91,7 +91,7 @@ public class AuthController {
         );
         log.debug("Google UserInfo Response: {}", userInfoResponse.getBody());
 
-        // 4. 사용자 정보 처리 및 회원가입 로직
+        // 4. 사용자 정보 처리 및 회원가입 로직 (name과 email 추출)
         Users member = processUserInfo(userInfoResponse.getBody());
         if (member == null) {
             log.error("사용자 정보 처리 실패");
@@ -129,7 +129,7 @@ public class AuthController {
         }
     }
 
-    // 사용자 정보를 처리하여 기존 사용자가 없으면 저장 후 반환
+    // 사용자 정보를 처리하여 기존 사용자가 없으면 저장 후 반환 (이름과 이메일 추출)
     private Users processUserInfo(String userInfo) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
