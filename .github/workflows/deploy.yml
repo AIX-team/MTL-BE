@@ -69,7 +69,7 @@ jobs:
               -e AI_SERVER_URL="http://221.148.97.237:28001" \
               -e OAUTH2_GOOGLE_CLIENT_ID="493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com" \
               -e OAUTH2_GOOGLE_CLIENT_SECRET="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" \
-              -e OAUTH2_GOOGLE_REDIRECT_URI="https://mytravellink.site/auth/google/callback" \
+              -e OAUTH2_GOOGLE_REDIRECT_URI="https://mytravellink.site/loginSuccess" \
               yuchankim/api-mytravellink:latest
 
 
