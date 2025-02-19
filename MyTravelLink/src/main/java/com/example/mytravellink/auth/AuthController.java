@@ -102,9 +102,9 @@ public class AuthController {
         // 5. 백엔드 서버 access token 생성 후 프론트에 전달
         String backendAccessToken = jwtTokenProvider.generateToken(member);
         
-        // 6. FE로 redirect (예: /loginSuccess?token=xxx)
+        // 6. 프론트엔드로 리다이렉트 (토큰과 함께)
         String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
-        String redirectUrl = "https://back.mytravellink.site/loginSuccess?token=" + encodedToken;
+        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
         response.sendRedirect(redirectUrl);
     } 
 
