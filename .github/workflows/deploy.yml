@@ -54,24 +54,24 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            sudo mkdir -p /home/***/upload
+            sudo mkdir -p /home/ec2-user/upload
             sudo docker pull yuchankim/api-mytravellink:latest
             sudo docker stop api-mytravellink || true
             sudo docker rm api-mytravellink || true
-            sudo docker run -d --name api-mytravellink \
-              -p 80:9000 \
-              -v /home/***/upload:/app/upload \
+            sudo docker run -d --name api-mytravellink -p 80:9000 \
+              -v /home/ec2-user/upload:/app/upload \
               -e SPRING_PROFILES_ACTIVE=test \
-              -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
-              -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} \
-              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
-              -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} \
-              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-              -e JWT_EXPIRATION_TIME=${{ secrets.JWT_EXPIRATION_TIME }} \
-              -e OAUTH2_GOOGLE_CLIENT_ID=${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }} \
-              -e OAUTH2_GOOGLE_CLIENT_SECRET=${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }} \
-              -e OAUTH2_GOOGLE_REDIRECT_URI=${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }} \
+              -e SPRING_DATASOURCE_URL="jdbc:mysql://mytravellink.czaw4ussgprp.ap-northeast-2.rds.amazonaws.com:3306/test_db" \
+              -e SPRING_DATASOURCE_USERNAME="travellink" \
+              -e SPRING_DATASOURCE_PASSWORD="mytravellinkmytravellink" \
+              -e JWT_SECRET="wERjtIdxQ8lNjF0w/AAiN6HqTASaCAUzSq6nbKefMwf5CbPE8GvwLsClz94uVt9Q1esxYwwXVU+BYn7/mR01Qg" \
+              -e JWT_EXPIRATION_TIME="86400000" \
+              -e AI_SERVER_URL="http://221.148.97.237:28001" \
+              -e OAUTH2_GOOGLE_CLIENT_ID="493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com" \
+              -e OAUTH2_GOOGLE_CLIENT_SECRET="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" \
+              -e OAUTH2_GOOGLE_REDIRECT_URI="https://mytravellink.site/auth/google/callback" \
               yuchankim/api-mytravellink:latest
+
 
 defaults:
   run:
