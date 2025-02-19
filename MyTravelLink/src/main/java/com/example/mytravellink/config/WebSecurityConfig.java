@@ -41,11 +41,13 @@ public class WebSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/**").permitAll();
-                    auth.requestMatchers("/", "/login/**","/auth/google/callback","/travels/guides","/user/check",
+                    auth.requestMatchers("/", "/login/**", "/auth/google/callback", "/loginSuccess",
+                            "/travels/guides","/user/check",
                             "/images/**","/swagger-ui/**","/api-docs/**","/api*","/v3/api-docs/**", 
                             "/swagger-resources/**","/auth/send-code","/auth/verify-code","/url/**").permitAll();
                     auth.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
                     auth.anyRequest().permitAll();
+                    
                 })
                 // JWT 필터 추가
                 .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), 
@@ -59,7 +61,7 @@ public class WebSecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.setAllowedOrigins(Arrays.asList("https://mytravellink.site","http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(Arrays.asList("Authorization","Content-Type"));
