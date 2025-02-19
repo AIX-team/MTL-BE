@@ -40,7 +40,7 @@ public class WebSecurityConfig {
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/**").permitAll();
+                    auth.requestMatchers("/api/public/**").permitAll();
                     auth.requestMatchers("/", "/login/**", "/auth/google/callback", "/loginSuccess",
                             "/travels/guides","/user/check",
                             "/images/**","/swagger-ui/**","/api-docs/**","/api*","/v3/api-docs/**", 

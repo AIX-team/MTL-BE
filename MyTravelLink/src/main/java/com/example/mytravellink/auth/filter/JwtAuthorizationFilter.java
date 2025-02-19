@@ -49,10 +49,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 "/api/v1/travels/guide"
         );
 
-        if(roleLeessList.stream().anyMatch(uri -> roleLeessList.stream().anyMatch(pattern -> Pattern.matches(pattern, request.getRequestURI())))){
-            filterChain.doFilter(request,response);
+        if(roleLeessList.stream().anyMatch(pattern -> Pattern.matches(pattern, request.getRequestURI()))){
+            filterChain.doFilter(request, response);
             return;
         }
+
 
         // 헤더에서 토큰 꺼내기
         String token = jwtTokenProvider.resolveToken(request); // 요청에서 JWT 토큰 추출
