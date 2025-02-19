@@ -58,20 +58,8 @@ jobs:
             sudo docker pull yuchankim/api-mytravellink:latest
             sudo docker stop api-mytravellink || true
             sudo docker rm api-mytravellink || true
-            sudo docker run -d --name api-mytravellink \
-              -p 80:9000 \
-              -v /home/***/upload:/app/upload \
-              -e SPRING_PROFILES_ACTIVE=test \
-              -e SPRING_DATASOURCE_URL=${{ secrets.MYSQL_URL }} \
-              -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USERNAME }} \
-              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
-              -e AI_SERVER_URL=${{ secrets.AI_SERVER_URL }} \
-              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-              -e JWT_EXPIRATION_TIME=${{ secrets.JWT_EXPIRATION_TIME }} \
-              -e OAUTH2_GOOGLE_CLIENT_ID=${{ secrets.OAUTH2_GOOGLE_CLIENT_ID }} \
-              -e OAUTH2_GOOGLE_CLIENT_SECRET=${{ secrets.OAUTH2_GOOGLE_CLIENT_SECRET }} \
-              -e OAUTH2_GOOGLE_REDIRECT_URI=${{ secrets.OAUTH2_GOOGLE_REDIRECT_URI }} \
-              yuchankim/api-mytravellink:latest
+            sudo docker run -d --name api-mytravellink -p 80:9000 -v /home/youruser/upload:/app/upload -e SPRING_PROFILES_ACTIVE=test -e SPRING_DATASOURCE_URL="your_mysql_url" -e SPRING_DATASOURCE_USERNAME="your_mysql_username" -e SPRING_DATASOURCE_PASSWORD="your_mysql_password" -e AI_SERVER_URL="your_ai_server_url" -e JWT_SECRET="your_jwt_secret" -e JWT_EXPIRATION_TIME="your_jwt_expiration" -e OAUTH2_GOOGLE_CLIENT_ID="your_google_client_id" -e OAUTH2_GOOGLE_CLIENT_SECRET="your_google_client_secret" -e OAUTH2_GOOGLE_REDIRECT_URI="your_google_redirect_uri" yuchankim/api-mytravellink:latest
+
 
 defaults:
   run:
