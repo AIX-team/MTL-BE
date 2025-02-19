@@ -104,9 +104,13 @@ public class AuthController {
         String backendAccessToken = jwtTokenProvider.generateToken(member);
         log.debug("생성된 백엔드 JWT 토큰: {}", backendAccessToken);
 
-        // 6. 리다이렉트 URL 구성 후 프론트로 전달
+        // 6. 리다이렉트 URL 구성 (토큰, 사용자 이메일, 사용자 이름 포함)
         String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
-        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
+        String encodedEmail = URLEncoder.encode(member.getEmail(), "UTF-8");
+        String encodedName = URLEncoder.encode(member.getName(), "UTF-8");
+        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken 
+                             + "&email=" + encodedEmail 
+                             + "&name=" + encodedName;
         log.debug("리다이렉트할 URL: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
     }
