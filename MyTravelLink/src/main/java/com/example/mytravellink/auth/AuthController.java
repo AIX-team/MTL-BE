@@ -104,7 +104,7 @@ public class AuthController {
         
         // 6. FE로 redirect (예: /loginSuccess?token=xxx)
         String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
-        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken;
+        String redirectUrl = "https://back.mytravellink.site/loginSuccess?token=" + encodedToken;
         response.sendRedirect(redirectUrl);
     } 
 
