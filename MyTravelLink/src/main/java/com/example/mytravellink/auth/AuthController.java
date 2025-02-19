@@ -112,7 +112,7 @@ public class AuthController {
             log.error("Google callback error", e);
             response.sendRedirect("https://mytravellink.site/loginError");
         }
-    } 
+    } //ggg
 
     // JSON 파싱을 통해 access token 추출
     private String extractAccessToken(String responseBody) {
