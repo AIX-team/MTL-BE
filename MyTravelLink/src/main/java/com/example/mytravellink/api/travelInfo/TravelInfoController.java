@@ -11,6 +11,7 @@ import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,6 +61,9 @@ public class TravelInfoController {
     private final GuideServiceImpl guideService;
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
+
+    @Value("${ai.server.url}")
+    private String fastAPiUrl;
 
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
@@ -263,7 +267,8 @@ public class TravelInfoController {
             
             // 4. FastAPI AI 서비스 호출
             RestTemplate restTemplate = new RestTemplate();
-            String aiServiceUrl = "http://127.0.0.1:8000/api/v1/ai/recommend/places";
+
+            String aiServiceUrl = fastAPiUrl + "/api/v1/ai/recommend/places";
             ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
                 aiServiceUrl,
                 requestBody,
@@ -335,17 +340,16 @@ public class TravelInfoController {
      */
     @GetMapping("/travelInfos/list")
     public ResponseEntity<TravelInfoListResponse> travelInfoList(
-        // @AuthenticationPrincipal CustomUserDetails user
+        @AuthenticationPrincipal CustomUserDetails user
         ) {
         try{
-            //TO-DO: String userEmail = user.getEmail();
-            String userEmail = "user1@example.com";
+            String userEmail = user.getEmail();
+            // String userEmail = "user1@example.com";
             List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(userEmail);
             List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
             for(TravelInfo travelInfo : travelInfoList){
                 String imgUrl = placeService.getPlaceImage(travelInfo.getId());
-                String redirectImgUrl = imageService.redirectImageUrl(imgUrl);
-                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, redirectImgUrl);
+                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, imgUrl);
                 infosList.add(infos);
             }
             TravelInfoListResponse travelInfoListResponse = TravelInfoListResponse.builder()
@@ -398,11 +402,11 @@ public class TravelInfoController {
      */
     @PostMapping("/guidebook")
     public ResponseEntity<StringResponse> createGuide(
-        // @AuthenticationPrincipal CustomUserDetails user,
+        @AuthenticationPrincipal CustomUserDetails user,
         @RequestBody PlaceSelectRequest placeSelectRequest) {
         try {
-            //TO-DO: String email = user.getEmail();
-            String email = "user1@example.com";
+            String email = user.getEmail();
+            //String email = "user1@example.com";
             // 1. AI 코스 추천에 요청할 데이터 형식 설정
             AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
 
@@ -487,11 +491,11 @@ public class TravelInfoController {
     @Transactional(readOnly = true)
     @GetMapping("/guidebooks/list")
     public ResponseEntity<GuideBookListResponse> guideBookList(
-        // @AuthenticationPrincipal CustomUserDetails user
+        @AuthenticationPrincipal CustomUserDetails user
     ) {
         try {
-            //TO-DO: String userEmail = user.getEmail();
-            String userEmail = "user1@example.com";
+            String userEmail = user.getEmail();
+            // String userEmail = "user1@example.com";
             List<Guide> guideList = guideService.getGuideList(userEmail);
             List<GuideBookListResponse.GuideList> guideListResponse = new ArrayList<>();
             for(Guide guide : guideList){
