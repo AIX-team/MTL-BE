@@ -456,7 +456,6 @@ public class UrlServiceImpl implements UrlService {
         }
 
     public boolean isUser(String urlId, String userEmail) {
-        return urlRepository.existsByIdAndUserEmail(urlId, userEmail);
-
+        return usersUrlRepository.existsByIdAndUserEmail(urlId, userEmail);
     }
 }
