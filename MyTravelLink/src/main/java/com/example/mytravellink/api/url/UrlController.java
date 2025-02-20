@@ -48,4 +48,17 @@ public class UrlController {
         response.put("travelInfoId", travelInfoId);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 유튜브 자막 체크 API (백엔드에서 FastAPI 자막 체크 엔드포인트 호출)
+     */
+    @PostMapping("/check_youtube_subtitles")
+    public ResponseEntity<Map<String, Object>> checkYoutubeSubtitles(@RequestBody Map<String, String> requestBody) {
+        String videoUrl = requestBody.get("video_url");
+        boolean hasSubtitles = urlService.checkYoutubeSubtitles(videoUrl);
+        Map<String, Object> response = new HashMap<>();
+        response.put("video_url", videoUrl);
+        response.put("has_subtitles", hasSubtitles);
+        return ResponseEntity.ok(response);
+    }
 }
