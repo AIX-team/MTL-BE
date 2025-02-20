@@ -1,67 +1,67 @@
-logging:
-  level:
-    root: info
+# logging:
+#   level:
+#     root: info
 
-server:
-  port: 9000
+# server:
+#   port: 9000
 
-spring:
-  application:
-    name: MyTravelLink
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    # 실제 환경에서는 환경변수 SPRING_DATASOURCE_URL이 주입됩니다.
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mytravellink.czaw4ussgprp.ap-northeast-2.rds.amazonaws.com:3306/test_db02}
-    username: ${SPRING_DATASOURCE_USERNAME:travellink}
-    password: ${SPRING_DATASOURCE_PASSWORD:mytravellinkmytravellink}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: true
-    database: mysql
-    properties:
-      hibernate:
-        '[format_sql]': true
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            # 환경변수로 OAUTH2_GOOGLE_CLIENT_ID, OAUTH2_GOOGLE_CLIENT_SECRET, OAUTH2_GOOGLE_REDIRECT_URI가 주입됩니다.
-            client-id: ${OAUTH2_GOOGLE_CLIENT_ID:493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com}
-            client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET: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}
-            redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://mytravellink.site/auth/google/callback}
+# spring:
+#   application:
+#     name: MyTravelLink
+#   datasource:
+#     driver-class-name: com.mysql.cj.jdbc.Driver
+#     # 실제 환경에서는 환경변수 SPRING_DATASOURCE_URL이 주입됩니다.
+#     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mytravellink.czaw4ussgprp.ap-northeast-2.rds.amazonaws.com:3306/test_db02}
+#     username: ${SPRING_DATASOURCE_USERNAME:travellink}
+#     password: ${SPRING_DATASOURCE_PASSWORD:mytravellinkmytravellink}
+#   jpa:
+#     hibernate:
+#       ddl-auto: validate
+#     show-sql: true
+#     database: mysql
+#     properties:
+#       hibernate:
+#         '[format_sql]': true
+#   security:
+#     oauth2:
+#       client:
+#         registration:
+#           google:
+#             # 환경변수로 OAUTH2_GOOGLE_CLIENT_ID, OAUTH2_GOOGLE_CLIENT_SECRET, OAUTH2_GOOGLE_REDIRECT_URI가 주입됩니다.
+#             client-id: ${OAUTH2_GOOGLE_CLIENT_ID:493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com}
+#             client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET: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}
+#             redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://mytravellink.site/auth/google/callback}
 
-    client:
-      connect-timeout: 5000
-      response-timeout: 5000
+#     client:
+#       connect-timeout: 5000
+#       response-timeout: 5000
 
-url:
-  google:
-    access-token: https://oauth2.googleapis.com/token
-    profile: https://www.googleapis.com/oauth2/v3/userinfo
+# url:
+#   google:
+#     access-token: https://oauth2.googleapis.com/token
+#     profile: https://www.googleapis.com/oauth2/v3/userinfo
 
-jwt:
-  secret: ${JWT_SECRET:wERjtIdxQ8lNjF0w/AAiN6HqTASaCAUzSq6nbKefMwf5CbPE8GvwLsClz94uVt9Q1esxYwwXVU+BYn7/mR01Qg}
-  expiration-time: ${JWT_EXPIRATION_TIME:1800}  # 24시간
+# jwt:
+#   secret: ${JWT_SECRET:wERjtIdxQ8lNjF0w/AAiN6HqTASaCAUzSq6nbKefMwf5CbPE8GvwLsClz94uVt9Q1esxYwwXVU+BYn7/mR01Qg}
+#   expiration-time: ${JWT_EXPIRATION_TIME:1800}  # 24시간
 
-ai:
-  server:
-    url: ${AI_SERVER_URL:http://221.148.97.237:28001}
+# ai:
+#   server:
+#     url: ${AI_SERVER_URL:http://221.148.97.237:28001}
 
-resilience4j:
-  circuitbreaker:
-    instances:
-      ai-server:
-        registerHealthIndicator: true
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 5s
-        failureRateThreshold: 50
-        eventConsumerBufferSize: 10
-  timelimiter:
-    instances:
-      ai-server:
-        timeoutDuration: 4s
+# resilience4j:
+#   circuitbreaker:
+#     instances:
+#       ai-server:
+#         registerHealthIndicator: true
+#         slidingWindowSize: 10
+#         minimumNumberOfCalls: 5
+#         permittedNumberOfCallsInHalfOpenState: 3
+#         automaticTransitionFromOpenToHalfOpenEnabled: true
+#         waitDurationInOpenState: 5s
+#         failureRateThreshold: 50
+#         eventConsumerBufferSize: 10
+#   timelimiter:
+#     instances:
+#       ai-server:
+#         timeoutDuration: 4s
