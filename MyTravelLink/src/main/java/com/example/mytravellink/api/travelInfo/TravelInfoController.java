@@ -600,7 +600,7 @@ public class TravelInfoController {
                     }
 
                     // 4. 가이드, 코스, 코스 장소 생성
-                    String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+                    String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses).get();
                     
                     // 작업 완료 및 결과 저장
                     jobStatusService.setStatus(jobId, "Completed");
