@@ -73,7 +73,6 @@ public class AuthController {
         if (accessToken == null) {
             log.error("Google access token 추출 실패");
             response.sendRedirect("https://mytravellink.site/loginError");
-
             return;
         }
         log.debug("추출된 Google Access Token: {}", accessToken);
@@ -97,7 +96,6 @@ public class AuthController {
         if (member == null) {
             log.error("사용자 정보 처리 실패");
             response.sendRedirect("https://mytravellink.site/loginError");
-
             return;
         }
         log.debug("처리된 사용자 정보: {}", member);
