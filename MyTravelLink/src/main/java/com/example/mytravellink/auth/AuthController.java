@@ -148,7 +148,7 @@ public class AuthController {
                 user = Users.builder()
                         .email(email)
                         .name(name)
-                        .profilePic(picture)
+                        .profileImg(picture)
                         .build();
                 memberRepository.save(user);
                 log.debug("새로운 사용자 등록: {}", user);
