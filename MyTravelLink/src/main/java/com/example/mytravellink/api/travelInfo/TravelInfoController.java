@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,7 @@ import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceRespons
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
@@ -64,6 +66,7 @@ public class TravelInfoController {
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JobStatusService jobStatusService;
 
     @Value("${ai.server.url}")
     private String fastAPiUrl;
@@ -511,6 +514,7 @@ public class TravelInfoController {
         @RequestHeader("Authorization") String token,
         @RequestBody PlaceSelectRequest placeSelectRequest
         ) {
+            String jobId = UUID.randomUUID().toString();
         try {
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             if(!guideService.isUser(placeSelectRequest.getTravelInfoId(), userEmail)){
@@ -557,37 +561,34 @@ public class TravelInfoController {
             } else {
                 System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
             }
-            String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+            
+            jobStatusService.setStatus(jobId, "Processing");
+                // 4. 가이드, 코스, 코스 장소 생성
+                CompletableFuture<String> guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+                
+                // 작업 완료 및 결과 저장
+                jobStatusService.setStatus( jobId, "Completed");
+                jobStatusService.setResult(jobId, guideId.get());
+                log.info("가이드북 생성 완료. JobID: {}, GuideID: {}", jobId, guideId.get());
+
             return new ResponseEntity<>(StringResponse.builder()
                 .success("success")
                 .message("success")
-                .value(guideId)
+                .value(guideId.get())
                 .build(), HttpStatus.OK);
-                    if (aiGuideCourseResponses == null) {
-                        throw new RuntimeException("AI 코스 추천 데이터가 null입니다.");
-                    }
+    
 
-                    // 4. 가이드, 코스, 코스 장소 생성
-                    String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses).get();
-                    
-                    // 작업 완료 및 결과 저장
-                    jobStatusService.setStatus(jobId, "Completed");
-                    jobStatusService.setResult(jobId, guideId);
-                    log.info("가이드북 생성 완료. JobID: {}, GuideID: {}", jobId, guideId);
-
-                } catch (Exception e) {
-                    log.error("가이드북 생성 실패. JobID: {}", jobId, e);
-                    jobStatusService.setStatus(jobId, "Failed");
-                    jobStatusService.setResult(jobId, null);
-                }
-            });
-
-            return ResponseEntity.accepted().body(jobId);
-
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            } catch (Exception e) {
+                jobStatusService.setStatus(jobId, "Failed");
+                jobStatusService.setResult(jobId, null);
+                return new ResponseEntity<>(StringResponse.builder()
+                    .success("error")
+                    .message("error")
+                    .value(null)
+                    .build(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
-    }
+    
 
     /**
      * 가이드 ID 기준 가이드 조회

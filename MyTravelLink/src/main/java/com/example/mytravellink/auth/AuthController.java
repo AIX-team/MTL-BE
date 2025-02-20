@@ -1,6 +1,5 @@
 package com.example.mytravellink.auth;
 
-import com.example.mytravellink.auth.dto.LoginInfo;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.domain.users.entity.Users;
 import com.example.mytravellink.domain.users.repository.UsersRepository;
@@ -20,8 +19,6 @@ import org.springframework.web.client.RestTemplate;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -50,7 +47,7 @@ public class AuthController {
     private String profileUrl; // 예: "https://www.googleapis.com/oauth2/v3/userinfo"
 
     @GetMapping("/auth/google/callback")
-    public LoginInfo googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
+    public void googleCallback(@RequestParam("code") String code, HttpServletResponse response) throws IOException {
         log.debug("OAuth2 callback 호출됨. 받은 code: {}", code);
         
         // 1. 구글에 access token 요청
@@ -111,13 +108,11 @@ public class AuthController {
         String encodedToken = URLEncoder.encode(backendAccessToken, "UTF-8");
         String encodedEmail = URLEncoder.encode(member.getEmail(), "UTF-8");
         String encodedName = URLEncoder.encode(member.getName(), "UTF-8");
-        
-        LoginInfo result = new LoginInfo();
-        result.setToken(encodedToken);
-        result.setEmail(encodedEmail);
-        result.setName(encodedName);
-        return result;
-
+        String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken 
+                             + "&email=" + encodedEmail 
+                             + "&name=" + encodedName;
+        log.debug("리다이렉트할 URL: {}", redirectUrl);
+        response.sendRedirect(redirectUrl);
     }
 
     // 응답 본문에서 access_token 추출
