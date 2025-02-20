@@ -136,7 +136,8 @@ public class AuthController {
             JsonNode jsonNode = objectMapper.readTree(userInfo);
             String name = jsonNode.get("name").asText();
             String email = jsonNode.get("email").asText();
-            log.debug("Google UserInfo - name: {}, email: {}", name, email);
+            String picture = jsonNode.get("picture").asText();
+            log.debug("Google UserInfo - name: {}, email: {}, picture: {}", name, email, picture);
 
             Optional<Users> optionalUser = memberRepository.findByEmail(email);
             Users user;
@@ -147,6 +148,7 @@ public class AuthController {
                 user = Users.builder()
                         .email(email)
                         .name(name)
+                        .profileImage(picture)
                         .build();
                 memberRepository.save(user);
                 log.debug("새로운 사용자 등록: {}", user);
