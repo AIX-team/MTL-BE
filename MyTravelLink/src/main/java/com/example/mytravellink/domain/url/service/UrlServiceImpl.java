@@ -164,14 +164,13 @@ public class UrlServiceImpl implements UrlService {
             // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
             // (기존 로직 그대로)
             for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
-                if(placeInfo.getPhotos() != null) {
-                    List<PlacePhoto> photos = placeInfo.getPhotos();
-                    for(PlacePhoto photo : photos) {
-                        String imageUrl = photo.getUrl();
-                        String redirectImageUrl = imageService.redirectImageUrl(imageUrl);
-                        photo.setUrl(redirectImageUrl);
-                    }
-                }
+                
+                List<PlacePhoto> photos = placeInfo.getPhotos();
+                PlacePhoto photo = photos.get(0);
+                String imageUrl = photo.getUrl();
+                String redirectImageUrl = imageService.redirectImageUrl(imageUrl);
+                photo.setUrl(redirectImageUrl);
+        
                 Place place = placeRepository.findByTitle(placeInfo.getName())
                         .orElseGet(() -> {
                             // opening_hours가 빈 리스트이거나 null이면 null 처리

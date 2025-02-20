@@ -138,9 +138,9 @@ public class TravelInfoController {
             }
             List<Place> urlPlaceList = urlService.findPlaceByUrlId(urlId);
             //이미지 URL 리다이렉션
-            List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(urlPlaceList);
+            // List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(urlPlaceList);
 
-            List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
+            List<TravelInfoPlaceResponse.Place> placeResponseList = urlPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
                     .placeType(place.getType())
