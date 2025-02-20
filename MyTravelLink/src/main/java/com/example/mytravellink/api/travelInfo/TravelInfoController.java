@@ -230,6 +230,8 @@ public class TravelInfoController {
         @RequestHeader(value = "Authorization", required = true) String token
         ) {
         try {
+            log.info("=== AI 추천 컨트롤러 시작 ===");
+            log.info("travelInfoId: {}", travelInfoId);
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             if(!travelInfoService.isUser(travelInfoId, userEmail)){
                 HttpHeaders headers = new HttpHeaders();
@@ -276,7 +278,7 @@ public class TravelInfoController {
                 return placeMap;
             }).filter(placeMap -> placeMap.get("placeType") != null).collect(Collectors.toList()));
             
-            log.info("Sending request to AI service: {}", requestBody);
+            log.info("FastAPI 요청 데이터: {}", requestBody);
             
             // 4. FastAPI AI 서비스 호출
             RestTemplate restTemplate = new RestTemplate();
@@ -322,6 +324,9 @@ public class TravelInfoController {
                     })
                     .collect(Collectors.toList());
                 
+                log.info("FastAPI 응답 상태: {}", aiResponse.getStatusCode());
+                log.info("FastAPI 응답 데이터: {}", responseBody);
+                
                 return new ResponseEntity<>(
                     TravelInfoPlaceResponse.builder()
                         .success("success")
@@ -334,7 +339,7 @@ public class TravelInfoController {
                 throw new RuntimeException("AI service returned error: " + aiResponse.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("AI 추천 실패: {}", e.getMessage(), e);
+            log.error("AI 추천 에러: ", e);
             return new ResponseEntity<>(
                 TravelInfoPlaceResponse.builder()
                     .success("error")
