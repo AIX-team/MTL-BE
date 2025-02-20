@@ -19,8 +19,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
@@ -44,6 +46,7 @@ import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
 import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.service.UrlServiceImpl;
+import com.example.mytravellink.auth.handler.JwtTokenProvider;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +63,7 @@ public class TravelInfoController {
     private final GuideServiceImpl guideService;
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
@@ -223,7 +227,7 @@ public class TravelInfoController {
     @GetMapping("travelInfos/{travelInfoId}/aiSelect")
     public ResponseEntity<TravelInfoPlaceResponse> aiSelect(
         @PathVariable String travelInfoId, 
-        @RequestHeader("Authorization") String token
+        @RequestHeader(value = "Authorization", required = true) String token
         ) {
         try {
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
@@ -350,7 +354,7 @@ public class TravelInfoController {
      */
     @GetMapping("/travelInfos/list")
     public ResponseEntity<TravelInfoListResponse> travelInfoList(
-        @RequestHeader("Authorization") String token
+        @RequestHeader(value = "Authorization", required = true) String token
         ) {
         try{
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
