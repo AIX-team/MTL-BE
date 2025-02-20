@@ -11,7 +11,7 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     # 실제 환경에서는 환경변수 SPRING_DATASOURCE_URL이 주입됩니다.
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mytravellink.czaw4ussgprp.ap-northeast-2.rds.amazonaws.com:3306/test_db}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mytravellink.czaw4ussgprp.ap-northeast-2.rds.amazonaws.com:3306/test_db02}
     username: ${SPRING_DATASOURCE_USERNAME:travellink}
     password: ${SPRING_DATASOURCE_PASSWORD:mytravellinkmytravellink}
   jpa:
