@@ -182,4 +182,11 @@ public class TravelInfoServiceImpl implements TravelInfoService {
    * @return int
    */
   public int getGuideCount(String userEmail) {return travelInfoRepository.getGuideCount(userEmail);}  
+
+  /**
+   * 여행 정보 ID, 사용자 이메일 기준 사용자 여부 조회
+   * @param travelId
+   * @param userEmail
+   */
+  public boolean isUser(String travelId, String userEmail) {return travelInfoRepository.isUser(travelId, userEmail);}
 }

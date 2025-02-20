@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.mytravellink.domain.travel.entity.CoursePlace;
 import com.example.mytravellink.domain.travel.entity.QCoursePlace;
+import com.example.mytravellink.domain.travel.entity.QTravelInfo;
+import com.example.mytravellink.domain.travel.entity.QGuide;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
@@ -20,12 +22,26 @@ public class CoursePlaceQueryRepositoryImpl implements CoursePlaceQueryRepositor
   private final JPAQueryFactory queryFactory;
   
   private final QCoursePlace coursePlace = new QCoursePlace("coursePlace");
+  private final QTravelInfo travelInfo = new QTravelInfo("travelInfo");
+  private final QGuide guide = new QGuide("guide");
 
   @Transactional
   @Override
-  public void updateCoursePlace(String courseId, List<String> placeIds) {
+  public void updateCoursePlace(String courseId, List<String> placeIds, String userEmail) {
 
     try {
+      //이메일을 이용한 사용자 확인 travelInfo 테이블과 guide, coursePlace 조인 후 travelInfo 테이블의 email과 일치하는 데이터 조회
+      boolean exists = queryFactory
+          .selectOne()
+          .from(travelInfo)
+          .join(guide).on(guide.travelInfo.eq(travelInfo))
+          .join(coursePlace).on(coursePlace.course.guide.eq(guide))
+          .where(travelInfo.user.email.eq(userEmail))
+          .fetchFirst() != null;  // exists 쿼리로 최적화
+
+      if(!exists) {
+          throw new RuntimeException("사용자 확인 실패");
+      }
       // 코스 장소 순서 수정
       for (int i = 0; i < placeIds.size(); i++) {
         queryFactory.update(coursePlace)

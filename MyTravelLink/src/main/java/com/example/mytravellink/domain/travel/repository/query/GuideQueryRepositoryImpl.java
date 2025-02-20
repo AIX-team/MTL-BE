@@ -18,11 +18,20 @@ public class GuideQueryRepositoryImpl implements GuideQueryRepository {
   
   private final JPAQueryFactory queryFactory;
 
+  private final QGuide guide = QGuide.guide;
+
   @Override
   public List<Guide> findAllByTravelInfoId(String travelInfoId) {
-    QGuide guide = new QGuide("guide");
     return queryFactory.selectFrom(guide)
       .where(guide.travelInfo.id.eq(travelInfoId))
       .fetch();
+  }
+
+  @Override
+  public boolean isUser(String guideId, String userEmail) {
+    return queryFactory.selectFrom(guide)
+      .where(guide.travelInfo.id.eq(guideId)
+        .and(guide.travelInfo.user.email.eq(userEmail)))
+      .fetchFirst() != null;
   }
 }

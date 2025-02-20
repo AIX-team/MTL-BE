@@ -429,4 +429,9 @@ public class UrlServiceImpl implements UrlService {
         }
         return false;
     }
+
+    @Override
+    public boolean isUser(String urlId, String userEmail) {
+        return urlRepository.existsByIdAndUserEmail(urlId, userEmail);
+    }
 }
