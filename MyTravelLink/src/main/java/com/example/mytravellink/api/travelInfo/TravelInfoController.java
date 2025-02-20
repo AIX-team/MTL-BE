@@ -6,10 +6,11 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
@@ -35,7 +37,8 @@ import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoListResponse
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
-import com.example.mytravellink.auth.service.CustomUserDetails;
+import com.example.mytravellink.auth.handler.JwtTokenProvider;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
@@ -46,7 +49,6 @@ import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
 import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.service.UrlServiceImpl;
-import com.example.mytravellink.auth.handler.JwtTokenProvider;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +66,8 @@ public class TravelInfoController {
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JobStatusService jobStatusService;  // final 키워드 추가
+
 
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
@@ -421,11 +425,13 @@ public class TravelInfoController {
      */
     @PostMapping("/guidebook")
     public ResponseEntity<StringResponse> createGuide(
-        // @AuthenticationPrincipal CustomUserDetails user,
-        @RequestBody PlaceSelectRequest placeSelectRequest) {
+        @RequestHeader("Authorization") String token,
+        @RequestBody PlaceSelectRequest placeSelectRequest
+        ) {
+            String jobId = UUID.randomUUID().toString();
         try {
-            //TO-DO: String email = user.getEmail();
-            String email = "user1@example.com";
+            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            // String email = "user1@example.com";
             // 1. AI 코스 추천에 요청할 데이터 형식 설정
             AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
 
@@ -460,16 +466,33 @@ public class TravelInfoController {
             } else {
                 System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
             }
-            String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+            
+            jobStatusService.setStatus(jobId, "Processing");
+                // 4. 가이드, 코스, 코스 장소 생성
+                CompletableFuture<String> guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+                
+                // 작업 완료 및 결과 저장
+                jobStatusService.setStatus( jobId, "Completed");
+                jobStatusService.setResult(jobId, guideId.get());
+                log.info("가이드북 생성 완료. JobID: {}, GuideID: {}", jobId, guideId.get());
+
             return new ResponseEntity<>(StringResponse.builder()
                 .success("success")
                 .message("success")
-                .value(guideId)
+                .value(guideId.get())
                 .build(), HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    
+
+            } catch (Exception e) {
+                jobStatusService.setStatus(jobId, "Failed");
+                jobStatusService.setResult(jobId, null);
+                return new ResponseEntity<>(StringResponse.builder()
+                    .success("error")
+                    .message("error")
+                    .value(null)
+                    .build(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
-    }
 
     /**
      * 가이드 ID 기준 가이드 조회

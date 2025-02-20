@@ -1,11 +1,10 @@
 package com.example.mytravellink.domain.travel.service;
 
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
+import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
-
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface GuideService {
 
@@ -28,8 +27,9 @@ public interface GuideService {
      * 가이드 생성
      * @param guide
      * @param aiGuideCourseResponse
+     * @return CompletableFuture<String>
      */
-  String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
+    CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
 
     /**
      * 가이드 북 제목 수정
