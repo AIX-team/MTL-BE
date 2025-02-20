@@ -215,14 +215,27 @@ public class TravelInfoController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    /**
+   /**
      * 여행정보 ID 기준 AI 추천 장소
      * @param travelInfoId
      * @return ResponseEntity<TravelInfoPlaceResponse>
      */
     @GetMapping("travelInfos/{travelInfoId}/aiSelect")
-    public ResponseEntity<TravelInfoPlaceResponse> aiSelect(@PathVariable String travelInfoId) {
+    public ResponseEntity<TravelInfoPlaceResponse> aiSelect(
+        @PathVariable String travelInfoId, 
+        @RequestHeader("Authorization") String token
+        ) {
         try {
+            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            if(!travelInfoService.isUser(travelInfoId, userEmail)){
+                HttpHeaders headers = new HttpHeaders();
+                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
+                
+                return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .headers(headers)
+                    .build();
+            }
             // 1. 여행 정보 조회
             TravelInfo travelInfo = travelInfoService.getTravelInfo(travelInfoId);
             Integer travelDays = travelInfo.getTravelDays();
@@ -263,6 +276,7 @@ public class TravelInfoController {
             
             // 4. FastAPI AI 서비스 호출
             RestTemplate restTemplate = new RestTemplate();
+
             String aiServiceUrl = "http://221.148.97.237:28001/api/v1/ai/recommend/places";
             ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
                 aiServiceUrl,
@@ -328,6 +342,7 @@ public class TravelInfoController {
         }
     }
 
+
     /**
      * 사용자 email 기준 여행 정보 조회
      * @param CustomUserDetails
@@ -335,17 +350,16 @@ public class TravelInfoController {
      */
     @GetMapping("/travelInfos/list")
     public ResponseEntity<TravelInfoListResponse> travelInfoList(
-        // @AuthenticationPrincipal CustomUserDetails user
+        @RequestHeader("Authorization") String token
         ) {
         try{
-            //TO-DO: String userEmail = user.getEmail();
-            String userEmail = "user1@example.com";
+            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            // String userEmail = "user1@example.com";
             List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(userEmail);
             List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
             for(TravelInfo travelInfo : travelInfoList){
                 String imgUrl = placeService.getPlaceImage(travelInfo.getId());
-                String redirectImgUrl = imageService.redirectImageUrl(imgUrl);
-                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, redirectImgUrl);
+                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, imgUrl);
                 infosList.add(infos);
             }
             TravelInfoListResponse travelInfoListResponse = TravelInfoListResponse.builder()
