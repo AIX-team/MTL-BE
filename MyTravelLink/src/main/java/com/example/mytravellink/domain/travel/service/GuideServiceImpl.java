@@ -23,6 +23,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.UUID;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -37,6 +39,9 @@ public class GuideServiceImpl implements GuideService {
   
   @Autowired
   private TaskExecutor taskExecutor;  // TaskExecutor 주입
+
+  @Value("${server.tomcat.connection-timeout:180000}")
+  private int connectionTimeout; // 3분으로 설정
 
   /**
    * Guide 조회
@@ -59,6 +64,9 @@ public class GuideServiceImpl implements GuideService {
     @Transactional
     public CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
         return CompletableFuture.supplyAsync(() -> {
+            String jobId = UUID.randomUUID().toString();
+            jobStatusService.setStatus(jobId, "Processing");
+            
             try {
                 var savedGuide = saveGuide(guide);
                 
@@ -90,8 +98,11 @@ public class GuideServiceImpl implements GuideService {
                     })
                 );
                 
-                return savedGuide.getId();
+                jobStatusService.setStatus(jobId, "Completed");
+                jobStatusService.setResult(jobId, savedGuide.getId());
+                return jobId;
             } catch (Exception e) {
+                jobStatusService.setStatus(jobId, "Failed");
                 throw new RuntimeException("가이드 생성 실패: " + e.getMessage());
             }
         }, taskExecutor);

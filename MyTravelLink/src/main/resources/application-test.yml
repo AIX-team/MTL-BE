@@ -4,6 +4,11 @@ logging:
 
 server:
   port: 9000
+  tomcat:
+    connection-timeout: 420000  # 7분
+  servlet:
+    async:
+      timeout: 420000  # 7분
 
 spring:
   application:
@@ -22,6 +27,9 @@ spring:
     properties:
       hibernate:
         '[format_sql]': true
+  mvc:
+    async:
+      request-timeout: 420000  # 7분
   security:
     oauth2:
       client:
@@ -34,7 +42,7 @@ spring:
   webflux:
     client:
       connect-timeout: 420000  # 7분
-      response-timeout: 420000 # 7분
+      response-timeout: 420000  # 7분
   task:
     execution:
       pool:
@@ -42,6 +50,9 @@ spring:
         max-size: 16
         queue-capacity: 100
       thread-name-prefix: async-task-
+      shutdown:
+        await-termination: true
+        await-termination-period: 420s  # 7분
 
 url:
   google:
