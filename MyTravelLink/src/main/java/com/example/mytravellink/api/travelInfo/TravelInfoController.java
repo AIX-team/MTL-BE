@@ -625,5 +625,32 @@ public class TravelInfoController {
         }
     }
 
+    @PostMapping("/guidebook/async")
+    public ResponseEntity<Map<String, String>> createGuideAsync(
+        @RequestHeader("Authorization") String token,
+        @RequestBody PlaceSelectRequest placeSelectRequest
+    ) {
+        String jobId = UUID.randomUUID().toString();
+        
+        // 비동기 작업 시작
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 기존 가이드북 생성 로직
+                String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+                AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
+                // ... 나머지 로직
+            } catch (Exception e) {
+                jobStatusService.setStatus(jobId, "FAILED");
+            }
+        });
+
+        // 즉시 jobId 반환
+        Map<String, String> response = new HashMap<>();
+        response.put("jobId", jobId);
+        response.put("status", "PROCESSING");
+        
+        return ResponseEntity.ok(response);
+    }
+
 }
 
