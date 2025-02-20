@@ -6,6 +6,7 @@ import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import java.util.List;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
@@ -46,7 +47,7 @@ public class GuideServiceImpl implements GuideService {
    * @param coursePlaceList
    */
   @Override
-  @Transactional
+  @Async
   public String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
     try {
       Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
@@ -106,6 +107,7 @@ public class GuideServiceImpl implements GuideService {
      * @param placeSelectRequest
      * @return AIGuideCourseRequest
      */
+
     public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
 
 
