@@ -3,7 +3,7 @@ logging:
     root: info
 
 server:
-  port: 8080
+  port: 9000
 
 spring:
   application:
@@ -31,11 +31,10 @@ spring:
             client-id: ${OAUTH2_GOOGLE_CLIENT_ID:493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com}
             client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET: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}
             redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://mytravellink.site/auth/google/callback}
-
   webflux:
     client:
-      connect-timeout: 900000  # 15분
-      response-timeout: 900000 # 15분
+      connect-timeout: 420000  # 7분
+      response-timeout: 420000 # 7분
   task:
     execution:
       pool:
@@ -73,4 +72,4 @@ resilience4j:
   timelimiter:
     instances:
       ai-server:
-        timeoutDuration: 900s  # 15분
+        timeoutDuration: 420s  # 7분
