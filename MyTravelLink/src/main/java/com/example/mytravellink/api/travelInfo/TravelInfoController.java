@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
@@ -48,8 +47,6 @@ import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
 import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.service.UrlServiceImpl;
-import com.example.mytravellink.domain.job.service.JobStatusService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,8 +64,6 @@ public class TravelInfoController {
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final JobStatusService jobStatusService;
-    private final ObjectMapper objectMapper;
 
     @Value("${ai.server.url}")
     private String fastAPiUrl;
@@ -294,162 +289,125 @@ public class TravelInfoController {
      * @param travelInfoId
      * @return ResponseEntity<TravelInfoPlaceResponse>
      */
-    @GetMapping("travelInfos/{travelInfoId}/aiSelect/async")
-    public ResponseEntity<String> aiSelectAsync(
+    @GetMapping("travelInfos/{travelInfoId}/aiSelect")
+    public ResponseEntity<TravelInfoPlaceResponse> aiSelect(
         @PathVariable String travelInfoId, 
         @RequestHeader("Authorization") String token
-    ) {
+        ) {
         try {
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             if(!travelInfoService.isUser(travelInfoId, userEmail)){
                 HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
+                
+                return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
                     .headers(headers)
                     .build();
             }
-
-            String jobId = UUID.randomUUID().toString();
-            log.info("새로운 AI 추천 작업 시작. JobID: {}", jobId);
+            // 1. 여행 정보 조회
+            TravelInfo travelInfo = travelInfoService.getTravelInfo(travelInfoId);
+            Integer travelDays = travelInfo.getTravelDays();
             
-            // 비동기 작업 시작
-            CompletableFuture.runAsync(() -> {
-                try {
-                    jobStatusService.setStatus(jobId, "Processing");
-
-                    // 1. 여행 정보 조회
-                    TravelInfo travelInfo = travelInfoService.getTravelInfo(travelInfoId);
-                    Integer travelDays = travelInfo.getTravelDays();
-                    
-                    // 2. 여행 정보에 포함된 모든 장소 조회
-                    List<Place> places = travelInfoService.getTravelInfoPlace(travelInfoId);
-                    
-                    if (places.isEmpty()) {
-                        jobStatusService.setStatus(jobId, "Failed");
-                        jobStatusService.setResult(jobId, "No places found for recommendation");
-                        return;
-                    }
-                    
-                    // 3. FastAPI AI 서비스 호출을 위한 요청 데이터 준비
-                    Map<String, Object> requestBody = new HashMap<>();
-                    requestBody.put("travelInfoId", travelInfoId);
-                    requestBody.put("travelDays", travelDays);
-                    requestBody.put("places", places.stream().map(place -> {
-                        Map<String, Object> placeMap = new HashMap<>();
-                        placeMap.put("placeId", place.getId().toString());
-                        placeMap.put("placeType", place.getType() != null ? place.getType() : "unknown");
-                        placeMap.put("placeName", place.getTitle());
-                        placeMap.put("placeAddress", place.getAddress());
-                        placeMap.put("placeImage", place.getImage());
-                        placeMap.put("placeDescription", place.getDescription());
-                        placeMap.put("intro", place.getIntro());
-                        placeMap.put("latitude", place.getLatitude() != null ? place.getLatitude() : BigDecimal.ZERO);
-                        placeMap.put("longitude", place.getLongitude() != null ? place.getLongitude() : BigDecimal.ZERO);
-                        return placeMap;
-                    }).filter(placeMap -> placeMap.get("placeType") != null).collect(Collectors.toList()));
-                    
-                    log.info("Sending request to AI service: {}", requestBody);
-                    
-                    // 4. FastAPI AI 서비스 호출
-                    RestTemplate restTemplate = new RestTemplate();
-                    String aiServiceUrl = fastAPiUrl + "/api/v1/ai/recommend/places";
-                    ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
-                        aiServiceUrl,
-                        requestBody,
-                        Map.class
-                    );
-                    
-                    // 5. AI 서비스 응답 처리
-                    if (aiResponse.getStatusCode() == HttpStatus.OK) {
-                        Map<String, Object> responseBody = aiResponse.getBody();
-                        List<Map<String, Object>> recommendedPlaces = (List<Map<String, Object>>) responseBody.get("content");
-                        
-                        List<TravelInfoPlaceResponse.Place> placeResponseList = recommendedPlaces.stream()
-                            .map(placeData -> {
-                                // null 체크 추가
-                                String placeId = String.valueOf(placeData.getOrDefault("placeId", ""));
-                                String placeType = String.valueOf(placeData.getOrDefault("placeType", "unknown"));
-                                String placeName = String.valueOf(placeData.getOrDefault("placeName", ""));
-                                String placeAddress = String.valueOf(placeData.getOrDefault("placeAddress", ""));
-                                String placeImage = String.valueOf(placeData.getOrDefault("placeImage", ""));
-                                String placeDescription = String.valueOf(placeData.getOrDefault("placeDescription", ""));
-                                String intro = String.valueOf(placeData.getOrDefault("intro", ""));
-                                
-                                BigDecimal latitude = new BigDecimal(String.valueOf(placeData.getOrDefault("latitude", "0.0")));
-                                BigDecimal longitude = new BigDecimal(String.valueOf(placeData.getOrDefault("longitude", "0.0")));
-                                
-                                return TravelInfoPlaceResponse.Place.builder()
-                                    .placeId(placeId)
-                                    .placeType(placeType)
-                                    .placeName(placeName)
-                                    .placeAddress(placeAddress)
-                                    .placeImage(placeImage)
-                                    .placeDescription(placeDescription)
-                                    .intro(intro)
-                                    .latitude(latitude)
-                                    .longitude(longitude)
-                                    .build();
-                            })
-                            .collect(Collectors.toList());
-
-                        TravelInfoPlaceResponse response = TravelInfoPlaceResponse.builder()
-                            .success("success")
-                            .message("Successfully recommended places")
-                            .content(placeResponseList)
-                            .build();
-
-                        // 작업 완료 및 결과 저장
-                        jobStatusService.setStatus(jobId, "Completed");
-                        jobStatusService.setResult(jobId, objectMapper.writeValueAsString(response));
-                        log.info("AI 추천 완료. JobID: {}", jobId);
-                    } else {
-                        throw new RuntimeException("AI service returned error: " + aiResponse.getStatusCode());
-                    }
-                } catch (Exception e) {
-                    log.error("AI 추천 실패. JobID: {}", jobId, e);
-                    jobStatusService.setStatus(jobId, "Failed");
-                    jobStatusService.setResult(jobId, e.getMessage());
-                }
-            });
-
-            return ResponseEntity.accepted().body(jobId);
-        } catch (Exception e) {
-            log.error("AI 추천 요청 처리 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    // 작업 상태 확인 엔드포인트
-    @GetMapping("travelInfos/aiSelect/status/{jobId}")
-    public ResponseEntity<TravelInfoPlaceResponse> getAiSelectStatus(@PathVariable String jobId) {
-        try {
-            String status = jobStatusService.getStatus(jobId);
-            String result = jobStatusService.getResult(jobId);
+            // 2. 여행 정보에 포함된 모든 장소 조회
+            List<Place> places = travelInfoService.getTravelInfoPlace(travelInfoId);
             
-            if ("Completed".equals(status)) {
-                return ResponseEntity.ok(objectMapper.readValue(result, TravelInfoPlaceResponse.class));
-            } else if ("Failed".equals(status)) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(TravelInfoPlaceResponse.builder()
+            if (places.isEmpty()) {
+                return new ResponseEntity<>(
+                    TravelInfoPlaceResponse.builder()
                         .success("error")
-                        .message(result)
+                        .message("No places found for recommendation")
                         .content(new ArrayList<>())
-                        .build());
+                        .build(),
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+            
+            // 3. FastAPI AI 서비스 호출을 위한 요청 데이터 준비
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("travelInfoId", travelInfoId);
+            requestBody.put("travelDays", travelDays);
+            requestBody.put("places", places.stream().map(place -> {
+                Map<String, Object> placeMap = new HashMap<>();
+                placeMap.put("placeId", place.getId().toString());
+                placeMap.put("placeType", place.getType() != null ? place.getType() : "unknown");
+                placeMap.put("placeName", place.getTitle());
+                placeMap.put("placeAddress", place.getAddress());
+                placeMap.put("placeImage", place.getImage());
+                placeMap.put("placeDescription", place.getDescription());
+                placeMap.put("intro", place.getIntro());
+                placeMap.put("latitude", place.getLatitude() != null ? place.getLatitude() : BigDecimal.ZERO);
+                placeMap.put("longitude", place.getLongitude() != null ? place.getLongitude() : BigDecimal.ZERO);
+                return placeMap;
+            }).filter(placeMap -> placeMap.get("placeType") != null).collect(Collectors.toList()));
+            
+            log.info("Sending request to AI service: {}", requestBody);
+            
+            // 4. FastAPI AI 서비스 호출
+            RestTemplate restTemplate = new RestTemplate();
+
+            String aiServiceUrl = fastAPiUrl + "/api/v1/ai/recommend/places";
+            ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
+                aiServiceUrl,
+                requestBody,
+                Map.class
+            );
+            
+            // 5. AI 서비스 응답 처리
+            if (aiResponse.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseBody = aiResponse.getBody();
+                List<Map<String, Object>> recommendedPlaces = (List<Map<String, Object>>) responseBody.get("content");
+                
+                List<TravelInfoPlaceResponse.Place> placeResponseList = recommendedPlaces.stream()
+                    .map(placeData -> {
+                        // null 체크 추가
+                        String placeId = String.valueOf(placeData.getOrDefault("placeId", ""));
+                        String placeType = String.valueOf(placeData.getOrDefault("placeType", "unknown"));
+                        String placeName = String.valueOf(placeData.getOrDefault("placeName", ""));
+                        String placeAddress = String.valueOf(placeData.getOrDefault("placeAddress", ""));
+                        String placeImage = String.valueOf(placeData.getOrDefault("placeImage", ""));
+                        String placeDescription = String.valueOf(placeData.getOrDefault("placeDescription", ""));
+                        String intro = String.valueOf(placeData.getOrDefault("intro", ""));
+                        
+                        // 숫자 데이터 안전하게 변환
+                        BigDecimal latitude = new BigDecimal(String.valueOf(placeData.getOrDefault("latitude", "0.0")));
+                        BigDecimal longitude = new BigDecimal(String.valueOf(placeData.getOrDefault("longitude", "0.0")));
+                        
+                        return TravelInfoPlaceResponse.Place.builder()
+                            .placeId(placeId)
+                            .placeType(placeType)
+                            .placeName(placeName)
+                            .placeAddress(placeAddress)
+                            .placeImage(placeImage)
+                            .placeDescription(placeDescription)
+                            .intro(intro)
+                            .latitude(latitude)
+                            .longitude(longitude)
+                            .build();
+                    })
+                    .collect(Collectors.toList());
+                
+                return new ResponseEntity<>(
+                    TravelInfoPlaceResponse.builder()
+                        .success("success")
+                        .message("Successfully recommended places")
+                        .content(placeResponseList)
+                        .build(),
+                    HttpStatus.OK
+                );
             } else {
-                return ResponseEntity.ok(TravelInfoPlaceResponse.builder()
-                    .success("processing")
-                    .message("AI recommendation in progress")
-                    .content(new ArrayList<>())
-                    .build());
+                throw new RuntimeException("AI service returned error: " + aiResponse.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("작업 상태 조회 실패. JobID: {}", jobId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(TravelInfoPlaceResponse.builder()
+            log.error("AI 추천 실패: {}", e.getMessage(), e);
+            return new ResponseEntity<>(
+                TravelInfoPlaceResponse.builder()
                     .success("error")
-                    .message("Failed to get AI recommendation status")
+                    .message("Failed to get AI recommendations: " + e.getMessage())
                     .content(new ArrayList<>())
-                    .build());
+                    .build(),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -541,60 +499,70 @@ public class TravelInfoController {
         }
     }
 
+
+
     /**
-     * 비동기 가이드북 생성 요청
+     * 가이드 북 생성
      * @param PlaceSelectRequest
      * @return
      */
-    @PostMapping("/guidebook/async")
-    public ResponseEntity<String> createGuideAsync(
+    @PostMapping("/guidebook")
+    public ResponseEntity<StringResponse> createGuide(
         @RequestHeader("Authorization") String token,
         @RequestBody PlaceSelectRequest placeSelectRequest
-    ) {
+        ) {
         try {
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             if(!guideService.isUser(placeSelectRequest.getTravelInfoId(), userEmail)){
                 HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
+                
+                return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
                     .headers(headers)
                     .build();
             }
+            //String email = "user1@example.com";
+            // 1. AI 코스 추천에 요청할 데이터 형식 설정
+            AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
 
-            String jobId = UUID.randomUUID().toString();
-            log.info("새로운 가이드북 생성 작업 시작. JobID: {}", jobId);
-            
-            // 비동기 작업 시작
-            CompletableFuture.runAsync(() -> {
-                try {
-                    jobStatusService.setStatus(jobId, "Processing");
+            System.out.println("AI 요청 데이터: " + aiGuideCourseRequest);
 
-                    // 1. AI 코스 추천 데이터 형식 설정
-                    AIGuideCourseRequest aiGuideCourseRequest = 
-                        guideService.convertToAIGuideCourseRequest(placeSelectRequest);
-                    log.info("AI 요청 데이터: {}", aiGuideCourseRequest);
+            // 2. AI 코스 추천 데이터 받기
+            List<AIGuideCourseResponse> aiGuideCourseResponses = placeService.getAIGuideCourse(aiGuideCourseRequest,placeSelectRequest.getTravelDays());
 
-                    // 2. AI 코스 추천 데이터 받기
-                    List<AIGuideCourseResponse> aiGuideCourseResponses = 
-                        placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
-                    log.info("AI 응답 데이터: {}", aiGuideCourseResponses);
+            System.out.println("AI 응답 데이터: " + aiGuideCourseResponses);
 
-                    String title = "가이드북" + travelInfoService.getGuideCount(userEmail);
+            String title = "가이드북" + travelInfoService.getGuideCount(userEmail);
 
-                    // 3. 가이드북 생성
-                    Guide guide = Guide.builder()
-                        .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
-                        .title(title)
-                        .travelDays(placeSelectRequest.getTravelDays())
-                        .courseCount(placeSelectRequest.getTravelDays())
-                        .planTypes(placeSelectRequest.getTravelTaste())
-                        .isFavorite(false)
-                        .fixed(false)
-                        .isDelete(false)
-                        .build();
+            // 3. 가이드북 생성
+            Guide guide = Guide.builder()
+                    .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+                    .title(title)
+                    .travelDays(placeSelectRequest.getTravelDays())
+                    .courseCount(placeSelectRequest.getTravelDays())
+                    .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
+                    .isFavorite(false)
+                    .fixed(false)
+                    .isDelete(false)
+                    .build();
 
-                    log.info("Created Guide: {}", guide);
+            // Guide 객체 확인
+            System.out.println("Created Guide: " + guide);
 
+            // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
+            if (aiGuideCourseResponses == null) {
+                System.out.println("aiGuideCourseResponses is null");
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
+                System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
+            }
+            String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
+            return new ResponseEntity<>(StringResponse.builder()
+                .success("success")
+                .message("success")
+                .value(guideId)
+                .build(), HttpStatus.OK);
                     if (aiGuideCourseResponses == null) {
                         throw new RuntimeException("AI 코스 추천 데이터가 null입니다.");
                     }
@@ -617,8 +585,7 @@ public class TravelInfoController {
             return ResponseEntity.accepted().body(jobId);
 
         } catch (Exception e) {
-            log.error("가이드북 생성 요청 처리 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
