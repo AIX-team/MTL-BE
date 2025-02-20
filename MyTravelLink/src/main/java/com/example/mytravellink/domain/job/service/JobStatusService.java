@@ -35,8 +35,9 @@ public class JobStatusService {
      * @param result 결과
      */
     public void setResult(String jobId, String result) {
-        log.info("Setting job result. JobID: {}, Result: {}", jobId, result);
-        jobs.put(jobId, new JobStatus(null, result));
+        JobStatus current = jobs.get(jobId);
+        String currentStatus = (current != null) ? current.getStatus() : null;
+        jobs.put(jobId, new JobStatus(currentStatus, result));
     }
 
     /**
