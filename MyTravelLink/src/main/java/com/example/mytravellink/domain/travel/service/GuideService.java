@@ -64,5 +64,13 @@ public interface GuideService {
      * @param guideId
      */
     void deleteGuideBook(String guideId);
+
+    /**
+     * 가이드 북 사용자 여부 조회
+     * @param guideId
+     * @param userEmail
+     * @return boolean
+     */
+    boolean isUser(String guideId, String userEmail);
 }
 

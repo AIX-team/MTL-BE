@@ -5,12 +5,15 @@ import com.example.mytravellink.api.url.dto.UrlResponse;
 import com.example.mytravellink.api.url.dto.UserUrlRequest;
 import com.example.mytravellink.domain.url.service.UrlService;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/url")
@@ -19,10 +22,12 @@ public class UrlController {
 
     private final UrlService urlService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JobStatusService jobStatusService;
 
-    public UrlController(UrlService urlService, JwtTokenProvider jwtTokenProvider) {
+    public UrlController(UrlService urlService, JwtTokenProvider jwtTokenProvider, JobStatusService jobStatusService) {
         this.urlService = urlService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.jobStatusService = jobStatusService;
     }
 
     @PostMapping("/analysis")
@@ -60,5 +65,28 @@ public class UrlController {
         response.put("video_url", videoUrl);
         response.put("has_subtitles", hasSubtitles);
         return ResponseEntity.ok(response);
+    }
+
+    // 비동기 분석 엔드포인트
+    @PostMapping("/analysis/async")
+    public ResponseEntity<String> processUrlAsync(@RequestBody UrlRequest request) {
+        String jobId = UUID.randomUUID().toString();
+        log.info("새로운 분석 작업 시작. JobID: {}", jobId);
+        
+        jobStatusService.setStatus(jobId, "Processing");
+        
+        // 비동기 작업 시작
+        urlService.processUrlAsync(request, jobId);
+        
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                           .body(jobId);
+    }
+
+    // 작업 상태 확인 엔드포인트
+    @GetMapping("/analysis/status/{jobId}")
+    public ResponseEntity<String> getJobStatus(@PathVariable String jobId) {
+        String status = jobStatusService.getStatus(jobId);
+        log.info("작업 상태 조회. JobID: {}, Status: {}", jobId, status);
+        return ResponseEntity.ok(status);
     }
 }
