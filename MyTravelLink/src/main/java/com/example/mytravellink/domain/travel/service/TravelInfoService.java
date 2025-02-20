@@ -22,4 +22,6 @@ public interface TravelInfoService {
   void deleteTravelInfo(String travelInfoId);
 
   int getGuideCount(String userEmail);
+
+  boolean isUser(String travelId, String userEmail);
 }

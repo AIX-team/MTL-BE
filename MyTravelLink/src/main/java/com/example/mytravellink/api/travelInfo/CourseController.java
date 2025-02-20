@@ -13,9 +13,12 @@ import com.example.mytravellink.api.travelInfo.dto.course.PlaceAddRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceDeleteRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceMoveRequest;
 import com.example.mytravellink.api.travelInfo.dto.course.PlaceRequest;
+import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.domain.travel.service.CourseService;
 
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,14 +29,15 @@ import lombok.extern.slf4j.Slf4j;
 public class CourseController {
 
     private final CourseService courseService;
-
+    private final JwtTokenProvider jwtTokenProvider;
+    
     @PutMapping("/")
-    public ResponseEntity<String> updateCoursePlace(@RequestBody PlaceRequest request) {
+    public ResponseEntity<String> updateCoursePlace(@RequestHeader("Authorization") String token, @RequestBody PlaceRequest request) {
         try {
-
+            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             List<String> placeIds = request.getPlaceIds();
                 
-            courseService.updateCoursePlace(request.getId(), placeIds);
+            courseService.updateCoursePlace(request.getId(), placeIds, userEmail);
             return ResponseEntity.ok("success");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error");

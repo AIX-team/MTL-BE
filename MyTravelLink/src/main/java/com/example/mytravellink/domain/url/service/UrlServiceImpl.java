@@ -408,4 +408,9 @@ public class UrlServiceImpl implements UrlService {
 
         return travelInfo.getId();
     }
+
+    @Override
+    public boolean isUser(String urlId, String userEmail) {
+        return urlRepository.existsByIdAndUserEmail(urlId, userEmail);
+    }
 }

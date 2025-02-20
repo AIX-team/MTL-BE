@@ -243,4 +243,15 @@ public class GuideServiceImpl implements GuideService {
   public void deleteGuideBook(String guideId) {
     guideRepository.updateGuideBookDelete(guideId);
   }
+
+  /**
+   * 가이드 북 사용자 여부 조회
+   * @param guideId
+   * @param userEmail
+   * @return boolean
+   */
+  @Override
+  public boolean isUser(String guideId, String userEmail) {
+    return guideRepository.isUser(guideId, userEmail);
+  }
 }

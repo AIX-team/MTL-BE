@@ -56,9 +56,9 @@ public class CourseServiceImpl implements CourseService {
   }
 
   @Override
-  public void updateCoursePlace(String courseId, List<String> placeIds) {
+  public void updateCoursePlace(String courseId, List<String> placeIds, String userEmail) {
     try {
-      coursePlaceRepository.updateCoursePlace(courseId, placeIds);
+      coursePlaceRepository.updateCoursePlace(courseId, placeIds, userEmail);
     } catch (Exception e) {
       throw new RuntimeException("CoursePlace 업데이트 실패", e);
     }

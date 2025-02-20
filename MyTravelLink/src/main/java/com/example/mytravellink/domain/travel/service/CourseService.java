@@ -7,7 +7,7 @@ import com.example.mytravellink.api.travelInfo.dto.travel.GuideBookResponse;
 public interface CourseService {
   List<GuideBookResponse.CourseList> getCoursePlace(String guideId);
 
-  void updateCoursePlace(String courseId, List<String> placeIds);
+  void updateCoursePlace(String courseId, List<String> placeIds, String userEmail);
 
   void addCoursePlace(List<String> courseIds, List<String> placeIds);
 

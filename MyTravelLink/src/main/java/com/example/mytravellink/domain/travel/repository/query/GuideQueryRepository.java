@@ -6,4 +6,6 @@ import com.example.mytravellink.domain.travel.entity.Guide;
 
 public interface GuideQueryRepository  {
   public List<Guide> findAllByTravelInfoId(String travelInfoId);
+
+  public boolean isUser(String guideId, String userEmail);
 }
