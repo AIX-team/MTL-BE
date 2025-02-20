@@ -36,4 +36,7 @@ public interface UrlService {
     
     // 새롭게 추가: 유튜브 영상 URL을 받아 자막 체크 (FastAPI 호출)
     boolean checkYoutubeSubtitles(String videoUrl);
+
+    void processUrlAsync(UrlRequest urlRequest, String jobId);
+
 }

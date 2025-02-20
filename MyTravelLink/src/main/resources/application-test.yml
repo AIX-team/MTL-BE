@@ -42,7 +42,7 @@ url:
 
 jwt:
   secret: ${JWT_SECRET:wERjtIdxQ8lNjF0w/AAiN6HqTASaCAUzSq6nbKefMwf5CbPE8GvwLsClz94uVt9Q1esxYwwXVU+BYn7/mR01Qg}
-  expiration-time: ${JWT_EXPIRATION_TIME:86400000}  # 24시간
+  expiration-time: ${JWT_EXPIRATION_TIME:1800}  # 24시간
 
 ai:
   server:
