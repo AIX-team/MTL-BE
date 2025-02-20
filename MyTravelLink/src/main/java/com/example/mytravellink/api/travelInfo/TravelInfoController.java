@@ -263,7 +263,7 @@ public class TravelInfoController {
             
             // 4. FastAPI AI 서비스 호출
             RestTemplate restTemplate = new RestTemplate();
-            String aiServiceUrl = "http://127.0.0.1:8000/api/v1/ai/recommend/places";
+            String aiServiceUrl = "http://221.148.97.237:28001/api/v1/ai/recommend/places";
             ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
                 aiServiceUrl,
                 requestBody,
