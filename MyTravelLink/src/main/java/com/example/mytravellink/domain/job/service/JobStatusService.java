@@ -4,12 +4,20 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
+import lombok.AllArgsConstructor;
 
 @Slf4j
 @Service
 public class JobStatusService {
-    private final Map<String, String> jobStatuses = new ConcurrentHashMap<>();
-    private final Map<String, String> jobResults = new ConcurrentHashMap<>();
+    private final Map<String, JobStatus> jobs = new ConcurrentHashMap<>();
+
+    @Data
+    @AllArgsConstructor
+    public static class JobStatus {
+        private String status;  // "Processing", "Completed", "Failed"
+        private String result;  // 성공 시 결과, 실패 시 에러 메시지
+    }
 
     /**
      * 작업 상태 설정
@@ -18,7 +26,7 @@ public class JobStatusService {
      */
     public void setStatus(String jobId, String status) {
         log.info("Setting job status. JobID: {}, Status: {}", jobId, status);
-        jobStatuses.put(jobId, status);
+        jobs.put(jobId, new JobStatus(status, null));
     }
 
     /**
@@ -28,7 +36,7 @@ public class JobStatusService {
      */
     public void setResult(String jobId, String result) {
         log.info("Setting job result. JobID: {}, Result: {}", jobId, result);
-        jobResults.put(jobId, result);
+        jobs.put(jobId, new JobStatus(null, result));
     }
 
     /**
@@ -37,9 +45,9 @@ public class JobStatusService {
      * @return 상태
      */
     public String getStatus(String jobId) {
-        String status = jobStatuses.get(jobId);
-        log.debug("Getting job status. JobID: {}, Status: {}", jobId, status);
-        return status != null ? status : "Not Found";
+        JobStatus jobStatus = jobs.get(jobId);
+        log.debug("Getting job status. JobID: {}, Status: {}", jobId, jobStatus);
+        return jobStatus != null ? jobStatus.getStatus() : "Not Found";
     }
 
     /**
@@ -48,9 +56,9 @@ public class JobStatusService {
      * @return 결과
      */
     public String getResult(String jobId) {
-        String result = jobResults.get(jobId);
-        log.debug("Getting job result. JobID: {}, Result: {}", jobId, result);
-        return result;
+        JobStatus jobStatus = jobs.get(jobId);
+        log.debug("Getting job result. JobID: {}, Result: {}", jobId, jobStatus);
+        return jobStatus != null ? jobStatus.getResult() : null;
     }
 
     /**
@@ -59,7 +67,10 @@ public class JobStatusService {
      */
     public void removeJob(String jobId) {
         log.info("Removing job. JobID: {}", jobId);
-        jobStatuses.remove(jobId);
-        jobResults.remove(jobId);
+        jobs.remove(jobId);
+    }
+
+    public void setJobStatus(String jobId, String status, String result) {
+        jobs.put(jobId, new JobStatus(status, result));
     }
 } 
