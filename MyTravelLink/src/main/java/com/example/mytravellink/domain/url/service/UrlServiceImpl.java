@@ -445,16 +445,16 @@ public class UrlServiceImpl implements UrlService {
         try {
             // 실제 분석 작업 수행
             UrlResponse response = processUrl(urlRequest);
-            
+
             // 작업 상태 업데이트
             jobStatusService.setStatus(jobId, "Completed");
             log.info("URL 분석 작업 완료. JobID: {}", jobId);
-            
+
         } catch (Exception e) {
             log.error("URL 분석 작업 실패. JobID: {}", jobId, e);
             jobStatusService.setStatus(jobId, "Failed");
         }
-
+    }
     public boolean isUser(String urlId, String userEmail) {
         return urlRepository.existsByIdAndUserEmail(urlId, userEmail);
 
