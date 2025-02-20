@@ -13,7 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
         // 예: /loginSuccess 요청이 들어오면 index.html로 포워딩
         // registry.addViewController("/loginSuccess")
         //         .setViewName("forward:/index.html");
-        registry.addViewController("/{spring:[^\.]*}").setViewName("forward:/index.html");
+        registry.addViewController("/{spring:[^\\.]*}").setViewName("forward:/index.html");
         registry.addViewController("/**").setViewName("forward:/index.html");
         // 우선순위 설정 (선택)
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
