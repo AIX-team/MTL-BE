@@ -14,11 +14,11 @@ public class WebConfig implements WebMvcConfigurer {
         // registry.addViewController("/loginSuccess")
         //         .setViewName("forward:/index.html");
         // react의 모든 경로를 index.html로 설정
-        registry.addViewController("/{spring:[\w\-]+}")
+        registry.addViewController("/{spring:[\\w\\-]+}")
                 .setViewName("forward:/index.html");
-        registry.addViewController("//{spring:[\w\-]+}")
+        registry.addViewController("//{spring:[\\w\\-]+}")
                 .setViewName("forward:/index.html");
-        registry.addViewController("/{spring:[\w\-]+}/{spring:?!(\.js|\.css)$}")
+        registry.addViewController("/{spring:[\\w\\-]+}/{spring:?!(\\.js|\\.css)$}")
                 .setViewName("forward:/index.html"); // 정적파일을 예외처리
 
         // 우선순위 설정 (선택)
