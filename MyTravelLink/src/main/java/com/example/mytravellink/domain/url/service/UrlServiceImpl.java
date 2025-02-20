@@ -58,6 +58,8 @@ public class UrlServiceImpl implements UrlService {
     private final ImageService imageService;
     private final JobStatusService jobStatusService;
     private final Logger log = LoggerFactory.getLogger(UrlServiceImpl.class);
+    private final ObjectMapper objectMapper;  // ObjectMapper 추가
+
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
@@ -191,7 +193,8 @@ public class UrlServiceImpl implements UrlService {
                                     .title(placeInfo.getName())
                                     .description(placeInfo.getDescription())
                                     .address(placeInfo.getFormattedAddress())
-                                    .image(placeInfo.getPhotos() != null ? placeInfo.getPhotos().toString() : null)
+                                    .image(placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() ? 
+                                        placeInfo.getPhotos().get(0).getUrl() : "https://via.placeholder.com/300x200?text=No+Image")
                                     .phone(placeInfo.getPhone())
                                     .intro(placeInfo.getOfficialDescription())
                                     .website(placeInfo.getWebsite())
@@ -437,24 +440,20 @@ public class UrlServiceImpl implements UrlService {
         return false;
     }
 
-    @Override
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId) {
-        log.info("비동기 URL 분석 작업 시작. JobID: {}", jobId);
         try {
-            // 실제 분석 작업 수행
             UrlResponse response = processUrl(urlRequest);
-
-            // 작업 상태 업데이트
-            jobStatusService.setStatus(jobId, "Completed");
-            log.info("URL 분석 작업 완료. JobID: {}", jobId);
-
+            String result = objectMapper.writeValueAsString(response);
+            jobStatusService.setJobStatus(jobId, "Completed", result);
         } catch (Exception e) {
-            log.error("URL 분석 작업 실패. JobID: {}", jobId, e);
-            jobStatusService.setStatus(jobId, "Failed");
+            log.error("URL 분석 실패", e);
+            jobStatusService.setJobStatus(jobId, "Failed", e.getMessage());
         }
     }
     public boolean isUser(String urlId, String userEmail) {
         return usersUrlRepository.existsByIdAndUserEmail(urlId, userEmail);
     }
+
+    
 }

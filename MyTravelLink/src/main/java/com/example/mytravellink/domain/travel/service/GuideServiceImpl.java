@@ -6,6 +6,7 @@ import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import java.util.List;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
@@ -17,11 +18,13 @@ import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class GuideServiceImpl implements GuideService {
+
 
   private final GuideRepository guideRepository;
   private final CourseRepository courseRepository;
@@ -45,9 +48,11 @@ public class GuideServiceImpl implements GuideService {
    * @param courseList
    * @param coursePlaceList
    */
+
   @Override
-  @Transactional
-  public String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+  @Async
+  public CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+
     try {
       Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
       System.out.println("가이드 저장 완료: " + savedGuide);
@@ -57,6 +62,7 @@ public class GuideServiceImpl implements GuideService {
       for (AIGuideCourseResponse aiGuideCourseResponse : aiGuideCourseResponses) {
         // 각 일일 계획에 대해 반복
         for (DailyPlans dailyPlan : aiGuideCourseResponse.getDailyPlans()) {
+
           System.out.println("일일 계획: Day " + dailyPlan.getDayNumber());
 
           // guide_id에 대해 가장 큰 course_number를 찾고, 그 값보다 1을 더하여 courseNumber 생성
@@ -88,26 +94,26 @@ public class GuideServiceImpl implements GuideService {
                     .place(place) // 장소 찾기
                     .placeNum(placeNum) // 장소 번호
                     .build();
-
             saveCoursePlace(coursePlace); // CoursePlace 저장
             System.out.println("CoursePlace 저장 완료: " + coursePlace);
           }
         }
       }
-      return savedGuide.getId();
+      return CompletableFuture.completedFuture(savedGuide.getId());
     } catch(Exception e){
       e.printStackTrace(); // 예외 출력
       throw new RuntimeException("가이드 생성 중 오류 발생" + e.getMessage(), e);
     }
   }
 
+
     /**
      * PlaceSelectRequest를 AIGuideCourseRequest로 변환
      * @param placeSelectRequest
      * @return AIGuideCourseRequest
      */
-    public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
 
+    public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
 
       List<Place> places = placeRepository.findAllById(placeSelectRequest.getPlaceIds());
       // PlaceSelectRequest에서 입력된 장소 리스트를 기반으로 AIPlace 리스트 생성

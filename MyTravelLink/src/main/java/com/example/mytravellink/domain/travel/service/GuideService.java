@@ -6,6 +6,7 @@ import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface GuideService {
 
@@ -29,7 +30,7 @@ public interface GuideService {
      * @param guide
      * @param aiGuideCourseResponse
      */
-  String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
+  CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
 
     /**
      * 가이드 북 제목 수정
