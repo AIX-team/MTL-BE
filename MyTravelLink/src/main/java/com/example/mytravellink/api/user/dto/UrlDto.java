@@ -1,4 +1,4 @@
-package com.example.mytravellink.dto;
+package com.example.mytravellink.api.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

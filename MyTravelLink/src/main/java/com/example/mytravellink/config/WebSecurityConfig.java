@@ -62,6 +62,7 @@ public class WebSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(Arrays.asList("https://mytravellink.site","http://localhost:3000"));
+        configuration.addAllowedOrigin("http://192.168.0.184:3000");
         configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(Arrays.asList("Authorization","Content-Type"));
