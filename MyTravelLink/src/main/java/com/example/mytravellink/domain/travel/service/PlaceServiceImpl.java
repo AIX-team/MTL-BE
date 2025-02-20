@@ -122,8 +122,8 @@ public class PlaceServiceImpl implements PlaceService {
    */
   @Override
   public String getPlaceImage(String travelInfoId) {
-    String placeId = travelInfoPlaceRepository.findByTravelInfoId(travelInfoId).get(0);
-    Place place = placeRepository.findById(placeId).orElseThrow(() -> new RuntimeException("Place not found"));
+    List<String> placeIds = travelInfoPlaceRepository.findByTravelInfoId(travelInfoId);
+    Place place = placeRepository.findById(placeIds.get(0)).orElseThrow(() -> new RuntimeException("Place not found"));
     String imageUrl = place.getImage();
     return imageUrl;
   }

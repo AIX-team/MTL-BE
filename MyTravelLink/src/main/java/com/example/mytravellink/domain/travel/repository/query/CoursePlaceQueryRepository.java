@@ -3,7 +3,7 @@ package com.example.mytravellink.domain.travel.repository.query;
 import java.util.List;
 
 public interface CoursePlaceQueryRepository {
-  void updateCoursePlace(String courseId, List<String> placeIds);
+  void updateCoursePlace(String courseId, List<String> placeIds, String userEmail);
 
   void updatePlaceNum(String courseId);
 

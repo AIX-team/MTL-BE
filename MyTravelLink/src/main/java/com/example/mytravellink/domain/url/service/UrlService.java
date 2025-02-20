@@ -39,4 +39,7 @@ public interface UrlService {
 
     void processUrlAsync(UrlRequest urlRequest, String jobId);
 
+    // URL 사용자 확인
+    boolean isUser(String urlId, String userEmail);
+    
 }

@@ -454,5 +454,9 @@ public class UrlServiceImpl implements UrlService {
             log.error("URL 분석 작업 실패. JobID: {}", jobId, e);
             jobStatusService.setStatus(jobId, "Failed");
         }
+
+    public boolean isUser(String urlId, String userEmail) {
+        return urlRepository.existsByIdAndUserEmail(urlId, userEmail);
+
     }
 }
