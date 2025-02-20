@@ -35,8 +35,14 @@ import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
 import lombok.RequiredArgsConstructor;
 import java.net.URI;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 
 @Service
+@EnableAsync  // 비동기 처리 활성화
 @RequiredArgsConstructor
 public class UrlServiceImpl implements UrlService {
 
@@ -50,6 +56,8 @@ public class UrlServiceImpl implements UrlService {
     private final UsersUrlRepository usersUrlRepository;
     private final TravelInfoPlaceRepository travelInfoPlaceRepository;
     private final ImageService imageService;
+    private final JobStatusService jobStatusService;
+    private final Logger log = LoggerFactory.getLogger(UrlServiceImpl.class);
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
@@ -431,6 +439,22 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
+    @Async
+    public void processUrlAsync(UrlRequest urlRequest, String jobId) {
+        log.info("비동기 URL 분석 작업 시작. JobID: {}", jobId);
+        try {
+            // 실제 분석 작업 수행
+            UrlResponse response = processUrl(urlRequest);
+            
+            // 작업 상태 업데이트
+            jobStatusService.setStatus(jobId, "Completed");
+            log.info("URL 분석 작업 완료. JobID: {}", jobId);
+            
+        } catch (Exception e) {
+            log.error("URL 분석 작업 실패. JobID: {}", jobId, e);
+            jobStatusService.setStatus(jobId, "Failed");
+        }
+
     public boolean isUser(String urlId, String userEmail) {
         return usersUrlRepository.existsByIdAndUserEmail(urlId, userEmail);
     }
