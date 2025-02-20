@@ -193,7 +193,8 @@ public class UrlServiceImpl implements UrlService {
                                     .title(placeInfo.getName())
                                     .description(placeInfo.getDescription())
                                     .address(placeInfo.getFormattedAddress())
-                                    .image(placeInfo.getPhotos() != null ? null: null)
+                                    .image(placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() ? 
+                                        placeInfo.getPhotos().get(0) : "https://via.placeholder.com/300x200?text=No+Image")
                                     .phone(placeInfo.getPhone())
                                     .intro(placeInfo.getOfficialDescription())
                                     .website(placeInfo.getWebsite())
