@@ -31,6 +31,8 @@ spring:
             client-id: ${OAUTH2_GOOGLE_CLIENT_ID:493235437055-i3vpr6aqus0mqfarsvfm65j2rkllo97t.apps.googleusercontent.com}
             client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET: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}
             redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:https://mytravellink.site/auth/google/callback}
+            #redirect-uri: ${OAUTH2_GOOGLE_REDIRECT_URI:http://localhost:3000/site/auth/google/callback}
+
     client:
       connect-timeout: 5000
       response-timeout: 5000
