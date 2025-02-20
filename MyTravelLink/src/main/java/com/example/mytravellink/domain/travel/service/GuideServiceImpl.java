@@ -13,6 +13,7 @@ import com.example.mytravellink.domain.travel.repository.CourseRepository;
 import com.example.mytravellink.domain.travel.repository.GuideRepository;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class GuideServiceImpl implements GuideService {
   private final CoursePlaceRepository coursePlaceRepository;
   private final PlaceRepository placeRepository;
   private final TravelInfoRepository travelInfoRepository;
+  private final JobStatusService jobStatusService;
   
   @Autowired
   private TaskExecutor taskExecutor;  // TaskExecutor 주입
