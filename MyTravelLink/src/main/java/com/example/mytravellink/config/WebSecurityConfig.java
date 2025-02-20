@@ -52,7 +52,7 @@ public class WebSecurityConfig {
                 // JWT 필터 추가
                 .addFilterBefore(new JwtAuthorizationFilter(jwtTokenProvider, userDetailsService), 
                                UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(withDefaults())
+//                .oauth2Login(withDefaults())
                 .build();
     }
 

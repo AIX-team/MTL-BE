@@ -59,7 +59,7 @@ public class AuthController {
         params.add("code", code);
         params.add("client_id", clientId);
         params.add("client_secret", clientSecret);
-        params.add("redirect_uri", "http://localhost:3000/loginSuccess");
+        params.add("redirect_uri", redirectUri);
         params.add("grant_type", "authorization_code");
 
         log.debug("Google access token 요청 파라미터: {}", params);
@@ -73,6 +73,8 @@ public class AuthController {
         if (accessToken == null) {
             log.error("Google access token 추출 실패");
             response.sendRedirect("https://mytravellink.site/loginError");
+            // response.sendRedirect("http://localhost:3000/loginError");
+
             return;
         }
         log.debug("추출된 Google Access Token: {}", accessToken);
@@ -96,6 +98,8 @@ public class AuthController {
         if (member == null) {
             log.error("사용자 정보 처리 실패");
             response.sendRedirect("https://mytravellink.site/loginError");
+            // response.sendRedirect("http://localhost:3000/loginError");
+
             return;
         }
         log.debug("처리된 사용자 정보: {}", member);
@@ -109,6 +113,8 @@ public class AuthController {
         String encodedEmail = URLEncoder.encode(member.getEmail(), "UTF-8");
         String encodedName = URLEncoder.encode(member.getName(), "UTF-8");
         String redirectUrl = "https://mytravellink.site/loginSuccess?token=" + encodedToken 
+        //String redirectUrl = "http://localhost:3000/loginSuccess?token=" + encodedToken 
+
                              + "&email=" + encodedEmail 
                              + "&name=" + encodedName;
         log.debug("리다이렉트할 URL: {}", redirectUrl);
