@@ -11,9 +11,8 @@ import java.util.concurrent.CompletableFuture;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,10 +20,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
@@ -49,6 +49,7 @@ import com.example.mytravellink.domain.travel.service.PlaceServiceImpl;
 import com.example.mytravellink.domain.travel.service.TravelInfoServiceImpl;
 import com.example.mytravellink.domain.url.entity.Url;
 import com.example.mytravellink.domain.url.service.UrlServiceImpl;
+import com.example.mytravellink.auth.handler.JwtTokenProvider;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,21 +78,8 @@ public class TravelInfoController {
      * @return ResponseEntity<TravelInfoResponse>
      */
     @GetMapping("/travelInfos/{travelId}")
-    public ResponseEntity<TravelInfoUrlResponse> travelInfo(@PathVariable String travelId, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<TravelInfoUrlResponse> travelInfo(@PathVariable String travelId) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-
-            if(!travelInfoService.isUser(travelId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
-
-
             TravelInfo travelInfo = travelInfoService.getTravelInfo(travelId);
             List<Url> urlList = urlService.findUrlByTravelInfoId(travelInfo);
 
@@ -126,25 +114,13 @@ public class TravelInfoController {
      * @return ResponseEntity<TravelInfoPlaceResponse>
      */
     @GetMapping("/travelInfos/urls/{urlId}")
-    public ResponseEntity<TravelInfoPlaceResponse> travelInfoUrl(@PathVariable String urlId, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<TravelInfoPlaceResponse> travelInfoUrl(@PathVariable String urlId) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            //사용자 확인
-            boolean isUser = urlService.isUser(urlId, userEmail);
-            if(!isUser){// 토큰 불일치 메세지 반환
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             List<Place> urlPlaceList = urlService.findPlaceByUrlId(urlId);
             //이미지 URL 리다이렉션
-            // List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(urlPlaceList);
+            List<Place> imageConvertPlaceList = imageService.redirectImageUrlPlace(urlPlaceList);
 
-            List<TravelInfoPlaceResponse.Place> placeResponseList = urlPlaceList.stream()
+            List<TravelInfoPlaceResponse.Place> placeResponseList = imageConvertPlaceList.stream()
                 .map(place -> TravelInfoPlaceResponse.Place.builder()
                     .placeId(place.getId().toString())
                     .placeType(place.getType())
@@ -178,18 +154,8 @@ public class TravelInfoController {
      * @return ResponseEntity<TravelInfoPlaceResponse>
      */
     @GetMapping("/travelInfos/{travelId}/places")
-    public ResponseEntity<TravelInfoPlaceResponse> travelInfoPlace(@PathVariable String travelId, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<TravelInfoPlaceResponse> travelInfoPlace(@PathVariable String travelId) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!travelInfoService.isUser(travelId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             log.info("Fetching places for travelId: {}", travelId);
             List<Place> placeList = travelInfoService.getTravelInfoPlace(travelId);
 
@@ -235,22 +201,8 @@ public class TravelInfoController {
      * @return
      */
     @PutMapping("/travelInfos/{travelInfoId}")
-    public ResponseEntity<String> updateTravelInfo(
-        @PathVariable String travelInfoId, 
-        @RequestBody TravelInfoUpdateTitleAndTravelDaysRequest travelInfoUpdateTitleAndTravelDaysRequest, 
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> updateTravelInfo(@PathVariable String travelInfoId, @RequestBody TravelInfoUpdateTitleAndTravelDaysRequest travelInfoUpdateTitleAndTravelDaysRequest) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!travelInfoService.isUser(travelInfoId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             String travelInfoTitle = travelInfoUpdateTitleAndTravelDaysRequest.getTravelInfoTitle();
             Integer travelDays = travelInfoUpdateTitleAndTravelDaysRequest.getTravelDays();
             travelInfoService.updateTravelInfo(travelInfoId, travelInfoTitle, travelDays);
@@ -266,28 +218,15 @@ public class TravelInfoController {
      * @return
      */
     @DeleteMapping("/travelInfos/{travelInfoId}")
-    public ResponseEntity<String> deleteTravelInfo(
-        @PathVariable String travelInfoId, 
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> deleteTravelInfo(@PathVariable StringRequest request) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!travelInfoService.isUser(travelInfoId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
-            travelInfoService.deleteTravelInfo(travelInfoId);
+            travelInfoService.deleteTravelInfo(request.getValue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    /**
+   /**
      * 여행정보 ID 기준 AI 추천 장소
      * @param travelInfoId
      * @return ResponseEntity<TravelInfoPlaceResponse>
@@ -295,9 +234,11 @@ public class TravelInfoController {
     @GetMapping("travelInfos/{travelInfoId}/aiSelect")
     public ResponseEntity<TravelInfoPlaceResponse> aiSelect(
         @PathVariable String travelInfoId, 
-        @RequestHeader("Authorization") String token
+        @RequestHeader(value = "Authorization", required = true) String token
         ) {
         try {
+            log.info("=== AI 추천 컨트롤러 시작 ===");
+            log.info("travelInfoId: {}", travelInfoId);
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             if(!travelInfoService.isUser(travelInfoId, userEmail)){
                 HttpHeaders headers = new HttpHeaders();
@@ -344,12 +285,12 @@ public class TravelInfoController {
                 return placeMap;
             }).filter(placeMap -> placeMap.get("placeType") != null).collect(Collectors.toList()));
             
-            log.info("Sending request to AI service: {}", requestBody);
+            log.info("FastAPI 요청 데이터: {}", requestBody);
             
             // 4. FastAPI AI 서비스 호출
             RestTemplate restTemplate = new RestTemplate();
 
-            String aiServiceUrl = fastAPiUrl + "/api/v1/ai/recommend/places";
+            String aiServiceUrl = "http://221.148.97.237:28001/api/v1/ai/recommend/places";
             ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
                 aiServiceUrl,
                 requestBody,
@@ -390,6 +331,9 @@ public class TravelInfoController {
                     })
                     .collect(Collectors.toList());
                 
+                log.info("FastAPI 응답 상태: {}", aiResponse.getStatusCode());
+                log.info("FastAPI 응답 데이터: {}", responseBody);
+                
                 return new ResponseEntity<>(
                     TravelInfoPlaceResponse.builder()
                         .success("success")
@@ -402,7 +346,7 @@ public class TravelInfoController {
                 throw new RuntimeException("AI service returned error: " + aiResponse.getStatusCode());
             }
         } catch (Exception e) {
-            log.error("AI 추천 실패: {}", e.getMessage(), e);
+            log.error("AI 추천 에러: ", e);
             return new ResponseEntity<>(
                 TravelInfoPlaceResponse.builder()
                     .success("error")
@@ -414,6 +358,7 @@ public class TravelInfoController {
         }
     }
 
+
     /**
      * 사용자 email 기준 여행 정보 조회
      * @param CustomUserDetails
@@ -421,7 +366,7 @@ public class TravelInfoController {
      */
     @GetMapping("/travelInfos/list")
     public ResponseEntity<TravelInfoListResponse> travelInfoList(
-        @RequestHeader("Authorization") String token
+        @RequestHeader(value = "Authorization", required = true) String token
         ) {
         try{
             String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
@@ -450,22 +395,8 @@ public class TravelInfoController {
      * @return ResponseEntity<TravelInfoListResponse>
      */
     @PutMapping("/travelInfos/{travelInfoId}/favorite")
-    public ResponseEntity<String> updateFavorite(
-        @PathVariable String travelInfoId, 
-        @RequestBody BooleanRequest booleanRequst, 
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> updateFavorite(@PathVariable String travelInfoId, @RequestBody BooleanRequest booleanRequst) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!travelInfoService.isUser(travelInfoId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             travelInfoService.updateFavorite(travelInfoId, booleanRequst.getIsTrue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -479,22 +410,8 @@ public class TravelInfoController {
      * @return
      */
     @PutMapping("/travelInfos/{travelInfoId}/fixed")
-    public ResponseEntity<String> updateFixed(
-        @PathVariable String travelInfoId, 
-        @RequestBody BooleanRequest booleanRequst, 
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> updateFixed(@PathVariable String travelInfoId, @RequestBody BooleanRequest booleanRequst) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!travelInfoService.isUser(travelInfoId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             travelInfoService.updateFixed(travelInfoId, booleanRequst.getIsTrue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -516,17 +433,8 @@ public class TravelInfoController {
         ) {
             String jobId = UUID.randomUUID().toString();
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!guideService.isUser(placeSelectRequest.getTravelInfoId(), userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
-            //String email = "user1@example.com";
+            //TO-DO: String email = user.getEmail();
+            String email = "user1@example.com";
             // 1. AI 코스 추천에 요청할 데이터 형식 설정
             AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
 
@@ -537,7 +445,7 @@ public class TravelInfoController {
 
             System.out.println("AI 응답 데이터: " + aiGuideCourseResponses);
 
-            String title = "가이드북" + travelInfoService.getGuideCount(userEmail);
+            String title = "가이드북" + travelInfoService.getGuideCount(email);
 
             // 3. 가이드북 생성
             Guide guide = Guide.builder()
@@ -596,21 +504,8 @@ public class TravelInfoController {
      * @return ResponseEntity<GuideBookResponse>
      */
     @GetMapping("/guidebooks/{guideId}")
-    public ResponseEntity<GuideBookResponse> guideInfo(
-        @PathVariable String guideId,
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<GuideBookResponse> guideInfo(@PathVariable String guideId) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!guideService.isUser(guideId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             Guide guide = guideService.getGuide(guideId);
             TravelInfo travelInfo = guideService.getTravelInfo(guide.getTravelInfo().getId());
             List<GuideBookResponse.CourseList> courseListResp = courseService.getCoursePlace(guideId);
@@ -642,10 +537,11 @@ public class TravelInfoController {
     @Transactional(readOnly = true)
     @GetMapping("/guidebooks/list")
     public ResponseEntity<GuideBookListResponse> guideBookList(
-        @RequestHeader("Authorization") String token
+        // @AuthenticationPrincipal CustomUserDetails user
     ) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            //TO-DO: String userEmail = user.getEmail();
+            String userEmail = "user1@example.com";
             List<Guide> guideList = guideService.getGuideList(userEmail);
             List<GuideBookListResponse.GuideList> guideListResponse = new ArrayList<>();
             for(Guide guide : guideList){
@@ -680,22 +576,8 @@ public class TravelInfoController {
      * @return ResponseEntity<String>
      */
     @PutMapping("/guidebooks/{guideId}/title")
-    public ResponseEntity<String> updateGuideBookTitle(
-        @PathVariable String guideId, 
-        @RequestBody StringRequest request,
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> updateGuideBookTitle(@PathVariable String guideId, @RequestBody StringRequest request) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!guideService.isUser(guideId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             guideService.updateGuideBookTitle(guideId, request.getValue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -709,22 +591,8 @@ public class TravelInfoController {
      * @return ResponseEntity<String>
      */
     @PutMapping("/guidebooks/{guideId}/favorite")
-    public ResponseEntity<String> updateGuideBookFavorite(
-        @PathVariable String guideId, 
-        @RequestBody BooleanRequest booleanRequest,
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> updateGuideBookFavorite(@PathVariable String guideId, @RequestBody BooleanRequest booleanRequest) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!guideService.isUser(guideId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             guideService.updateGuideBookFavorite(guideId, booleanRequest.getIsTrue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -737,22 +605,8 @@ public class TravelInfoController {
      * @return ResponseEntity<String>
      */
     @PutMapping("/guidebooks/{guideId}/fixed")
-    public ResponseEntity<String> updateGuideBookFixed(
-        @PathVariable String guideId, 
-        @RequestBody BooleanRequest booleanRequest,
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> updateGuideBookFixed(@PathVariable String guideId, @RequestBody BooleanRequest booleanRequest) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!guideService.isUser(guideId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             guideService.updateGuideBookFixed(guideId, booleanRequest.getIsTrue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
@@ -766,21 +620,8 @@ public class TravelInfoController {
      * @return ResponseEntity<String>
      */
     @DeleteMapping("/guidebooks/{guideId}")
-    public ResponseEntity<String> deleteGuideBook(
-        @PathVariable String guideId,
-        @RequestHeader("Authorization") String token
-        ) {
+    public ResponseEntity<String> deleteGuideBook(@PathVariable String guideId) {
         try {
-            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            if(!guideService.isUser(guideId, userEmail)){
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("X-Error-Message", "토큰 불일치");  // 커스텀 헤더에 에러 메시지 추가
-                
-                return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .headers(headers)
-                    .build();
-            }
             guideService.deleteGuideBook(guideId);
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
