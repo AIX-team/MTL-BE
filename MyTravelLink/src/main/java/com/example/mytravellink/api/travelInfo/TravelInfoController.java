@@ -419,32 +419,32 @@ public class TravelInfoController {
      * 가이드 북 비동기 생성성
      */
     @PostMapping("/guidebook/async")
-    public ResponseEntity<Map<String, String>> processUrlAsync(
-            @RequestHeader("Authorization") String token,
-            @RequestBody PlaceSelectRequest placeSelectRequest) {
-        
-        String jobId = UUID.randomUUID().toString();
-        
+    public ResponseEntity<Map<String, String>> createGuideAsync(
+        @RequestHeader("Authorization") String token,
+        @RequestBody PlaceSelectRequest placeSelectRequest
+    ) {
         try {
+            String jobId = UUID.randomUUID().toString();
             String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             
-            if (!travelInfoService.isUser(placeSelectRequest.getTravelInfoId(), email)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-            }
-
-            jobStatusService.setJobStatus(jobId, "PENDING", null);
+            // 작업 상태 초기화 (jobId, status, result, error)
+            jobStatusService.setJobStatus(jobId, "PROCESSING", null, null);
+            
+            // 비동기 가이드 생성 시작
             guideService.createGuideAsync(placeSelectRequest, jobId, email);
             
+            // 응답 생성
             Map<String, String> response = new HashMap<>();
             response.put("jobId", jobId);
-            response.put("status", "ACCEPTED");
+            response.put("status", "PROCESSING");
             
-            return ResponseEntity.accepted().body(response);
+            return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            log.error("비동기 처리 시작 실패", e);
-            jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
-            return ResponseEntity.internalServerError().build();
+            log.error("Failed to start async guide creation", e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to start guide creation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -455,17 +455,16 @@ public class TravelInfoController {
      */
     @GetMapping("/guidebook/status/{jobId}")
     public ResponseEntity<Map<String, String>> getGuideBookStatus(@PathVariable String jobId) {
-        Map<String, String> response = new HashMap<>();
-        String status = jobStatusService.getStatus(jobId);
-        String error = jobStatusService.getError(jobId);
-        String guideId = jobStatusService.getResult(jobId);
+        JobStatusService.JobStatus status = jobStatusService.getJobStatus(jobId);
         
-        response.put("status", status);
-        if (error != null) {
-            response.put("error", error);
+        Map<String, String> response = new HashMap<>();
+        response.put("status", status.getStatus());
+        
+        if (status.getResult() != null) {
+            response.put("guideId", status.getResult());
         }
-        if (guideId != null) {
-            response.put("guideId", guideId);
+        if (status.getError() != null) {
+            response.put("error", status.getError());
         }
         
         return ResponseEntity.ok(response);

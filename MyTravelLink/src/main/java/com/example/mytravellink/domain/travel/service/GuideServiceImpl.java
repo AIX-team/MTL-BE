@@ -330,7 +330,7 @@ public class GuideServiceImpl implements GuideService {
   public void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email) {
     try {
         log.info("Starting async guide creation for jobId: {}", jobId);
-        jobStatusService.setJobStatus(jobId, "PROCESSING", null);
+        jobStatusService.setJobStatus(jobId, "PROCESSING", null, null);
 
         // 1. AI 가이드 코스 요청 데이터 생성
         AIGuideCourseRequest aiGuideCourseRequest = convertToAIGuideCourseRequest(placeSelectRequest);
@@ -345,13 +345,12 @@ public class GuideServiceImpl implements GuideService {
         // 3. 가이드, 코스, 코스 장소 생성
         String guideId = createGuideAndCourses(guide, aiGuideCourseResponses);
         
-        jobStatusService.setJobStatus(jobId, "COMPLETED", guideId);
+        jobStatusService.setJobStatus(jobId, "COMPLETED", guideId, null);
         log.info("Completed guide creation for jobId: {}", jobId);
         
     } catch (Exception e) {
         log.error("Failed to create guide for jobId: {}", jobId, e);
-        jobStatusService.setJobStatus(jobId, "FAILED", null);
-        jobStatusService.setError(jobId, e.getMessage());
+        jobStatusService.setJobStatus(jobId, "FAILED", null, e.getMessage());
     }
   }
 

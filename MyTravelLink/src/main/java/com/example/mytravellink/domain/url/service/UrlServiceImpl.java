@@ -440,15 +440,26 @@ public class UrlServiceImpl implements UrlService {
         return false;
     }
 
-    @Async
-    public void processUrlAsync(UrlRequest urlRequest, String jobId) {
+    @Async("asyncTaskExecutor")
+    public void processUrlAsync(UrlRequest request, String jobId) {
         try {
-            UrlResponse response = processUrl(urlRequest);
+            // 작업 시작 상태 설정
+            jobStatusService.setJobStatus(jobId, "PROCESSING", null, null);
+
+            // URL 처리 로직
+            UrlResponse response = processUrl(request);
+            
+            // 결과를 JSON 문자열로 변환
             String result = objectMapper.writeValueAsString(response);
-            jobStatusService.setJobStatus(jobId, "Completed", result);
+
+            // 작업 완료 상태 설정
+            jobStatusService.setJobStatus(jobId, "COMPLETED", result, null);
+            log.info("URL 처리 완료. JobID: {}, Result: {}", jobId, result);
+
         } catch (Exception e) {
-            log.error("URL 분석 실패", e);
-            jobStatusService.setJobStatus(jobId, "Failed", e.getMessage());
+            log.error("URL 처리 실패. JobID: {}", jobId, e);
+            // 작업 실패 상태 설정
+            jobStatusService.setJobStatus(jobId, "FAILED", null, e.getMessage());
         }
     }
     public boolean isUser(String urlId, String userEmail) {
