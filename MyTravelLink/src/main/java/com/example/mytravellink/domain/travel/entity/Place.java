@@ -68,6 +68,7 @@ public class Place extends BaseTimeEntity {
 
     private String type;
 
+    @Column(columnDefinition = "TEXT")
     private String image;
 
     private String phone;
