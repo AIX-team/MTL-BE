@@ -72,7 +72,7 @@ public class UrlServiceImpl implements UrlService {
         try {
             // URL 리스트가 비어있으면 예외 처리
             if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
-                jobStatusService.setJobStatus(jobId, "Failed", "URL 리스트가 비어있습니다.");
+                jobStatusService.setJobStatus(jobId, "FAILED", "URL 리스트가 비어있습니다.");
                 throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
             }
             // 여기서는 리스트의 첫 번째 URL로 처리합니다.
@@ -222,8 +222,8 @@ public class UrlServiceImpl implements UrlService {
             jobStatusService.setResult(jobId, "URL 처리 실패: 응답이 null입니다.");
             throw new RuntimeException("URL 처리 실패: 응답이 null입니다.");
         } catch (Exception e) {
-            jobStatusService.setResult(jobId, "URL 처리 실패: " + e.getMessage());
-            throw new RuntimeException("URL 처리 실패", e);
+            log.error("URL 처리 실패", e);
+            throw new RuntimeException("URL 처리 실패: " + e.getMessage());
         }
     }
 
@@ -457,7 +457,8 @@ public class UrlServiceImpl implements UrlService {
             jobStatusService.setJobStatus(jobId, "Completed", result);
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
-            jobStatusService.setJobStatus(jobId, "Failed", e.getMessage());
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "Unknown error occurred";
+            jobStatusService.setJobStatus(jobId, "FAILED", errorMessage);
         }
     }
     public boolean isUser(String urlId, String userEmail) {
