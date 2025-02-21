@@ -6,6 +6,8 @@ import com.example.mytravellink.api.url.dto.UserUrlRequest;
 import com.example.mytravellink.domain.url.service.UrlService;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.domain.job.service.JobStatusService;
+import com.example.mytravellink.domain.job.service.JobStatusService.JobStatus;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -84,9 +86,15 @@ public class UrlController {
 
     // 작업 상태 확인 엔드포인트
     @GetMapping("/analysis/status/{jobId}")
-    public ResponseEntity<String> getJobStatus(@PathVariable String jobId) {
-        String status = jobStatusService.getStatus(jobId);
-        log.info("작업 상태 조회. JobID: {}, Status: {}", jobId, status);
-        return ResponseEntity.ok(status);
+    public ResponseEntity<Map<String, String>> getJobStatus(@PathVariable String jobId) {
+        JobStatus jobStatus = jobStatusService.getStatus(jobId);
+        Map<String, String> response = new HashMap<>();
+        
+        response.put("status", jobStatus.getStatus());
+        
+        response.put("result", jobStatus.getResult());
+        
+        log.info("작업 상태 조회. JobID: {}, Status: {}", jobId, jobStatus.getStatus());
+        return ResponseEntity.ok(response);
     }
 }

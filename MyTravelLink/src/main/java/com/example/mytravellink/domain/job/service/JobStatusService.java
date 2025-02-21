@@ -45,10 +45,10 @@ public class JobStatusService {
      * @param jobId 작업 ID
      * @return 상태
      */
-    public String getStatus(String jobId) {
+    public JobStatus getStatus(String jobId) {
         JobStatus jobStatus = jobs.get(jobId);
         log.debug("Getting job status. JobID: {}, Status: {}", jobId, jobStatus);
-        return jobStatus != null ? jobStatus.getStatus() : "Not Found";
+        return jobStatus != null ? jobStatus : new JobStatus("Not Found", null);
     }
 
     /**
