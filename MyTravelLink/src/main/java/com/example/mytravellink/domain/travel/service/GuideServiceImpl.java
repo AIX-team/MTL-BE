@@ -4,6 +4,8 @@ import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -13,13 +15,24 @@ import com.example.mytravellink.domain.travel.repository.CourseRepository;
 import com.example.mytravellink.domain.travel.repository.GuideRepository;
 import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.UUID;
 
+@Slf4j
 @Service
+@EnableAsync  // 비동기 처리 활성화
 @RequiredArgsConstructor
 public class GuideServiceImpl implements GuideService {
 
@@ -28,6 +41,16 @@ public class GuideServiceImpl implements GuideService {
   private final CoursePlaceRepository coursePlaceRepository;
   private final PlaceRepository placeRepository;
   private final TravelInfoRepository travelInfoRepository;
+  private final JobStatusService jobStatusService;
+  private final ObjectMapper objectMapper;
+  private final PlaceService placeService;
+  private final TravelInfoService travelInfoService;
+
+  // @Autowired
+  // private TaskExecutor taskExecutor;  // TaskExecutor 주입
+
+  @Value("${server.tomcat.connection-timeout:180000}")
+  private int connectionTimeout; // 3분으로 설정
 
   /**
    * Guide 조회
@@ -39,67 +62,109 @@ public class GuideServiceImpl implements GuideService {
     return guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found"));
   }
 
-  /**
-   * Guide, Course, CoursePlace 생성
-   * @param guide
-   * @param courseList
-   * @param coursePlaceList
-   */
-  @Override
-  @Transactional
-  public String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
-    try {
-      Guide savedGuide = saveGuide(guide); // 1. 가이드 저장
-      System.out.println("가이드 저장 완료: " + savedGuide);
-      System.out.println("저장된 가이드 번호: " +savedGuide.getId());
+  // /**
+  //  * Guide, Course, CoursePlace 생성
+  //  * @param guide
+  //  * @param courseList
+  //  * @param coursePlaceList
+  //  */
+  //   @Async
+  //   @Override
+  //   @Transactional
+  //   public CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+  //       return CompletableFuture.supplyAsync(() -> {
+  //           String jobId = UUID.randomUUID().toString();
+  //           jobStatusService.setStatus(jobId, "Processing");
+            
+  //           try {
+  //               var savedGuide = saveGuide(guide);
+                
+  //               aiGuideCourseResponses.forEach(aiGuideCourseResponse -> 
+  //                   aiGuideCourseResponse.getDailyPlans().forEach(dailyPlan -> {
+  //                       var courseNumber = courseRepository.findMaxCourseNumberByGuideId(savedGuide.getId());
+  //                       var newCourseNumber = courseNumber == null ? 1 : courseNumber + 1;
+                        
+  //                       var course = Course.builder()
+  //                               .courseNumber(newCourseNumber)
+  //                               .guide(savedGuide)
+  //                               .build();
+                                
+  //                       var savedCourse = saveCourse(course);
+                        
+  //                       dailyPlan.getPlaces().forEach(placeResp -> {
+  //                           var placeNum = dailyPlan.getPlaces().indexOf(placeResp) + 1;
+  //                           var place = placeRepository.findById(placeResp.getId())
+  //                                   .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
+                                    
+  //                           var coursePlace = CoursePlace.builder()
+  //                                   .course(savedCourse)
+  //                                   .place(place)
+  //                                   .placeNum(placeNum)
+  //                                   .build();
+                                    
+  //                           saveCoursePlace(coursePlace);
+  //                       });
+  //                   })
+  //               );
+                
+  //               jobStatusService.setStatus(jobId, "Completed");
+  //               jobStatusService.setResult(jobId, savedGuide.getId());
+  //               return jobId;
+  //           } catch (Exception e) {
+  //               jobStatusService.setStatus(jobId, "Failed");
+  //               throw new RuntimeException("가이드 생성 실패: " + e.getMessage());
+  //           }
+  //       }, taskExecutor);
+  //   }
 
-      // AI 응답 리스트를 반복하며 각 항목에 대해 처리
-      for (AIGuideCourseResponse aiGuideCourseResponse : aiGuideCourseResponses) {
-        // 각 일일 계획에 대해 반복
-        for (DailyPlans dailyPlan : aiGuideCourseResponse.getDailyPlans()) {
-          System.out.println("일일 계획: Day " + dailyPlan.getDayNumber());
 
-          // guide_id에 대해 가장 큰 course_number를 찾고, 그 값보다 1을 더하여 courseNumber 생성
-          Integer maxCourseNumber = courseRepository.findMaxCourseNumberByGuideId(savedGuide.getId());
-          int courseNumber = maxCourseNumber == null ? 1 : maxCourseNumber + 1;
-
-          // 각 일일 계획에 대한 코스 생성
-          Course course = Course.builder()
-                  .courseNumber(courseNumber)
-                  .guide(savedGuide)
-                  .build();
-          Course savedCourse = saveCourse(course);
-          System.out.println("코스 저장 완료: " + savedCourse);
-
-          // 각 장소에 대해 반복하여 CoursePlace 생성
-          for (PlaceDTO placeResp : dailyPlan.getPlaces()) {
-
-            int placeNum = dailyPlan.getPlaces().indexOf(placeResp)+1;
-
-            System.out.println("현재 장소 번호: " + placeNum + "- 장소:  " + placeResp);
-
-            // Place 조회
-            Place place = placeRepository.findById(placeResp.getId())
-                    .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
-
-            // 각 장소에 대해 CoursePlace 생성
-            CoursePlace coursePlace = CoursePlace.builder()
-                    .course(savedCourse)
-                    .place(place) // 장소 찾기
-                    .placeNum(placeNum) // 장소 번호
-                    .build();
-
-            saveCoursePlace(coursePlace); // CoursePlace 저장
-            System.out.println("CoursePlace 저장 완료: " + coursePlace);
-          }
-        }
-      }
-      return savedGuide.getId();
-    } catch(Exception e){
-      e.printStackTrace(); // 예외 출력
-      throw new RuntimeException("가이드 생성 중 오류 발생" + e.getMessage(), e);
+    /**
+     * Guide, Course, CoursePlace 생성
+     * @param guide
+     * @param courseList
+     * @param coursePlaceList
+     */
+    @Override
+    @Transactional
+    public String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+        try {
+                  var savedGuide = saveGuide(guide);
+                  
+                
+                aiGuideCourseResponses.forEach(aiGuideCourseResponse -> 
+                    aiGuideCourseResponse.getDailyPlans().forEach(dailyPlan -> {
+                        var courseNumber = courseRepository.findMaxCourseNumberByGuideId(savedGuide.getId());
+                        var newCourseNumber = courseNumber == null ? 1 : courseNumber + 1;
+                        
+                        var course = Course.builder()
+                                .courseNumber(newCourseNumber)
+                                .guide(savedGuide)
+                                .build();
+                                
+                        var savedCourse = saveCourse(course);
+                        
+                        dailyPlan.getPlaces().forEach(placeResp -> {
+                            var placeNum = dailyPlan.getPlaces().indexOf(placeResp) + 1;
+                            var place = placeRepository.findById(placeResp.getId())
+                                    .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
+                                    
+                            var coursePlace = CoursePlace.builder()
+                                    .course(savedCourse)
+                                    .place(place)
+                                    .placeNum(placeNum)
+                                    .build();
+                                    
+                            saveCoursePlace(coursePlace);
+                        });
+                    })
+                );
+                
+                return savedGuide.getId();
+            } catch (Exception e) {
+                throw new RuntimeException("가이드 생성 실패: " + e.getMessage());
+            }
     }
-  }
+
 
     /**
      * PlaceSelectRequest를 AIGuideCourseRequest로 변환
@@ -253,5 +318,75 @@ public class GuideServiceImpl implements GuideService {
   @Override
   public boolean isUser(String guideId, String userEmail) {
     return guideRepository.isUser(guideId, userEmail);
+  }
+
+  /**
+   * 가이드 북 비동기 생성
+   * @param placeSelectRequest
+   * @param jobId
+   */
+  @Async("asyncTaskExecutor")
+  @Override
+  public void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email) {
+    try {
+        log.info("Starting async guide creation for jobId: {}", jobId);
+        jobStatusService.setJobStatus(jobId, "PROCESSING", null);
+
+        // 1. AI 가이드 코스 요청 데이터 생성
+        AIGuideCourseRequest aiGuideCourseRequest = convertToAIGuideCourseRequest(placeSelectRequest);
+
+        // 2. AI 코스 추천 데이터 받기
+        List<AIGuideCourseResponse> aiGuideCourseResponses = 
+            placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
+
+        String title = "가이드북" + travelInfoService.getGuideCount(email);
+        Guide guide = createGuideEntity(placeSelectRequest, title, email);
+        
+        // 3. 가이드, 코스, 코스 장소 생성
+        String guideId = createGuideAndCourses(guide, aiGuideCourseResponses);
+        
+        jobStatusService.setJobStatus(jobId, "COMPLETED", guideId);
+        log.info("Completed guide creation for jobId: {}", jobId);
+        
+    } catch (Exception e) {
+        log.error("Failed to create guide for jobId: {}", jobId, e);
+        jobStatusService.setJobStatus(jobId, "FAILED", null);
+        jobStatusService.setError(jobId, e.getMessage());
+    }
+  }
+
+  private Guide createGuideEntity(PlaceSelectRequest placeSelectRequest, String title, String email) {
+    return Guide.builder()
+            .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+            .title(title)
+            .travelDays(placeSelectRequest.getTravelDays())
+            .courseCount(placeSelectRequest.getTravelDays())
+            .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
+            .isFavorite(false)
+            .fixed(false)
+            .isDelete(false)
+            .build();
+  }
+
+  @Override
+  public String createGuide(PlaceSelectRequest placeSelectRequest, String email) {
+    try {
+        // 1. AI 가이드 코스 요청 데이터 생성
+        AIGuideCourseRequest aiGuideCourseRequest = convertToAIGuideCourseRequest(placeSelectRequest);
+
+        // 2. AI 코스 추천 데이터 받기
+        List<AIGuideCourseResponse> aiGuideCourseResponses = 
+            placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
+
+        String title = "가이드북" + travelInfoService.getGuideCount(email);
+        Guide guide = createGuideEntity(placeSelectRequest, title, email);
+        
+        // 3. 가이드, 코스, 코스 장소 생성
+        return createGuideAndCourses(guide, aiGuideCourseResponses);
+        
+    } catch (Exception e) {
+        log.error("Failed to create guide", e);
+        throw new RuntimeException("Failed to create guide: " + e.getMessage(), e);
+    }
   }
 }
