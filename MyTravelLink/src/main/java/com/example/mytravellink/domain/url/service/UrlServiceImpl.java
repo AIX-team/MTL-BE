@@ -458,89 +458,86 @@ public class UrlServiceImpl implements UrlService {
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-                                 
-            // URL 목록 디버깅
-            jobStatusService.setResult(jobId, "처리할 URL 목록: " + String.join(", ", urlRequest.getUrls()));
-            
-            // 1. URL 캐시 확인
             AtomicReference<UrlResponse> urlResponse = new AtomicReference<>();
             List<String> newUrlStr = new ArrayList<>();
             
+            // 1. 캐시 데이터 처리 개선
             for(String urlStr : urlRequest.getUrls()) {
+                jobStatusService.setResult(jobId, "URL 처리: " + urlStr);
                 Optional<Url> existingData = urlRepository.findByUrl(urlStr);
-                if (!existingData.isPresent()) {
+                
+                if (existingData.isPresent()) {
+                    UrlResponse cachedResponse = convertToUrlResponse(existingData.get(), jobId);
+                    if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
+                        if (urlResponse.get() == null) {
+                            urlResponse.set(cachedResponse);
+                        } else {
+                            urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
+                        }
+                        jobStatusService.setResult(jobId, "캐시 데이터 처리 완료: " + urlStr);
+                    } else {
+                        jobStatusService.setResult(jobId, "캐시 데이터 없음, 새로운 URL로 처리: " + urlStr);
+                        newUrlStr.add(urlStr);
+                    }
+                } else {
                     newUrlStr.add(urlStr);
                     jobStatusService.setResult(jobId, "새로운 URL 추가: " + urlStr);
-                    continue;
-                }
-                
-                jobStatusService.setResult(jobId, "캐시된 URL 처리: " + urlStr);
-                UrlResponse cachedResponse = convertToUrlResponse(existingData.get(), jobId);
-                if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
-                    if (urlResponse.get() == null) {
-                        urlResponse.set(cachedResponse);
-                    } else {
-                        urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
-                    }
-                    jobStatusService.setResult(jobId, "캐시된 장소 데이터 수: " + cachedResponse.getPlaceDetails().size());
                 }
             }
 
-            // 2. FastAPI 호출
+            // 2. FastAPI 호출 개선
             if (!newUrlStr.isEmpty()) {
-                jobStatusService.setResult(jobId, "FastAPI 호출 시작 - 처리할 URL 수: " + newUrlStr.size());
-                
+                jobStatusService.setResult(jobId, "FastAPI 호출 시작");
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("urls", newUrlStr);
                 
-                jobStatusService.setResult(jobId, "FastAPI 요청 데이터: " + objectMapper.writeValueAsString(requestBody));
-                UrlResponse response;
                 try {
-                    response = webClient
+                    UrlResponse response = webClient
                         .post()
                         .uri("/api/v1/contentanalysis")
                         .bodyValue(requestBody)
                         .retrieve()
+                        .onStatus(
+                            status -> status.is4xxClientError() || status.is5xxServerError(),
+                            clientResponse -> clientResponse.bodyToMono(String.class)
+                                .flatMap(error -> Mono.error(new RuntimeException("FastAPI 오류: " + error)))
+                        )
                         .bodyToMono(UrlResponse.class)
-                    .timeout(Duration.ofMinutes(15))
-                    .block();
+                        .timeout(Duration.ofMinutes(15))
+                        .block();
+
+                    if (response != null && !response.getPlaceDetails().isEmpty()) {
+                        jobStatusService.setResult(jobId, "FastAPI 응답 성공");
+                        transactionTemplate.execute(status -> {
+                            processPlaceInfo(response, newUrlStr, urlResponse);
+                            return null;
+                        });
+                    } else {
+                        jobStatusService.setResult(jobId, "FastAPI 응답이 비어있음");
+                        throw new RuntimeException("FastAPI 응답이 비어있습니다");
+                    }
                 } catch (Exception e) {
-                    log.error("FastAPI 호출 실패", e);
                     jobStatusService.setResult(jobId, "FastAPI 호출 실패: " + e.getMessage());
-                    throw new RuntimeException("FastAPI 호출 실패", e);
-                }
-
-                jobStatusService.setResult(jobId, "FastAPI 응답 수신 완료");
-
-                if (response != null && !response.getPlaceDetails().isEmpty()) {
-                    jobStatusService.setResult(jobId, "FastAPI 응답 장소 데이터 수: " + response.getPlaceDetails().size());
-                    transactionTemplate.execute(status -> {
-                        processPlaceInfo(response, newUrlStr, urlResponse);
-                        return null;
-                    });
-                    jobStatusService.setResult(jobId, "DB 저장 완료");
-                } else {
-                    jobStatusService.setResult(jobId, "FastAPI 응답 데이터 없음");
-                    throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
+                    throw e;
                 }
             }
 
-            // 3. 최종 결과 처리
-            if (urlResponse.get() != null && !urlResponse.get().getPlaceDetails().isEmpty()) {
-                String result = objectMapper.writeValueAsString(urlResponse.get());
-                jobStatusService.setResult(jobId, "총 처리된 장소 데이터 수: " + urlResponse.get().getPlaceDetails().size());
-                jobStatusService.setJobStatus(jobId, "Completed", result);
-            } else {
-                jobStatusService.setResult(jobId, "처리된 장소 데이터 없음");
+            // 3. 최종 결과 검증 개선
+            if (urlResponse.get() == null) {
+                throw new RuntimeException("URL 응답 객체가 null입니다");
+            }
+            
+            if (urlResponse.get().getPlaceDetails() == null || urlResponse.get().getPlaceDetails().isEmpty()) {
                 throw new RuntimeException("처리된 장소 데이터가 없습니다");
             }
+
+            // 성공 처리
+            String result = objectMapper.writeValueAsString(urlResponse.get());
+            jobStatusService.setJobStatus(jobId, "Completed", result);
             
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
-            String errorDetail = String.format("처리 중 오류 발생: %s\n스택트레이스: %s", 
-                e.getMessage(),
-                Arrays.toString(e.getStackTrace()));
-            jobStatusService.setResult(jobId, "에러 발생: " + errorDetail);
+            String errorDetail = String.format("처리 중 오류 발생: %s", e.getMessage());
             jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
         }
     }
