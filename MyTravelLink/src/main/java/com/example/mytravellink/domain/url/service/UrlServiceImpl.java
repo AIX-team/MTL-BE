@@ -118,7 +118,7 @@ public class UrlServiceImpl implements UrlService {
                     throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
                 }
                 
-                processPlaceInfo(response, newUrlStr, urlResponse, jobId);
+                processPlaceInfo(response, urlResponse, jobId);
             }
             
             if (urlResponse.get() == null || urlResponse.get().getPlaceDetails().isEmpty()) {
@@ -507,7 +507,7 @@ public class UrlServiceImpl implements UrlService {
                     if (response != null && !response.getPlaceDetails().isEmpty()) {
                         jobStatusService.setResult(jobId, "FastAPI 응답 성공");
                         transactionTemplate.execute(status -> {
-                            processPlaceInfo(response, newUrlStr, urlResponse, jobId);
+                            processPlaceInfo(response, urlResponse, jobId);
                             return null;
                         });
                     } else {
@@ -557,59 +557,86 @@ public class UrlServiceImpl implements UrlService {
     }
 
     // Place 정보 처리를 위한 별도 메서드
-    private void processPlaceInfo(UrlResponse apiResponse, List<String> newUrlStr, 
+    private void processPlaceInfo(UrlResponse apiResponse,
                                 AtomicReference<UrlResponse> urlResponse, String jobId) {
         try {
-            jobStatusService.setResult(jobId, "장소 정보 처리 시작");
-            jobStatusService.setResult(jobId, "새로운 URL 수: " + newUrlStr.size());
-            jobStatusService.setResult(jobId, "응답 장소 수: " + apiResponse.getPlaceDetails().size());
-
-            // URL과 PlaceInfo의 매핑 관계 확인
-            if (newUrlStr.size() != apiResponse.getPlaceDetails().size()) {
-                jobStatusService.setResult(jobId, 
-                    String.format("URL 수(%d)와 장소 수(%d)가 일치하지 않습니다", 
-                    newUrlStr.size(), apiResponse.getPlaceDetails().size()));
+            // 입력값 검증
+            if (apiResponse == null || apiResponse.getPlaceDetails() == null) {
+                jobStatusService.setResult(jobId, "API 응답이 null입니다");
+                throw new RuntimeException("API 응답이 null입니다");
             }
+
+            jobStatusService.setResult(jobId, "장소 정보 처리 시작");
+            jobStatusService.setResult(jobId, String.format(
+                "입력 데이터 - URLs: %s, Places: %s", 
+                apiResponse.getPlaceDetails().stream()
+                          .map(PlaceInfo::getName)
+                          .toList()
+            ));
 
             // Place 정보 처리
-            for (int i = 0; i < apiResponse.getPlaceDetails().size(); i++) {
-                PlaceInfo placeInfo = apiResponse.getPlaceDetails().get(i);
-                ContentInfo contentInfo = apiResponse.getContentInfos().get(i);
-                
-                // 이미지 URL 처리
-                String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
-                if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() 
-                    && placeInfo.getPhotos().get(0) != null) {
-                    imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
+            List<PlaceInfo> processedPlaces = new ArrayList<>();
+            for (PlaceInfo placeInfo : apiResponse.getPlaceDetails()) {
+                try {
+                    if (placeInfo == null) {
+                        jobStatusService.setResult(jobId, "null PlaceInfo 발견, 건너뜀");
+                        continue;
+                    }
+
+                    jobStatusService.setResult(jobId, "장소 처리 시작: " + placeInfo.getName());
+
+                    // 이미지 URL 처리
+                    String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+                    if (placeInfo.getPhotos() != null && 
+                        !placeInfo.getPhotos().isEmpty() && 
+                        placeInfo.getPhotos().get(0) != null) {
+                        try {
+                            imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
+                        } catch (Exception e) {
+                            jobStatusService.setResult(jobId, "이미지 URL 처리 실패: " + e.getMessage());
+                        }
+                    }
+
+                    // Place 저장
+                    Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+                    jobStatusService.setResult(jobId, "장소 저장 완료: " + place.getTitle());
+                    Url url = urlRepository.findByUrl(placeInfo.getSourceUrl())
+                        .orElseGet(() -> {
+                            Url newUrl = Url.builder()
+                                .url(placeInfo.getSourceUrl())
+                                .urlTitle(placeInfo.getSourceUrl())
+                                .urlAuthor("system")
+                                .build();
+                            return urlRepository.save(newUrl);
+                        });
+                    jobStatusService.setResult(jobId, "URL 저장 완료: " + url.getUrl());
+
+                    saveUrlPlaceMapping(url, place);
+                    processedPlaces.add(placeInfo);
+                    
+                } catch (Exception e) {
+                    jobStatusService.setResult(jobId, "장소 처리 실패: " + e.getMessage());
                 }
-                
-                // Place 저장
-                Place place = saveOrUpdatePlace(placeInfo, imageUrl);
-                Url url = urlRepository.findByUrl(contentInfo.getUrl())
-                    .orElseGet(() -> {
-                        Url newUrl = Url.builder()
-                            .url(contentInfo.getUrl())
-                            .urlTitle(contentInfo.getTitle())
-                            .urlAuthor(contentInfo.getAuthor())
-                            .build();
-                        return urlRepository.save(newUrl);
-                    });
-                
-                // URL-Place 매핑
-                saveUrlPlaceMapping(url, place);
             }
-            
+
             // 응답 데이터 병합
-            if (urlResponse.get() == null) {
-                urlResponse.set(apiResponse);
+            if (!processedPlaces.isEmpty()) {
+                if (urlResponse.get() == null) {
+                    UrlResponse newResponse = new UrlResponse();
+                    newResponse.setPlaceDetails(new ArrayList<>(processedPlaces));
+                    urlResponse.set(newResponse);
+                } else {
+                    urlResponse.get().getPlaceDetails().addAll(processedPlaces);
+                }
+                jobStatusService.setResult(jobId, 
+                    String.format("처리 완료 - 총 %d개 장소 처리됨", processedPlaces.size()));
             } else {
-                urlResponse.get().getPlaceDetails().addAll(apiResponse.getPlaceDetails());
+                jobStatusService.setResult(jobId, "처리된 장소가 없습니다");
+                throw new RuntimeException("처리된 장소가 없습니다");
             }
-            
-            jobStatusService.setResult(jobId, "장소 정보 처리 완료");
-            
+
         } catch (Exception e) {
-            jobStatusService.setResult(jobId, "장소 정보 처리 실패: " + e.getMessage());
+            jobStatusService.setResult(jobId, "장소 정보 처리 중 오류: " + e.getMessage());
             throw e;
         }
     }
