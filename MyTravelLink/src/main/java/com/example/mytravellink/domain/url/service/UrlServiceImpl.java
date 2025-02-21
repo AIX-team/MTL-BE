@@ -98,6 +98,10 @@ public class UrlServiceImpl implements UrlService {
             if (!newUrlStr.isEmpty()) {
                 jobStatusService.setJobStatus(jobId, "PROCESSING", "FastAPI 분석 중...");
                 
+                String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("urls", newUrlStr);
+                
                 ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
                     requestUrl, requestBody, UrlResponse.class
                 );
