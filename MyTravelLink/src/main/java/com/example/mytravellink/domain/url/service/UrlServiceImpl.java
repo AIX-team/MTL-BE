@@ -40,6 +40,10 @@ import com.example.mytravellink.domain.job.service.JobStatusService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.client.RestClientException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -103,53 +107,47 @@ public class UrlServiceImpl implements UrlService {
             
             // 3. 새로운 URL 분석이 필요한 경우 FastAPI 호출
             if (!newUrlStr.isEmpty()) {
+                // FastAPI 호출 전 상태 업데이트
+                jobStatusService.setJobStatus(jobId, "PROCESSING", "FastAPI 분석 중...");
+                
                 String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("urls", newUrlStr);
                 
-                ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
-                    requestUrl, requestBody, UrlResponse.class
-                );
+                // 비동기 호출
+                CompletableFuture<ResponseEntity<UrlResponse>> futureResponse = 
+                    CompletableFuture.supplyAsync(() -> 
+                        restTemplate.postForEntity(requestUrl, requestBody, UrlResponse.class)
+                    );
                 
-                if (response.getBody() != null) { // 만약 가져온 데이터가 있다면
+                // 타임아웃 설정 (예: 600초 / 10분)
+                try {
+                    ResponseEntity<UrlResponse> response = 
+                        futureResponse.get(600, TimeUnit.SECONDS);
                     
-                    // Place 정보 저장
-                    for (PlaceInfo placeInfo : response.getBody().getPlaceDetails()) {
-                        List<PlacePhoto> photos = placeInfo.getPhotos();
-                        String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
-                        
-                        // 만약 이미지가 있다면
-                        if (photos != null && !photos.isEmpty() && photos.get(0) != null) {
-                            // 이미지 리다이렉트
-                            imageUrl = imageService.redirectImageUrl(photos.get(0).getUrl());
-                        }
-                        
-                        // Place 정보 저장
-                        Place place = saveOrUpdatePlace(placeInfo, imageUrl);
-                        
-                        // URL과 Place 연관 매핑 저장
-                        for(String urlStr : newUrlStr) {
-                            Url url = urlRepository.findByUrl(urlStr)
-                                .orElseThrow(() -> new RuntimeException("URL not found"));
-                            saveUrlPlaceMapping(url, place);
-                        }
+                    if (response.getBody() == null) {
+                        throw new RuntimeException("FastAPI 응답이 없습니다.");
                     }
                     
-                    for(String urlStr : urlRequest.getUrls()) {
-                        UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, urlStr)
-                            .orElseThrow(() -> new RuntimeException("URL not found"));
-                        usersUrl.setUse(false);
-                        usersUrlRepository.save(usersUrl);
-                    }
-
-                    // 응답 데이터 병합
-                    if (urlResponse.get() == null) {
-                        urlResponse.set(response.getBody());
-                    } else {
-                        urlResponse.get().getPlaceDetails().addAll(response.getBody().getPlaceDetails());
-                    }
+                    // Place 정보 저장 및 처리
+                    processPlaceInfo(response.getBody(), newUrlStr, urlResponse);
+                    
+                } catch (TimeoutException e) {
+                    jobStatusService.setJobStatus(jobId, "FAILED", "FastAPI 처리 시간 초과");
+                    throw new RuntimeException("FastAPI 처리 시간 초과", e);
+                } catch (InterruptedException | ExecutionException e) {
+                    jobStatusService.setJobStatus(jobId, "FAILED", "FastAPI 처리 중 오류 발생");
+                    throw new RuntimeException("FastAPI 처리 중 오류", e);
                 }
             }
+                    
+            for(String urlStr : urlRequest.getUrls()) {
+                UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, urlStr)
+                    .orElseThrow(() -> new RuntimeException("URL not found"));
+                usersUrl.setUse(false);
+                usersUrlRepository.save(usersUrl);
+            }
+
             
             return urlResponse.get() != null ? urlResponse.get() : 
                 UrlResponse.builder()
@@ -162,8 +160,8 @@ public class UrlServiceImpl implements UrlService {
             
             StringBuilder errorDetail = new StringBuilder();
             
-            if (e instanceof UnsupportedOperationException) {
-                errorDetail.append("컬렉션 수정 오류: 불변 리스트를 수정하려고 시도했습니다.");
+            if (e instanceof TimeoutException) {
+                errorDetail.append("FastAPI 처리 시간 초과: ").append(e.getMessage());
             } else if (e instanceof RestClientException) {
                 errorDetail.append("FastAPI 서버 통신 오류: ").append(e.getMessage());
             } else if (e instanceof DataAccessException) {
@@ -517,5 +515,31 @@ public class UrlServiceImpl implements UrlService {
         return usersUrlRepository.existsByIdAndUserEmail(urlId, userEmail);
     }
 
-    
+    // Place 정보 처리를 위한 별도 메서드
+    private void processPlaceInfo(UrlResponse apiResponse, List<String> newUrlStr, 
+                                AtomicReference<UrlResponse> urlResponse) {
+        for (PlaceInfo placeInfo : apiResponse.getPlaceDetails()) {
+            List<PlacePhoto> photos = placeInfo.getPhotos();
+            String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+            
+            if (photos != null && !photos.isEmpty() && photos.get(0) != null) {
+                imageUrl = imageService.redirectImageUrl(photos.get(0).getUrl());
+            }
+            
+            Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+            
+            for(String urlStr : newUrlStr) {
+                Url url = urlRepository.findByUrl(urlStr)
+                    .orElseThrow(() -> new RuntimeException("URL not found"));
+                saveUrlPlaceMapping(url, place);
+            }
+        }
+        
+        // 응답 데이터 병합
+        if (urlResponse.get() == null) {
+            urlResponse.set(apiResponse);
+        } else {
+            urlResponse.get().getPlaceDetails().addAll(apiResponse.getPlaceDetails());
+        }
+    }
 }
