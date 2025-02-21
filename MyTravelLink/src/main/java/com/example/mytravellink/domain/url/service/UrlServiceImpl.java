@@ -469,31 +469,37 @@ public class UrlServiceImpl implements UrlService {
 
     @Override
     @Async
-    @Transactional
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            jobStatusService.setJobStatus(jobId, "PROCESSING", "URL 분석 중...");
+            jobStatusService.setJobStatus(jobId, "PROCESSING", "URL 분석 시작...");
             
-            // 1. CompletableFuture 대신 직접 실행
+            // 1. FastAPI 호출 전 상태 업데이트
+            jobStatusService.setJobStatus(jobId, "PROCESSING", "FastAPI 분석 중...");
+            
+            // 2. 새로운 트랜잭션에서 FastAPI 호출 및 데이터 처리
             UrlResponse response = transactionTemplate.execute(status -> {
                 try {
                     return processUrl(urlRequest, jobId, email);
                 } catch (Exception e) {
-                    log.error("URL 처리 실패", e);
-                    jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
-                    throw new CompletionException(e);
+                    String errorMsg = String.format("URL 처리 실패: %s", e.getMessage());
+                    log.error(errorMsg, e);
+                    throw new CompletionException(errorMsg, e);
                 }
             });
-
-            // 2. 결과가 있을 때만 완료 상태로 변경
-            if (response != null && response.getPlaceDetails() != null) {
-                String result = objectMapper.writeValueAsString(response);
-                jobStatusService.setJobStatus(jobId, "Completed", result);
+            
+            // 3. FastAPI 응답 검증
+            if (response == null || response.getPlaceDetails() == null) {
+                throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
             }
             
+            // 4. 성공 시에만 완료 상태 업데이트
+            String result = objectMapper.writeValueAsString(response);
+            jobStatusService.setJobStatus(jobId, "Completed", result);
+            
         } catch (Exception e) {
-            log.error("비동기 처리 실패", e);
-            jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
+            String errorMsg = String.format("비동기 처리 실패: %s", e.getMessage());
+            log.error(errorMsg, e);
+            jobStatusService.setJobStatus(jobId, "FAILED", errorMsg);
         }
     }
     public boolean isUser(String urlId, String userEmail) {
