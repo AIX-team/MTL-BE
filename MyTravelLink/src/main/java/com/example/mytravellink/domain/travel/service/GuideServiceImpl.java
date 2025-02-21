@@ -4,6 +4,8 @@ import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import com.example.mytravellink.domain.job.service.JobStatusService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +30,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @EnableAsync  // 비동기 처리 활성화
 @RequiredArgsConstructor
@@ -38,9 +42,12 @@ public class GuideServiceImpl implements GuideService {
   private final PlaceRepository placeRepository;
   private final TravelInfoRepository travelInfoRepository;
   private final JobStatusService jobStatusService;
-  
-  @Autowired
-  private TaskExecutor taskExecutor;  // TaskExecutor 주입
+  private final ObjectMapper objectMapper;
+  private final PlaceService placeService;
+  private final TravelInfoService travelInfoService;
+
+  // @Autowired
+  // private TaskExecutor taskExecutor;  // TaskExecutor 주입
 
   @Value("${server.tomcat.connection-timeout:180000}")
   private int connectionTimeout; // 3분으로 설정
@@ -55,22 +62,74 @@ public class GuideServiceImpl implements GuideService {
     return guideRepository.findById(guideId).orElseThrow(() -> new RuntimeException("Guide not found"));
   }
 
-  /**
-   * Guide, Course, CoursePlace 생성
-   * @param guide
-   * @param courseList
-   * @param coursePlaceList
-   */
-    @Async
+  // /**
+  //  * Guide, Course, CoursePlace 생성
+  //  * @param guide
+  //  * @param courseList
+  //  * @param coursePlaceList
+  //  */
+  //   @Async
+  //   @Override
+  //   @Transactional
+  //   public CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+  //       return CompletableFuture.supplyAsync(() -> {
+  //           String jobId = UUID.randomUUID().toString();
+  //           jobStatusService.setStatus(jobId, "Processing");
+            
+  //           try {
+  //               var savedGuide = saveGuide(guide);
+                
+  //               aiGuideCourseResponses.forEach(aiGuideCourseResponse -> 
+  //                   aiGuideCourseResponse.getDailyPlans().forEach(dailyPlan -> {
+  //                       var courseNumber = courseRepository.findMaxCourseNumberByGuideId(savedGuide.getId());
+  //                       var newCourseNumber = courseNumber == null ? 1 : courseNumber + 1;
+                        
+  //                       var course = Course.builder()
+  //                               .courseNumber(newCourseNumber)
+  //                               .guide(savedGuide)
+  //                               .build();
+                                
+  //                       var savedCourse = saveCourse(course);
+                        
+  //                       dailyPlan.getPlaces().forEach(placeResp -> {
+  //                           var placeNum = dailyPlan.getPlaces().indexOf(placeResp) + 1;
+  //                           var place = placeRepository.findById(placeResp.getId())
+  //                                   .orElseThrow(() -> new RuntimeException("Place not found: " + placeResp.getName()));
+                                    
+  //                           var coursePlace = CoursePlace.builder()
+  //                                   .course(savedCourse)
+  //                                   .place(place)
+  //                                   .placeNum(placeNum)
+  //                                   .build();
+                                    
+  //                           saveCoursePlace(coursePlace);
+  //                       });
+  //                   })
+  //               );
+                
+  //               jobStatusService.setStatus(jobId, "Completed");
+  //               jobStatusService.setResult(jobId, savedGuide.getId());
+  //               return jobId;
+  //           } catch (Exception e) {
+  //               jobStatusService.setStatus(jobId, "Failed");
+  //               throw new RuntimeException("가이드 생성 실패: " + e.getMessage());
+  //           }
+  //       }, taskExecutor);
+  //   }
+
+
+    /**
+     * Guide, Course, CoursePlace 생성
+     * @param guide
+     * @param courseList
+     * @param coursePlaceList
+     */
     @Override
     @Transactional
-    public CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
-        return CompletableFuture.supplyAsync(() -> {
-            String jobId = UUID.randomUUID().toString();
-            jobStatusService.setStatus(jobId, "Processing");
-            
-            try {
-                var savedGuide = saveGuide(guide);
+    public String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponses) {
+        try {
+                  var savedGuide = saveGuide(guide);
+                  
                 
                 aiGuideCourseResponses.forEach(aiGuideCourseResponse -> 
                     aiGuideCourseResponse.getDailyPlans().forEach(dailyPlan -> {
@@ -100,15 +159,12 @@ public class GuideServiceImpl implements GuideService {
                     })
                 );
                 
-                jobStatusService.setStatus(jobId, "Completed");
-                jobStatusService.setResult(jobId, savedGuide.getId());
-                return jobId;
+                return savedGuide.getId();
             } catch (Exception e) {
-                jobStatusService.setStatus(jobId, "Failed");
                 throw new RuntimeException("가이드 생성 실패: " + e.getMessage());
             }
-        }, taskExecutor);
     }
+
 
     /**
      * PlaceSelectRequest를 AIGuideCourseRequest로 변환
@@ -262,5 +318,73 @@ public class GuideServiceImpl implements GuideService {
   @Override
   public boolean isUser(String guideId, String userEmail) {
     return guideRepository.isUser(guideId, userEmail);
+  }
+
+  /**
+   * 가이드 북 비동기 생성
+   * @param placeSelectRequest
+   * @param jobId
+   */
+  @Async("asyncTaskExecutor")
+  @Override
+  public void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email) {
+    try {
+      log.info("Starting async guide creation for jobId: {}", jobId);
+      jobStatusService.setJobStatus(jobId, "PROCESSING", null);
+
+      String response = createGuide(placeSelectRequest, email);
+      String resultString = objectMapper.writeValueAsString(response);
+      
+      log.info("Guide creation completed for jobId: {}", jobId);
+      jobStatusService.setJobStatus(jobId, "COMPLETED", resultString);
+      
+    } catch (Exception e) {
+      log.error("Guide creation failed for jobId: " + jobId, e);
+      jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
+      throw new RuntimeException("가이드 북 비동기 생성 실패", e);
+    }
+  }
+
+  /**
+   * 비동기적 가이드 북 생성을 위한 컨트롤러 서비스
+   * @param placeSelectRequest
+   * @return String
+   */
+  @Override
+  @Transactional
+  public String createGuide(PlaceSelectRequest placeSelectRequest, String email) {
+    try {
+      AIGuideCourseRequest aiGuideCourseRequest = convertToAIGuideCourseRequest(placeSelectRequest);
+      log.debug("AI 요청 데이터: {}", aiGuideCourseRequest);
+
+      List<AIGuideCourseResponse> aiGuideCourseResponses = 
+          placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
+
+      if (aiGuideCourseResponses == null) {
+          log.error("AI 응답 데이터가 null입니다");
+          throw new RuntimeException("AI 응답 데이터 없음");
+      }
+
+      String title = "가이드북" + travelInfoService.getGuideCount(email);
+      Guide guide = createGuideEntity(placeSelectRequest, title, email);
+      
+      return createGuideAndCourses(guide, aiGuideCourseResponses);
+    } catch (Exception e) {
+      log.error("가이드 생성 중 오류 발생", e);
+      throw new RuntimeException("가이드 생성 실패", e);
+    }
+  }
+
+  private Guide createGuideEntity(PlaceSelectRequest placeSelectRequest, String title, String email) {
+    return Guide.builder()
+            .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+            .title(title)
+            .travelDays(placeSelectRequest.getTravelDays())
+            .courseCount(placeSelectRequest.getTravelDays())
+            .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
+            .isFavorite(false)
+            .fixed(false)
+            .isDelete(false)
+            .build();
   }
 }

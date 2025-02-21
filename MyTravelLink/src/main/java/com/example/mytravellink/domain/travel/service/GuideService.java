@@ -1,6 +1,7 @@
 package com.example.mytravellink.domain.travel.service;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
+import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 import java.util.List;
@@ -29,7 +30,8 @@ public interface GuideService {
      * @param aiGuideCourseResponse
      * @return CompletableFuture<String>
      */
-    CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
+    // CompletableFuture<String> createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
+    String createGuideAndCourses(Guide guide, List<AIGuideCourseResponse> aiGuideCourseResponse);
 
     /**
      * 가이드 북 제목 수정
@@ -72,5 +74,19 @@ public interface GuideService {
      * @return boolean
      */
     boolean isUser(String guideId, String userEmail);
+    
+    /**
+     * 가이드 북 비동기 생성
+     * @param placeSelectRequest
+     * @param jobId
+     */
+    void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email);
+
+    /**
+     * 가이드 북 생성
+     * @param placeSelectRequest
+     * @return String
+     */
+    String createGuide(PlaceSelectRequest placeSelectRequest, String email);  
 }
 
