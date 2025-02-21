@@ -34,11 +34,12 @@ import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.URI;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import com.example.mytravellink.domain.job.service.JobStatusService;
 import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.dao.DataAccessException;
+import org.springframework.web.client.RestClientException;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -153,8 +154,31 @@ public class UrlServiceImpl implements UrlService {
                 
         } catch (Exception e) {
             log.error("URL 처리 실패", e);
-            jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
-            throw new RuntimeException("URL 처리 실패: " + e.getMessage());
+            
+            StringBuilder errorDetail = new StringBuilder();
+            
+            // FastAPI 호출 관련 에러인 경우
+            if (e instanceof RestClientException) {
+                errorDetail.append("FastAPI 서버 통신 오류: ")
+                          .append(e.getMessage());
+            } 
+            // DB 관련 에러인 경우
+            else if (e instanceof DataAccessException) {
+                errorDetail.append("데이터베이스 처리 오류: ")
+                          .append(e.getMessage());
+            }
+            // 기타 에러
+            else {
+                errorDetail.append("처리 중 오류 발생: ")
+                          .append(e.getMessage())
+                          .append("\n상세 위치: ")
+                          .append(e.getStackTrace()[0].getFileName())
+                          .append(":")
+                          .append(e.getStackTrace()[0].getLineNumber());
+            }
+            
+            jobStatusService.setJobStatus(jobId, "FAILED", errorDetail.toString());
+            throw new RuntimeException(errorDetail.toString(), e);
         }
     }
 
