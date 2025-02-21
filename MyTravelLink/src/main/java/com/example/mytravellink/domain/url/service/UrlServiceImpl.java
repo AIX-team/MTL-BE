@@ -18,10 +18,8 @@ import com.example.mytravellink.domain.url.repository.UrlRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 import java.util.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +29,8 @@ import com.example.mytravellink.domain.users.entity.UsersUrl;
 import com.example.mytravellink.domain.users.entity.UsersUrlId;
 import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
+import com.example.mytravellink.infrastructure.ai.common.config.AIConfig;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,15 +38,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import com.example.mytravellink.domain.job.service.JobStatusService;
 
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import org.springframework.dao.DataAccessException;
-import org.springframework.web.client.RestClientException;
 import java.util.stream.Collectors;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import jakarta.annotation.PostConstruct;
 import java.time.Duration;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -55,7 +52,6 @@ import java.time.Duration;
 public class UrlServiceImpl implements UrlService {
 
     private final PlaceRepository placeRepository;
-    private final RestTemplate restTemplate;
     private final UrlRepository urlRepository;
     private final UrlPlaceRepository urlPlaceRepository;
     private final TravelInfoUrlRepository travelInfoUrlRepository;
@@ -65,20 +61,12 @@ public class UrlServiceImpl implements UrlService {
     private final TravelInfoPlaceRepository travelInfoPlaceRepository;
     private final ImageService imageService;
     private final JobStatusService jobStatusService;
-    private final ObjectMapper objectMapper;  // ObjectMapper 추가
+    private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final AIConfig webClient;
 
-    @Value("${ai.server.url}")  // application.yml에서 설정
+    @Value("${ai.server.url}")
     private String fastAPiUrl;
-
-    @PostConstruct
-    public void configureRestTemplate() {
-        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(5));  // 5초
-        factory.setConnectionRequestTimeout(Duration.ofMinutes(15));  // 15분
-        
-        restTemplate.setRequestFactory(factory);
-    }
 
     @Override
     @Transactional
@@ -109,55 +97,47 @@ public class UrlServiceImpl implements UrlService {
             if (!newUrlStr.isEmpty()) {
                 jobStatusService.setJobStatus(jobId, "Processing", "FastAPI 분석 중...");
                 
-                String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("urls", newUrlStr);
                 
-                // FastAPI 호출 (한 번만)
-                ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
-                    requestUrl, requestBody, UrlResponse.class
-                );
+                // WebClient를 사용한 FastAPI 호출
+                UrlResponse response = webClient
+                    .post()
+                    .uri("/api/v1/contentanalysis")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .onStatus(
+                        status -> status.is4xxClientError() || status.is5xxServerError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                            .flatMap(error -> Mono.error(new RuntimeException("FastAPI 오류: " + error)))
+                    )
+                    .bodyToMono(UrlResponse.class)
+                    .block(Duration.ofMinutes(5));  // 최대 5분 대기
                 
-                // 응답 검증 및 처리
                 if (response == null || 
-                    response.getBody() == null || 
-                    response.getBody().getPlaceDetails() == null || 
-                    response.getBody().getPlaceDetails().isEmpty()) {
+                    response.getPlaceDetails() == null || 
+                    response.getPlaceDetails().isEmpty()) {
                     throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
                 }
                 
-                // 응답 처리
-                processPlaceInfo(response.getBody(), newUrlStr, urlResponse);
+                processPlaceInfo(response, newUrlStr, urlResponse);
             }
             
-            // 3. 최종 검증
             if (urlResponse.get() == null || urlResponse.get().getPlaceDetails().isEmpty()) {
                 throw new RuntimeException("처리된 장소 데이터가 없습니다");
             }
             
             return urlResponse.get();
+            
         } catch (Exception e) {
             log.error("URL 처리 실패", e);
+            String errorDetail = String.format("처리 중 오류 발생: %s\n상세 위치: %s:%d",
+                e.getMessage(),
+                e.getStackTrace()[0].getFileName(),
+                e.getStackTrace()[0].getLineNumber());
             
-            StringBuilder errorDetail = new StringBuilder();
-            
-            if (e instanceof TimeoutException) {
-                errorDetail.append("FastAPI 처리 시간 초과: ").append(e.getMessage());
-            } else if (e instanceof RestClientException) {
-                errorDetail.append("FastAPI 서버 통신 오류: ").append(e.getMessage());
-            } else if (e instanceof DataAccessException) {
-                errorDetail.append("데이터베이스 처리 오류: ").append(e.getMessage());
-            } else {
-                errorDetail.append("처리 중 오류 발생: ")
-                          .append(e.getMessage())
-                          .append("\n상세 위치: ")
-                          .append(e.getStackTrace()[0].getFileName())
-                          .append(":")
-                          .append(e.getStackTrace()[0].getLineNumber());
-            }
-            
-            jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
-            throw new RuntimeException(errorDetail.toString(), e);
+            jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
+            throw new RuntimeException(errorDetail, e);
         }
     }
 
@@ -441,22 +421,25 @@ public class UrlServiceImpl implements UrlService {
     @Override
     public boolean checkYoutubeSubtitles(String videoUrl) {
         try {
-            // FastAPI의 유튜브 자막 체크 엔드포인트 호출 (예: http://.../api/v1/youtube/check_subtitles)
-            String subtitleUrl = fastAPiUrl + "/api/v1/youtube/check_subtitles";
             Map<String, String> payload = new HashMap<>();
             payload.put("video_url", videoUrl);
-            ResponseEntity<Map> response = restTemplate.postForEntity(subtitleUrl, payload, Map.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Object hasSubtitles = response.getBody().get("has_subtitles");
-                if (hasSubtitles instanceof Boolean) {
-                    return (Boolean) hasSubtitles;
-                }
-            }
+            
+            return webClient
+                .post()
+                .uri("/api/v1/youtube/check_subtitles")
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .map(response -> {
+                    Object hasSubtitles = response.get("has_subtitles");
+                    return hasSubtitles instanceof Boolean && (Boolean) hasSubtitles;
+                })
+                .block(Duration.ofSeconds(10));
+                
         } catch (Exception e) {
-            // 에러 로그 기록 (필요 시)
-            e.printStackTrace();
+            log.error("자막 체크 실패", e);
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -465,7 +448,6 @@ public class UrlServiceImpl implements UrlService {
         try {
             jobStatusService.setJobStatus(jobId, "Processing", "URL 분석 중...");
             
-            // 새로운 트랜잭션에서 실행하고 결과를 기다림
             UrlResponse response = transactionTemplate.execute(status -> {
                 try {
                     return processUrl(urlRequest, jobId, email);
@@ -475,7 +457,6 @@ public class UrlServiceImpl implements UrlService {
                 }
             });
 
-            // 결과가 있을 때만 완료 상태로 업데이트
             if (response != null && !response.getPlaceDetails().isEmpty()) {
                 String result = objectMapper.writeValueAsString(response);
                 jobStatusService.setJobStatus(jobId, "Completed", result);
@@ -486,15 +467,8 @@ public class UrlServiceImpl implements UrlService {
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
             StringBuilder errorDetail = new StringBuilder();
-            errorDetail.append("Error: ").append(e.getClass().getName())
-                      .append("\nMessage: ").append(e.getMessage());
-            
-            if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
-                errorDetail.append("\nStack trace:\n");
-                for (int i = 0; i < Math.min(3, e.getStackTrace().length); i++) {
-                    errorDetail.append("  ").append(e.getStackTrace()[i].toString()).append("\n");
-                }
-            }
+            errorDetail.append("비동기 처리 실패: ")
+                      .append(e.getMessage());
             
             jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
         }
