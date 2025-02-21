@@ -33,6 +33,8 @@ import com.example.mytravellink.domain.users.entity.UsersUrlId;
 import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.URI;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ import com.example.mytravellink.domain.job.service.JobStatusService;
 @Service
 @EnableAsync  // 비동기 처리 활성화
 @RequiredArgsConstructor
+@Slf4j
 public class UrlServiceImpl implements UrlService {
 
     private final PlaceRepository placeRepository;
@@ -65,154 +68,163 @@ public class UrlServiceImpl implements UrlService {
     private String fastAPiUrl;
 
     @Override
-    public UrlResponse processUrl(UrlRequest urlRequest) {
-        // URL 리스트가 비어있으면 예외 처리
-        if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
-            throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
-        }
-        // 여기서는 리스트의 첫 번째 URL로 처리합니다.
-        String urlStr = urlRequest.getUrls().get(0);
-
-        // 1. DB에서 기존 데이터 조회
-        Optional<Url> existingData = urlRepository.findByUrl(urlStr);
-        // 기존 매핑을 따로 저장하여 업데이트할 수 있도록 함
-        List<UsersUrl> oldMappings = new ArrayList<>();
-
-        if (existingData.isPresent()) {
-            Url cachedUrl = existingData.get();
-            // URL에 해당하는 매핑 정보들을 모두 조회 (매핑이 여러 건일 수 있으므로)
-            List<UsersUrl> mappings = usersUrlRepository.findAllByUrl(cachedUrl);
-            oldMappings.addAll(mappings);
-            // 매핑 정보 중 하나라도 is_use가 true이면 캐시 사용 안하도록 처리
-            boolean hasActiveMapping = mappings.stream()
-                    .anyMatch(mapping -> mapping.isUse());
-            if (hasActiveMapping) {
-                existingData = Optional.empty();
+    public UrlResponse processUrl(UrlRequest urlRequest, String jobId) {
+        try {
+            // URL 리스트가 비어있으면 예외 처리
+            if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
+                jobStatusService.setJobStatus(jobId, "Failed", "URL 리스트가 비어있습니다.");
+                throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
             }
-        }
+            // 여기서는 리스트의 첫 번째 URL로 처리합니다.
+            String urlStr = urlRequest.getUrls().get(0);
 
-        // 2. 기존 데이터가 있으면 해당 데이터로 반환 (active 매핑이 없는 경우)
-        if (existingData.isPresent()) {
-            Url url = existingData.get();
-            ObjectMapper objectMapper = new ObjectMapper();
+            // 1. DB에서 기존 데이터 조회
+            Optional<Url> existingData = urlRepository.findByUrl(urlStr);
+            // 기존 매핑을 따로 저장하여 업데이트할 수 있도록 함
+            List<UsersUrl> oldMappings = new ArrayList<>();
 
-            List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
-                    .map(urlPlace -> {
-                        Place place = urlPlace.getPlace();
-                        // 이미지 변환
-                        List<PlacePhoto> images;
-                        try {
-                            images = place.getImage() != null
-                                    ? objectMapper.readValue(place.getImage(), new TypeReference<List<PlacePhoto>>() {})
-                                    : Collections.emptyList();
-                        } catch (Exception e) {
-                            images = Collections.emptyList();
-                        }
-                        // 영업시간 변환
-                        List<String> openHours;
-                        try {
-                            openHours = place.getOpenHours() != null
-                                    ? objectMapper.readValue(place.getOpenHours(), new TypeReference<List<String>>() {})
-                                    : Collections.emptyList();
-                        } catch (Exception e) {
-                            openHours = Collections.emptyList();
-                        }
-
-                        return new PlaceInfo(
-                                place.getTitle(),
-                                place.getDescription(),
-                                place.getAddress(),
-                                images,
-                                place.getPhone(),
-                                place.getWebsite(),
-                                place.getRating(),
-                                openHours,
-                                place.getIntro()
-                        );
-                    })
-                    .toList();
-
-            return UrlResponse.builder()
-                    .contentInfos(Collections.emptyList())
-                    .placeDetails(placeInfoList)
-                    .processingTimeSeconds(0)
-                    .build();
-        }
-
-        // 3. 기존 데이터가 없거나 active 매핑(is_use==true)이 존재할 경우 -> FastAPI 호출하여 데이터 처리
-        String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
-
-        // DTO에 전달된 URL 리스트 그대로 전송 (여러 URL 지원)
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("urls", urlRequest.getUrls());
-
-        ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
-                requestUrl, requestBody, UrlResponse.class
-        );
-
-        UrlResponse urlResponse = response.getBody();
-        if (urlResponse != null) {
-
-            // ★ 기존 active 매핑(is_use==true)이 있었다면, new analysis를 위해 해당 매핑들을 모두 false로 업데이트합니다.
-            for (UsersUrl mapping : oldMappings) {
-                if (mapping.isUse()) {
-                    mapping.setUse(false);
-                    usersUrlRepository.save(mapping);
+            if (existingData.isPresent()) {
+                Url cachedUrl = existingData.get();
+                // URL에 해당하는 매핑 정보들을 모두 조회 (매핑이 여러 건일 수 있으므로)
+                List<UsersUrl> mappings = usersUrlRepository.findAllByUrl(cachedUrl);
+                oldMappings.addAll(mappings);
+                // 매핑 정보 중 하나라도 is_use가 true이면 캐시 사용 안하도록 처리
+                boolean hasActiveMapping = mappings.stream()
+                        .anyMatch(mapping -> mapping.isUse());
+                if (hasActiveMapping) {
+                    existingData = Optional.empty();
                 }
             }
 
-            // 4. 새로운 URL 엔티티 저장 (첫 번째 URL 사용)
-            Url newUrl = Url.builder()
-                    .urlTitle(urlStr)
-                    .urlAuthor(urlStr)
-                    .url(urlStr)
-                    .build();
-            urlRepository.save(newUrl);
+            // 2. 기존 데이터가 있으면 해당 데이터로 반환 (active 매핑이 없는 경우)
+            if (existingData.isPresent()) {
+                Url url = existingData.get();
+                ObjectMapper objectMapper = new ObjectMapper();
 
+                List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
+                        .map(urlPlace -> {
+                            Place place = urlPlace.getPlace();
+                            // 이미지 변환
+                            List<PlacePhoto> images;
+                            try {
+                                images = place.getImage() != null
+                                        ? objectMapper.readValue(place.getImage(), new TypeReference<List<PlacePhoto>>() {})
+                                        : Collections.emptyList();
+                            } catch (Exception e) {
+                                images = Collections.emptyList();
+                            }
+                            // 영업시간 변환
+                            List<String> openHours;
+                            try {
+                                openHours = place.getOpenHours() != null
+                                        ? objectMapper.readValue(place.getOpenHours(), new TypeReference<List<String>>() {})
+                                        : Collections.emptyList();
+                            } catch (Exception e) {
+                                openHours = Collections.emptyList();
+                            }
 
+                            return new PlaceInfo(
+                                    place.getTitle(),
+                                    place.getDescription(),
+                                    place.getAddress(),
+                                    images,
+                                    place.getPhone(),
+                                    place.getWebsite(),
+                                    place.getRating(),
+                                    openHours,
+                                    place.getIntro()
+                            );
+                        })
+                        .toList();
 
-            // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
-            // (기존 로직 그대로)
-            for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
-                
-                List<PlacePhoto> photos = placeInfo.getPhotos();
-                PlacePhoto photo = photos.get(0);
-        
-                Place place = placeRepository.findByTitle(placeInfo.getName())
-                        .orElseGet(() -> {
-                            // opening_hours가 빈 리스트이거나 null이면 null 처리
-                            String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
-                                    .filter(list -> !list.isEmpty() && list.stream().anyMatch(str -> !str.isBlank()))
-                                    .map(Object::toString)
-                                    .orElse(null);
-
-                            Place newPlace = Place.builder()
-                                    .title(placeInfo.getName())
-                                    .description(placeInfo.getDescription())
-                                    .address(placeInfo.getFormattedAddress())
-                                    .image(placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() ? 
-                                        imageService.redirectImageUrl(photo.getUrl()) : "https://via.placeholder.com/300x200?text=No+Image")
-                                    .phone(placeInfo.getPhone())
-                                    .intro(placeInfo.getOfficialDescription())
-                                    .website(placeInfo.getWebsite())
-                                    .rating(placeInfo.getRating())
-                                    .openHours(openHours)
-                                    .type(placeInfo.getType())  // type 설정
-                                    .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)  // latitude 설정
-                                    .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)  // longitude 설정
-                                    .build();
-                            return placeRepository.save(newPlace);
-                        });
-
-                // Url과 Place 연관 매핑 저장
-                UrlPlace urlPlace = UrlPlace.builder()
-                        .url(newUrl)
-                        .place(place)
+                return UrlResponse.builder()
+                        .contentInfos(Collections.emptyList())
+                        .placeDetails(placeInfoList)
+                        .processingTimeSeconds(0)
                         .build();
-                urlPlaceRepository.save(urlPlace);
             }
+
+            
+            // 3. 기존 데이터가 없거나 active 매핑(is_use==true)이 존재할 경우 -> FastAPI 호출하여 데이터 처리
+            String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
+
+            // DTO에 전달된 URL 리스트 그대로 전송 (여러 URL 지원)
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("urls", urlRequest.getUrls());
+
+            ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
+                    requestUrl, requestBody, UrlResponse.class
+            );
+
+            UrlResponse urlResponse = response.getBody();
+            if (urlResponse != null) {
+
+                // ★ 기존 active 매핑(is_use==true)이 있었다면, new analysis를 위해 해당 매핑들을 모두 false로 업데이트합니다.
+                for (UsersUrl mapping : oldMappings) {
+                    if (mapping.isUse()) {
+                        mapping.setUse(false);
+                        usersUrlRepository.save(mapping);
+                    }
+                }
+
+                // 4. 새로운 URL 엔티티 저장 (첫 번째 URL 사용)
+                Url newUrl = Url.builder()
+                        .urlTitle(urlStr)
+                        .urlAuthor(urlStr)
+                        .url(urlStr)
+                        .build();
+                urlRepository.save(newUrl);
+
+
+
+                // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
+                // (기존 로직 그대로)
+                for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
+                    
+                    List<PlacePhoto> photos = placeInfo.getPhotos();
+                    PlacePhoto photo = photos.get(0);
+            
+                    Place place = placeRepository.findByTitle(placeInfo.getName())
+                            .orElseGet(() -> {
+                                // opening_hours가 빈 리스트이거나 null이면 null 처리
+                                String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
+                                        .filter(list -> !list.isEmpty() && list.stream().anyMatch(str -> !str.isBlank()))
+                                        .map(Object::toString)
+                                        .orElse(null);
+
+                                Place newPlace = Place.builder()
+                                        .title(placeInfo.getName())
+                                        .description(placeInfo.getDescription())
+                                        .address(placeInfo.getFormattedAddress())
+                                        .image(placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() ? 
+                                            imageService.redirectImageUrl(photo.getUrl()) : "https://via.placeholder.com/300x200?text=No+Image")
+                                        .phone(placeInfo.getPhone())
+                                        .intro(placeInfo.getOfficialDescription())
+                                        .website(placeInfo.getWebsite())
+                                        .rating(placeInfo.getRating())
+                                        .openHours(openHours)
+                                        .type(placeInfo.getType())  // type 설정
+                                        .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)  // latitude 설정
+                                        .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)  // longitude 설정
+                                        .build();
+                                return placeRepository.save(newPlace);
+                            });
+
+                    // Url과 Place 연관 매핑 저장
+                    UrlPlace urlPlace = UrlPlace.builder()
+                            .url(newUrl)
+                            .place(place)
+                            .build();
+                    urlPlaceRepository.save(urlPlace);
+                }
+                return urlResponse;
+            } 
+            jobStatusService.setResult(jobId, "URL 처리 실패: 응답이 null입니다.");
+            throw new RuntimeException("URL 처리 실패: 응답이 null입니다.");
+        } catch (Exception e) {
+            jobStatusService.setResult(jobId, "URL 처리 실패: " + e.getMessage());
+            throw new RuntimeException("URL 처리 실패", e);
         }
-        return urlResponse;
     }
 
     // 나머지 메서드들은 기존 로직 유지...
@@ -440,7 +452,7 @@ public class UrlServiceImpl implements UrlService {
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId) {
         try {
-            UrlResponse response = processUrl(urlRequest);
+            UrlResponse response = processUrl(urlRequest, jobId);
             String result = objectMapper.writeValueAsString(response);
             jobStatusService.setJobStatus(jobId, "Completed", result);
         } catch (Exception e) {

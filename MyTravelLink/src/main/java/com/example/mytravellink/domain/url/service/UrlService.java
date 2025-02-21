@@ -11,7 +11,7 @@ import java.util.List;
 public interface UrlService {
 
     // FASTAPI를 통한 URL 처리
-    UrlResponse processUrl(UrlRequest urlRequest);
+    UrlResponse processUrl(UrlRequest urlRequest, String jobId);
     
     // TravelInfo에 연관된 URL 목록 조회
     List<Url> findUrlByTravelInfoId(TravelInfo travelInfo);
