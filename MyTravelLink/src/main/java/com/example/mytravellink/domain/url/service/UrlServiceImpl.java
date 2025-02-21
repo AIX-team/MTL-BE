@@ -144,7 +144,9 @@ public class UrlServiceImpl implements UrlService {
                     
             for(String urlStr : urlRequest.getUrls()) {
                 UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, urlStr)
-                    .orElseThrow(() -> new RuntimeException("URL not found"));
+                    .orElseThrow(() -> new RuntimeException(
+                        String.format("URL not found for email: %s, url: %s", email, urlStr)
+                    ));
                 usersUrl.setUse(false);
                 usersUrlRepository.save(usersUrl);
             }
