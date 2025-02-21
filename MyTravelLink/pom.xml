@@ -96,6 +96,13 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
+		<dependency>
+				<groupId>org.apache.httpcomponents.client5</groupId>
+				<artifactId>httpclient5</artifactId>
+				<!-- Spring Boot의 버전 관리 사용	 -->
+		</dependency>
+
+
 		<!-- 구글 로그인용 의존성 -->
 		<dependency>
 			<groupId>com.google.api-client</groupId>
