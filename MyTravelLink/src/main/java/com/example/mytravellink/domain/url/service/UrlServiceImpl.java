@@ -83,7 +83,7 @@ public class UrlServiceImpl implements UrlService {
                     continue;
                 }
                 
-                UrlResponse cachedResponse = convertToUrlResponse(existingData.get());
+                UrlResponse cachedResponse = convertToUrlResponse(existingData.get(), jobId);
                 if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
                     if (urlResponse.get() == null) {
                         urlResponse.set(cachedResponse);
@@ -183,7 +183,7 @@ public class UrlServiceImpl implements UrlService {
             List<PlaceInfo> placeInfoList = new ArrayList<>();
             
             // Fetch 조인으로 N+1 문제 해결
-            List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrlWithPlace(url.getId());
+            List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrl_Id(url.getId());
             
             for (UrlPlace urlPlace : urlPlaces) {
                 placeInfoList.add(convertToPlaceInfo(urlPlace));
