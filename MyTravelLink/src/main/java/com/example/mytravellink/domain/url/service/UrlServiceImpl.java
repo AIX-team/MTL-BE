@@ -73,74 +73,46 @@ public class UrlServiceImpl implements UrlService {
     @Transactional
     public UrlResponse processUrl(UrlRequest urlRequest, String jobId, String email) {
         try {
-            // 1. 입력값 검증
-            if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
-                jobStatusService.setJobStatus(jobId, "Failed", "URL 리스트가 비어있습니다.");
-                throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
-            }
-            
             AtomicReference<UrlResponse> urlResponse = new AtomicReference<>();
             List<String> newUrlStr = new ArrayList<>();
             
-            // 2. 각 URL에 대한 캐시 데이터 확인
+            // 1. 캐시된 데이터 처리
             for(String urlStr : urlRequest.getUrls()) {
                 Optional<Url> existingData = urlRepository.findByUrl(urlStr);
+                if (!existingData.isPresent()) {
+                    newUrlStr.add(urlStr);
+                    continue;
+                }
                 
-                existingData.ifPresent(cachedUrl -> {
-                    UrlResponse cachedResponse = convertToUrlResponse(cachedUrl);
+                UrlResponse cachedResponse = convertToUrlResponse(existingData.get());
+                if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
                     if (urlResponse.get() == null) {
                         urlResponse.set(cachedResponse);
                     } else {
                         urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
                     }
-                });
-                
-                if (!existingData.isPresent()) {
-                    newUrlStr.add(urlStr);
                 }
             }
-            
-            // 3. 새로운 URL 분석이 필요한 경우 FastAPI 호출
+
+            // 2. FastAPI 호출이 필요한 경우
             if (!newUrlStr.isEmpty()) {
-                // FastAPI 호출 전 상태 업데이트
                 jobStatusService.setJobStatus(jobId, "PROCESSING", "FastAPI 분석 중...");
                 
-                String requestUrl = fastAPiUrl + "/api/v1/contentanalysis";
-                Map<String, Object> requestBody = new HashMap<>();
-                requestBody.put("urls", newUrlStr);
-                
-                // FastAPI 호출 및 응답 대기
                 ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
                     requestUrl, requestBody, UrlResponse.class
                 );
                 
-                if (response.getBody() == null) {
-                    jobStatusService.setJobStatus(jobId, "Failed", "FastAPI 응답이 없습니다.");
-                    throw new RuntimeException("FastAPI 응답이 없습니다.");
+                if (response.getBody() == null || response.getBody().getPlaceDetails() == null) {
+                    throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
                 }
                 
-                // Place 정보 저장 및 처리
+                // 응답 처리
                 processPlaceInfo(response.getBody(), newUrlStr, urlResponse);
-                
-                // FastAPI 응답이 없는 경우 예외 처리
-                if (urlResponse.get() == null) {
-                    throw new RuntimeException("FastAPI 처리 결과가 없습니다.");
-                }
             }
             
-            // 캐시된 데이터만 있거나 FastAPI 응답이 있는 경우만 반환
-            if (urlResponse.get() == null) {
-                jobStatusService.setJobStatus(jobId, "Failed", "처리된 데이터가 없습니다.");
-                throw new RuntimeException("처리된 데이터가 없습니다.");
-            }
-            
-            for(String urlStr : urlRequest.getUrls()) {
-                UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, urlStr)
-                    .orElseThrow(() -> new RuntimeException(
-                        String.format("URL not found for email: %s, url: %s", email, urlStr)
-                    ));
-                usersUrl.setUse(false);
-                usersUrlRepository.save(usersUrl);
+            // 3. 최종 검증
+            if (urlResponse.get() == null || urlResponse.get().getPlaceDetails().isEmpty()) {
+                throw new RuntimeException("처리된 장소 데이터가 없습니다");
             }
             
             return urlResponse.get();
