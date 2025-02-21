@@ -30,13 +30,13 @@ public class UrlController {
         this.jobStatusService = jobStatusService;
     }
 
-    @PostMapping("/analysis")
-    public ResponseEntity<UrlResponse> processUrl(
-            @RequestBody UrlRequest request) {
-        // 여러 URL 중 첫 번째 URL를 기준으로 처리합니다.
-        UrlResponse response = urlService.processUrl(request);
-        return ResponseEntity.ok(response);
-    }
+    // @PostMapping("/analysis")
+    // public ResponseEntity<UrlResponse> processUrl(
+    //         @RequestBody UrlRequest request) {
+    //     // 여러 URL 중 첫 번째 URL를 기준으로 처리합니다.
+    //     UrlResponse response = urlService.processUrl(request);
+    //     return ResponseEntity.ok(response);
+    // }
 
     /**
      * 매핑 API 엔드포인트
