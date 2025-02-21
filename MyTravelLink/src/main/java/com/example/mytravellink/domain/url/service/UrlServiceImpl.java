@@ -565,15 +565,6 @@ public class UrlServiceImpl implements UrlService {
                 jobStatusService.setResult(jobId, "API 응답이 null입니다");
                 throw new RuntimeException("API 응답이 null입니다");
             }
-
-            jobStatusService.setResult(jobId, "장소 정보 처리 시작");
-            jobStatusService.setResult(jobId, String.format(
-                "입력 데이터 - URLs: %s, Places: %s", 
-                apiResponse.getPlaceDetails().stream()
-                          .map(PlaceInfo::getName)
-                          .toList()
-            ));
-
             // Place 정보 처리
             List<PlaceInfo> processedPlaces = new ArrayList<>();
             for (PlaceInfo placeInfo : apiResponse.getPlaceDetails()) {
