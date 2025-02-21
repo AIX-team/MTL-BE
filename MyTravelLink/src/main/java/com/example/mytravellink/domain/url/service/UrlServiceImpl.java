@@ -36,10 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import com.example.mytravellink.domain.job.service.JobStatusService;
-import com.example.mytravellink.domain.job.service.JobStatusService.JobStatus;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -515,6 +513,19 @@ public class UrlServiceImpl implements UrlService {
                     } else {
                         jobStatusService.setResult(jobId, "FastAPI 응답이 비어있음");
                         throw new RuntimeException("FastAPI 응답이 비어있습니다");
+                    }
+
+                    for(String urlStr : urlRequest.getUrls()) {
+                        Optional<UsersUrl> usrurl = usersUrlRepository.findByUserEmailAndUrlUrl(email, urlStr);
+                        if(usrurl.isEmpty()) {
+                            usersUrlRepository.save(UsersUrl.builder()
+                                .user(usersRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found")))
+                                .url(urlRepository.findByUrl(urlStr).orElseThrow(() -> new RuntimeException("URL not found")))
+                                .isUse(false)
+                                .build());
+                        }else{
+                            usersUrlRepository.save(usrurl.get());
+                        }
                     }
                 } catch (Exception e) {
                     jobStatusService.setResult(jobId, "FastAPI 호출 실패: " + e.getMessage());

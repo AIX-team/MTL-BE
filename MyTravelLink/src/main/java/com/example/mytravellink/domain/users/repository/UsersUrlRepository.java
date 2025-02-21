@@ -30,5 +30,5 @@ public interface UsersUrlRepository extends JpaRepository<UsersUrl, UsersUrlId> 
 
   // 사용자 이메일과 Url 테이블에 존재하는지 여부를 반환
   @Query("SELECT u FROM UsersUrl u WHERE u.url.url = :url AND u.user.email = :userEmail")
-  Optional<UsersUrl> findByEmailAndUrl_Url(@Param("userEmail") String userEmail, @Param("url") String url);
+  Optional<UsersUrl> findByUserEmailAndUrlUrl(@Param("userEmail") String userEmail, @Param("url") String url);
 }
