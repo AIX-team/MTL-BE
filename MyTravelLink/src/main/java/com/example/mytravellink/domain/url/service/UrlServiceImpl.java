@@ -37,13 +37,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import com.example.mytravellink.domain.job.service.JobStatusService;
+
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.client.RestClientException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -115,33 +113,35 @@ public class UrlServiceImpl implements UrlService {
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("urls", newUrlStr);
                 
-                // 비동기 호출
-                CompletableFuture<ResponseEntity<UrlResponse>> futureResponse = 
-                    CompletableFuture.supplyAsync(() -> 
-                        restTemplate.postForEntity(requestUrl, requestBody, UrlResponse.class)
-                    );
+                // FastAPI 호출 및 응답 대기
+                ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
+                    requestUrl, requestBody, UrlResponse.class
+                );
                 
-                // 타임아웃 설정 (예: 600초 / 10분)
-                try {
-                    ResponseEntity<UrlResponse> response = 
-                        futureResponse.get(600, TimeUnit.SECONDS);
-                    
-                    if (response.getBody() == null) {
-                        throw new RuntimeException("FastAPI 응답이 없습니다.");
-                    }
-                    
-                    // Place 정보 저장 및 처리
-                    processPlaceInfo(response.getBody(), newUrlStr, urlResponse);
-                    
-                } catch (TimeoutException e) {
-                    jobStatusService.setJobStatus(jobId, "FAILED", "FastAPI 처리 시간 초과");
-                    throw new RuntimeException("FastAPI 처리 시간 초과", e);
-                } catch (InterruptedException | ExecutionException e) {
-                    jobStatusService.setJobStatus(jobId, "FAILED", "FastAPI 처리 중 오류 발생");
-                    throw new RuntimeException("FastAPI 처리 중 오류", e);
+                if (response.getBody() == null) {
+                    jobStatusService.setJobStatus(jobId, "FAILED", "FastAPI 응답이 없습니다.");
+                    throw new RuntimeException("FastAPI 응답이 없습니다.");
                 }
+                
+                // Place 정보 저장 및 처리
+                processPlaceInfo(response.getBody(), newUrlStr, urlResponse);
             }
-                    
+            
+            // 캐시된 데이터만 있는 경우에만 빈 응답 반환
+            if (newUrlStr.isEmpty()) {
+                return urlResponse.get() != null ? urlResponse.get() : 
+                    UrlResponse.builder()
+                        .placeDetails(new ArrayList<>())
+                        .processingTimeSeconds(0.0f)
+                        .build();
+            }
+            
+            // FastAPI 응답이 필요한 경우는 반드시 응답이 있어야 함
+            if (urlResponse.get() == null) {
+                jobStatusService.setJobStatus(jobId, "FAILED", "처리된 데이터가 없습니다.");
+                throw new RuntimeException("처리된 데이터가 없습니다.");
+            }
+            
             for(String urlStr : urlRequest.getUrls()) {
                 UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, urlStr)
                     .orElseThrow(() -> new RuntimeException(
@@ -150,14 +150,8 @@ public class UrlServiceImpl implements UrlService {
                 usersUrl.setUse(false);
                 usersUrlRepository.save(usersUrl);
             }
-
             
-            return urlResponse.get() != null ? urlResponse.get() : 
-                UrlResponse.builder()
-                    .placeDetails(new ArrayList<>())
-                    .processingTimeSeconds(0.0f)
-                    .build();
-                
+            return urlResponse.get();
         } catch (Exception e) {
             log.error("URL 처리 실패", e);
             
