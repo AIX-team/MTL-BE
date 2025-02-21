@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -65,7 +66,7 @@ public class UrlServiceImpl implements UrlService {
     private final ImageService imageService;
     private final JobStatusService jobStatusService;
     private final ObjectMapper objectMapper;  // ObjectMapper 추가
-
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
@@ -481,19 +482,23 @@ public class UrlServiceImpl implements UrlService {
     @Transactional
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            // 처리 중 상태로 업데이트
             jobStatusService.setJobStatus(jobId, "PROCESSING", "URL 분석 중...");
             
-            // CompletableFuture를 사용하여 FastAPI 호출 결과 대기
             CompletableFuture<UrlResponse> future = CompletableFuture.supplyAsync(() -> {
                 try {
-                    return processUrl(urlRequest, jobId, email);
+                    // 새로운 트랜잭션에서 실행
+                    return transactionTemplate.execute(status -> {
+                        try {
+                            return processUrl(urlRequest, jobId, email);
+                        } catch (Exception e) {
+                            throw new CompletionException(e);
+                        }
+                    });
                 } catch (Exception e) {
                     throw new CompletionException(e);
                 }
             });
 
-            // 타임아웃 설정 (예: 10분)
             UrlResponse response = future.get(600, TimeUnit.SECONDS);
             
             if (response != null && response.getPlaceDetails() != null) {
