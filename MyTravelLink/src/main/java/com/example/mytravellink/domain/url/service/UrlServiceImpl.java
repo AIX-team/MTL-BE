@@ -81,16 +81,21 @@ public class UrlServiceImpl implements UrlService {
             for(String urlStr : urlRequest.getUrls()) {
                 Optional<Url> existingData = urlRepository.findByUrl(urlStr);
                 
-                existingData.ifPresent(cachedUrl -> 
-                {//캐시 데이터가 있는 경우
+                existingData.ifPresent(cachedUrl -> {
                     UrlResponse cachedResponse = convertToUrlResponse(cachedUrl);
-                    if (urlResponse.get() == null) { // 만약 가져온 데이터가 없다면
-                        urlResponse.set(cachedResponse);
-                    } else {// 만약 가져온 데이터가 있다면
-                        urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
+                    if (urlResponse.get() == null) {
+                        // 새로운 UrlResponse 객체 생성
+                        UrlResponse newResponse = UrlResponse.builder()
+                            .placeDetails(new ArrayList<>(cachedResponse.getPlaceDetails()))
+                            .processingTimeSeconds(cachedResponse.getProcessingTimeSeconds())
+                            .build();
+                        urlResponse.set(newResponse);
+                    } else {
+                        // 기존 리스트에 새로운 항목들 추가
+                        urlResponse.get().getPlaceDetails().addAll(new ArrayList<>(cachedResponse.getPlaceDetails()));
                     }
                 });
-                // 캐시 데이터가 없는 경우
+                
                 if (!existingData.isPresent()) {
                     newUrlStr.add(urlStr);
                 }
@@ -157,18 +162,13 @@ public class UrlServiceImpl implements UrlService {
             
             StringBuilder errorDetail = new StringBuilder();
             
-            // FastAPI 호출 관련 에러인 경우
-            if (e instanceof RestClientException) {
-                errorDetail.append("FastAPI 서버 통신 오류: ")
-                          .append(e.getMessage());
-            } 
-            // DB 관련 에러인 경우
-            else if (e instanceof DataAccessException) {
-                errorDetail.append("데이터베이스 처리 오류: ")
-                          .append(e.getMessage());
-            }
-            // 기타 에러
-            else {
+            if (e instanceof UnsupportedOperationException) {
+                errorDetail.append("컬렉션 수정 오류: 불변 리스트를 수정하려고 시도했습니다.");
+            } else if (e instanceof RestClientException) {
+                errorDetail.append("FastAPI 서버 통신 오류: ").append(e.getMessage());
+            } else if (e instanceof DataAccessException) {
+                errorDetail.append("데이터베이스 처리 오류: ").append(e.getMessage());
+            } else {
                 errorDetail.append("처리 중 오류 발생: ")
                           .append(e.getMessage())
                           .append("\n상세 위치: ")
