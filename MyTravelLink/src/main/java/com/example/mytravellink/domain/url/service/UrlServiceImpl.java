@@ -29,7 +29,6 @@ import com.example.mytravellink.domain.users.entity.UsersUrl;
 import com.example.mytravellink.domain.users.entity.UsersUrlId;
 import com.example.mytravellink.domain.users.repository.UsersRepository;
 import com.example.mytravellink.domain.users.repository.UsersUrlRepository;
-import com.example.mytravellink.infrastructure.ai.common.config.AIConfig;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +62,7 @@ public class UrlServiceImpl implements UrlService {
     private final JobStatusService jobStatusService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
-    private final AIConfig webClient;
+    private final WebClient webClient;
 
     @Value("${ai.server.url}")
     private String fastAPiUrl;
