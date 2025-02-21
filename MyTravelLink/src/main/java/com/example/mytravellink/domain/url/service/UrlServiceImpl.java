@@ -464,8 +464,29 @@ public class UrlServiceImpl implements UrlService {
             jobStatusService.setJobStatus(jobId, "Completed", result);
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
-            String errorMessage = e.getMessage() != null ? e.getMessage() : "Unknown error occurred";
-            jobStatusService.setJobStatus(jobId, "FAILED", errorMessage);
+            
+            // 상세한 에러 메시지 생성
+            StringBuilder errorDetail = new StringBuilder();
+            errorDetail.append("Error: ").append(e.getClass().getName())
+                      .append("\nMessage: ").append(e.getMessage());
+            
+            // Stack trace 추가
+            if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
+                errorDetail.append("\nStack trace:\n");
+                for (int i = 0; i < Math.min(3, e.getStackTrace().length); i++) {
+                    errorDetail.append("  ").append(e.getStackTrace()[i].toString()).append("\n");
+                }
+            }
+            
+            // Cause가 있다면 추가
+            if (e.getCause() != null) {
+                errorDetail.append("\nCaused by: ")
+                          .append(e.getCause().getClass().getName())
+                          .append(": ")
+                          .append(e.getCause().getMessage());
+            }
+            
+            jobStatusService.setJobStatus(jobId, "FAILED", errorDetail.toString());
         }
     }
     public boolean isUser(String urlId, String userEmail) {
