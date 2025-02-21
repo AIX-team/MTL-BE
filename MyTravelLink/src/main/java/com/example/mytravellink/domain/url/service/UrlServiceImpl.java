@@ -36,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import com.example.mytravellink.domain.job.service.JobStatusService;
+import com.example.mytravellink.domain.job.service.JobStatusService.JobStatus;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -445,19 +446,66 @@ public class UrlServiceImpl implements UrlService {
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            jobStatusService.setJobStatus(jobId, "Processing", "URL 분석 중...");
+            // 작업 상태 확인
+            JobStatus currentStatus = jobStatusService.getStatus(jobId);
+            if ("Processing".equals(currentStatus.getStatus())) {
+                log.info("Job {} is already running", jobId);
+                return; // 이미 실행 중인 작업이면 종료
+            }
             
-            UrlResponse response = transactionTemplate.execute(status -> {
-                try {
-                    return processUrl(urlRequest, jobId, email);
-                } catch (Exception e) {
-                    log.error("URL 처리 중 오류 발생", e);
-                    throw new RuntimeException(e);
+            // 작업 시작
+            jobStatusService.setJobStatus(jobId, "Processing", "URL 분석 시작...");
+            
+            // 1. URL 캐시 확인 및 새로운 URL 필터링
+            AtomicReference<UrlResponse> urlResponse = new AtomicReference<>();
+            List<String> newUrlStr = new ArrayList<>();
+            
+            for(String urlStr : urlRequest.getUrls()) {
+                Optional<Url> existingData = urlRepository.findByUrl(urlStr);
+                if (!existingData.isPresent()) {
+                    newUrlStr.add(urlStr);
+                    continue;
                 }
-            });
+                
+                UrlResponse cachedResponse = convertToUrlResponse(existingData.get());
+                if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
+                    if (urlResponse.get() == null) {
+                        urlResponse.set(cachedResponse);
+                    } else {
+                        urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
+                    }
+                }
+            }
 
-            if (response != null && !response.getPlaceDetails().isEmpty()) {
-                String result = objectMapper.writeValueAsString(response);
+            // 2. 새로운 URL이 있는 경우 FastAPI 호출
+            if (!newUrlStr.isEmpty()) {
+                jobStatusService.setJobStatus(jobId, "Processing", "FastAPI 분석 중...");
+                
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("urls", newUrlStr);
+                
+                UrlResponse response = webClient
+                    .post()
+                    .uri("/api/v1/contentanalysis")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(UrlResponse.class)
+                    .timeout(Duration.ofMinutes(5))
+                    .block();
+
+                if (response != null && !response.getPlaceDetails().isEmpty()) {
+                    transactionTemplate.execute(status -> {
+                        processPlaceInfo(response, newUrlStr, urlResponse);
+                        return null;
+                    });
+                } else {
+                    throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
+                }
+            }
+
+            // 4. 최종 결과 처리
+            if (urlResponse.get() != null && !urlResponse.get().getPlaceDetails().isEmpty()) {
+                String result = objectMapper.writeValueAsString(urlResponse.get());
                 jobStatusService.setJobStatus(jobId, "Completed", result);
             } else {
                 throw new RuntimeException("처리된 장소 데이터가 없습니다");
@@ -465,11 +513,8 @@ public class UrlServiceImpl implements UrlService {
             
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
-            StringBuilder errorDetail = new StringBuilder();
-            errorDetail.append("비동기 처리 실패: ")
-                      .append(e.getMessage());
-            
-            jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
+            String errorDetail = String.format("처리 중 오류 발생: %s", e.getMessage());
+            jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
         }
     }
     public boolean isUser(String urlId, String userEmail) {
