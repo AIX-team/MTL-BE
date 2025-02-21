@@ -424,75 +424,102 @@ public class TravelInfoController {
      * @return
      */
     @PostMapping("/guidebook")
-    public ResponseEntity<StringResponse> createGuide(
-        @RequestHeader("Authorization") String token,
-        @RequestBody PlaceSelectRequest placeSelectRequest
-        ) {
-            String jobId = UUID.randomUUID().toString();
+    public ResponseEntity<StringResponse> createGuideBook(
+        @RequestBody PlaceSelectRequest placeSelectRequest,
+        @RequestHeader(value = "Authorization", required = true) String token) {
+        String jobId = UUID.randomUUID().toString();
         try {
-            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            // String email = "user1@example.com";
-            // 1. AI 코스 추천에 요청할 데이터 형식 설정
-            AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
-
-            System.out.println("AI 요청 데이터: " + aiGuideCourseRequest);
-
-            // 2. AI 코스 추천 데이터 받기
-            List<AIGuideCourseResponse> aiGuideCourseResponses = placeService.getAIGuideCourse(aiGuideCourseRequest,placeSelectRequest.getTravelDays());
-
-            System.out.println("AI 응답 데이터: " + aiGuideCourseResponses);
-
-            String title = "가이드북" + travelInfoService.getGuideCount(email);
-
-            // 3. 가이드북 생성
-            Guide guide = Guide.builder()
-                    .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
-                    .title(title)
-                    .travelDays(placeSelectRequest.getTravelDays())
-                    .courseCount(placeSelectRequest.getTravelDays())
-                    .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
-                    .isFavorite(false)
-                    .fixed(false)
-                    .isDelete(false)
-                    .build();
-
-            // Guide 객체 확인
-            System.out.println("Created Guide: " + guide);
-
-            // 가이드, 코스, 코스 장소 생성(트랜잭션 처리)
-            if (aiGuideCourseResponses == null) {
-                System.out.println("aiGuideCourseResponses is null");
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            } else {
-                System.out.println("AI 코스 데이터 전달 전 확인: " + aiGuideCourseResponses);
-            }
-            
-            jobStatusService.setStatus(jobId, "Processing");
-                // 4. 가이드, 코스, 코스 장소 생성
-                CompletableFuture<String> guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses);
-                
-                // 작업 완료 및 결과 저장
-                jobStatusService.setStatus( jobId, "Completed");
-                jobStatusService.setResult(jobId, guideId.get());
-                log.info("가이드북 생성 완료. JobID: {}, GuideID: {}", jobId, guideId.get());
-
-            return new ResponseEntity<>(StringResponse.builder()
-                .success("success")
-                .message("success")
-                .value(guideId.get())
-                .build(), HttpStatus.OK);
-    
-
-            } catch (Exception e) {
-                jobStatusService.setStatus(jobId, "Failed");
-                jobStatusService.setResult(jobId, null);
+            // 사용자 인증
+            String userEmail = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            if(!travelInfoService.isUser(placeSelectRequest.getTravelInfoId(), userEmail)){
                 return new ResponseEntity<>(StringResponse.builder()
                     .success("error")
-                    .message("error")
+                    .message("Unauthorized")
                     .value(null)
-                    .build(), HttpStatus.INTERNAL_SERVER_ERROR);
+                    .build(), HttpStatus.UNAUTHORIZED);
             }
+
+            // 작업 상태 초기화
+            jobStatusService.setStatus(jobId, "PENDING");
+            
+            // 비동기 작업 시작
+            CompletableFuture.runAsync(() -> {
+                try {
+                    jobStatusService.setStatus(jobId, "PROCESSING");
+                    
+                    // Guide 객체 생성
+                    Guide guide = Guide.builder()
+                        .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+                        .title("새로운 가이드북")
+                        .userEmail(userEmail)
+                        .courseCount(0)
+                        .createAt(new Date())
+                        .favorite(false)
+                        .fixed(false)
+                        .deleted(false)
+                        .build();
+
+                    // AI 가이드 코스 생성 요청
+                    RestTemplate restTemplate = new RestTemplate();
+                    String aiServiceUrl = "http://localhost:8000/api/v1/ai/guide";  // AI 서비스 URL
+                    
+                    Map<String, Object> requestBody = new HashMap<>();
+                    requestBody.put("travelDays", placeSelectRequest.getTravelDays());
+                    requestBody.put("travelTaste", placeSelectRequest.getTravelTaste());
+                    requestBody.put("placeIds", placeSelectRequest.getPlaceIds());
+                    
+                    ResponseEntity<List<AIGuideCourseResponse>> aiResponse = restTemplate.exchange(
+                        aiServiceUrl,
+                        HttpMethod.POST,
+                        new HttpEntity<>(requestBody),
+                        new ParameterizedTypeReference<List<AIGuideCourseResponse>>() {}
+                    );
+                    
+                    List<AIGuideCourseResponse> aiGuideCourseResponses = aiResponse.getBody();
+                    
+                    // 가이드북 생성
+                    String guideId = guideService.createGuideAndCourses(guide, aiGuideCourseResponses).get();
+                    
+                    jobStatusService.setStatus(jobId, "COMPLETED");
+                    jobStatusService.setResult(jobId, guideId);
+                    
+                } catch (Exception e) {
+                    log.error("가이드북 생성 실패: ", e);
+                    jobStatusService.setStatus(jobId, "FAILED");
+                    jobStatusService.setError(jobId, e.getMessage());
+                }
+            });
+
+            // 즉시 작업 ID 반환
+            return new ResponseEntity<>(StringResponse.builder()
+                .success("accepted")
+                .message("Guide creation started")
+                .value(jobId)
+                .build(), HttpStatus.ACCEPTED);
+
+        } catch (Exception e) {
+            log.error("가이드북 생성 요청 실패: ", e);
+            jobStatusService.setStatus(jobId, "FAILED");
+            return new ResponseEntity<>(StringResponse.builder()
+                .success("error")
+                .message(e.getMessage())
+                .value(null)
+                .build(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // 작업 상태 확인 엔드포인트 추가
+    @GetMapping("/guidebook/status/{jobId}")
+    public ResponseEntity<StringResponse> getGuideBookStatus(@PathVariable String jobId) {
+        String status = jobStatusService.getStatus(jobId);
+        String result = jobStatusService.getResult(jobId);
+        
+        return new ResponseEntity<>(StringResponse.builder()
+            .success(status)
+            .message(status)
+            .value(result)
+            .build(), HttpStatus.OK);
+    }
 
     /**
      * 가이드 ID 기준 가이드 조회

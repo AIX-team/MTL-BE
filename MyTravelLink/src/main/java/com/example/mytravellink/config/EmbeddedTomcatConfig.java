@@ -14,7 +14,6 @@ public class EmbeddedTomcatConfig {
         TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory();
         tomcat.addConnectorCustomizers((Connector connector) -> {
             connector.setAsyncTimeout(300000); // 5분
-            connector.setConnectionTimeout(300000); // 5분
         });
         tomcat.addContextValves(remoteIpValve());
         return tomcat;
