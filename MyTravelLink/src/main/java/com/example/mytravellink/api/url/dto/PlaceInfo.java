@@ -15,7 +15,6 @@ import java.util.Map;
 @ToString
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-
 public class PlaceInfo {
     private String name;
     private String type;

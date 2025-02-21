@@ -560,24 +560,10 @@ public class UrlServiceImpl implements UrlService {
                     newUrlStr.size(), apiResponse.getPlaceDetails().size()));
             }
 
-            // URL 조회를 한 번만 수행
-            List<Url> savedUrls = new ArrayList<>();
-            for (String urlStr : newUrlStr) {
-                Optional<Url> existingUrl = urlRepository.findByUrl(urlStr);
-                Url url = existingUrl.orElseGet(() -> { // 존재하지 않는 경우 새로 생성
-                    Url newUrl = Url.builder()
-                        .url(urlStr)
-                        .urlTitle(urlStr)
-                        .urlAuthor("system")
-                        .build();
-                    return urlRepository.save(newUrl);
-                });
-                savedUrls.add(url);
-            }
-
             // Place 정보 처리
             for (int i = 0; i < apiResponse.getPlaceDetails().size(); i++) {
                 PlaceInfo placeInfo = apiResponse.getPlaceDetails().get(i);
+                ContentInfo contentInfo = apiResponse.getContentInfos().get(i);
                 
                 // 이미지 URL 처리
                 String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
@@ -588,14 +574,18 @@ public class UrlServiceImpl implements UrlService {
                 
                 // Place 저장
                 Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+                Url url = urlRepository.findByUrl(contentInfo.getUrl())
+                    .orElseGet(() -> {
+                        Url newUrl = Url.builder()
+                            .url(contentInfo.getUrl())
+                            .urlTitle(contentInfo.getTitle())
+                            .urlAuthor(contentInfo.getAuthor())
+                            .build();
+                        return urlRepository.save(newUrl);
+                    });
                 
-                // URL-Place 매핑 (인덱스 범위 체크 추가)
-                if (i < savedUrls.size()) {
-                    saveUrlPlaceMapping(savedUrls.get(i), place);
-                } else {
-                    jobStatusService.setResult(jobId, 
-                        String.format("인덱스 초과: i=%d, savedUrls.size=%d", i, savedUrls.size()));
-                }
+                // URL-Place 매핑
+                saveUrlPlaceMapping(url, place);
             }
             
             // 응답 데이터 병합
