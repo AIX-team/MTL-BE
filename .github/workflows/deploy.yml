@@ -3,7 +3,7 @@ name: Deploy my travel link website
 on:
   push:
     branches:
-      - dev
+      - deploy
 
 jobs:
   build-and-deploy:
