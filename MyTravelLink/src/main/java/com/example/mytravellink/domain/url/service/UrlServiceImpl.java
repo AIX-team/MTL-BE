@@ -177,9 +177,6 @@ public class UrlServiceImpl implements UrlService {
                 
                 List<PlacePhoto> photos = placeInfo.getPhotos();
                 PlacePhoto photo = photos.get(0);
-                String imageUrl = photo.getUrl();
-                String redirectImageUrl = imageService.redirectImageUrl(imageUrl);
-                photo.setUrl(redirectImageUrl);
         
                 Place place = placeRepository.findByTitle(placeInfo.getName())
                         .orElseGet(() -> {
@@ -194,7 +191,7 @@ public class UrlServiceImpl implements UrlService {
                                     .description(placeInfo.getDescription())
                                     .address(placeInfo.getFormattedAddress())
                                     .image(placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() ? 
-                                        placeInfo.getPhotos().get(0).getUrl() : "https://via.placeholder.com/300x200?text=No+Image")
+                                        imageService.redirectImageUrl(photo.getUrl()) : "https://via.placeholder.com/300x200?text=No+Image")
                                     .phone(placeInfo.getPhone())
                                     .intro(placeInfo.getOfficialDescription())
                                     .website(placeInfo.getWebsite())
