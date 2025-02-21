@@ -78,7 +78,7 @@ public class UrlController {
         String jobId = UUID.randomUUID().toString();
         log.info("새로운 분석 작업 시작. JobID: {}", jobId);
         
-        jobStatusService.setStatus(jobId, "");
+        jobStatusService.setStatus(jobId, "Processing");
         
         // 비동기 작업 시작
         urlService.processUrlAsync(request, jobId, email);

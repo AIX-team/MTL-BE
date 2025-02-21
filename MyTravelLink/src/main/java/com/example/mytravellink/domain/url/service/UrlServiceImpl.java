@@ -458,16 +458,7 @@ public class UrlServiceImpl implements UrlService {
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            // 작업 상태 확인
-            JobStatus currentStatus = jobStatusService.getStatus(jobId);
-            jobStatusService.setResult(jobId, "상태 체크: " + currentStatus.getStatus());
-            
-            if ("Processing".equals(currentStatus.getStatus())) {
-                log.info("Job {} is already running", jobId);
-                jobStatusService.setResult(jobId, "이미 실행 중인 작업입니다: " + jobId);
-                return;
-            }
-            
+                                 
             // URL 목록 디버깅
             jobStatusService.setResult(jobId, "처리할 URL 목록: " + String.join(", ", urlRequest.getUrls()));
             
@@ -503,15 +494,21 @@ public class UrlServiceImpl implements UrlService {
                 requestBody.put("urls", newUrlStr);
                 
                 jobStatusService.setResult(jobId, "FastAPI 요청 데이터: " + objectMapper.writeValueAsString(requestBody));
-                
-                UrlResponse response = webClient
-                    .post()
-                    .uri("/api/v1/contentanalysis")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(UrlResponse.class)
+                UrlResponse response;
+                try {
+                    response = webClient
+                        .post()
+                        .uri("/api/v1/contentanalysis")
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(UrlResponse.class)
                     .timeout(Duration.ofMinutes(15))
                     .block();
+                } catch (Exception e) {
+                    log.error("FastAPI 호출 실패", e);
+                    jobStatusService.setResult(jobId, "FastAPI 호출 실패: " + e.getMessage());
+                    throw new RuntimeException("FastAPI 호출 실패", e);
+                }
 
                 jobStatusService.setResult(jobId, "FastAPI 응답 수신 완료");
 
