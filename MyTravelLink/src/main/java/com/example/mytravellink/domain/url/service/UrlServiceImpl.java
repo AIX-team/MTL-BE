@@ -1,6 +1,5 @@
 package com.example.mytravellink.domain.url.service;
 
-import com.example.mytravellink.api.user.dto.LinkDataResponse;
 import com.example.mytravellink.api.url.dto.*;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
@@ -36,9 +35,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import com.example.mytravellink.domain.job.service.JobStatusService;
@@ -61,7 +57,6 @@ public class UrlServiceImpl implements UrlService {
     private final TravelInfoPlaceRepository travelInfoPlaceRepository;
     private final ImageService imageService;
     private final JobStatusService jobStatusService;
-    private final Logger log = LoggerFactory.getLogger(UrlServiceImpl.class);
     private final ObjectMapper objectMapper;  // ObjectMapper 추가
 
 
@@ -70,7 +65,7 @@ public class UrlServiceImpl implements UrlService {
 
     @Override
     @Transactional
-    public UrlResponse processUrl(UrlRequest urlRequest, String jobId) {
+    public UrlResponse processUrl(UrlRequest urlRequest, String jobId, String email) {
         try {
             // 1. 입력값 검증
             if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
@@ -85,32 +80,15 @@ public class UrlServiceImpl implements UrlService {
             for(String urlStr : urlRequest.getUrls()) {
                 Optional<Url> existingData = urlRepository.findByUrl(urlStr);
                 
-                existingData.ifPresent(cachedUrl -> {
-                    List<UsersUrl> mappings = usersUrlRepository.findAllByUrl(cachedUrl);
-                    boolean hasActiveMapping = mappings.stream()
-                            .anyMatch(UsersUrl::isUse);
-                    
-                    // active 매핑이 없는 경우에만 캐시 사용
-                    if (!hasActiveMapping) {
-                        UrlResponse cachedResponse = convertToUrlResponse(cachedUrl);
-                        if (urlResponse.get() == null) {
-                            urlResponse.set(cachedResponse);
-                        } else {
-                            urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
-                        }
-                    } else {
-                        // active 매핑이 있는 경우 새로운 분석 필요
-                        newUrlStr.add(urlStr);
-                        // active 매핑 비활성화
-                        mappings.stream()
-                            .filter(UsersUrl::isUse)
-                            .forEach(mapping -> {
-                                mapping.setUse(false);
-                                usersUrlRepository.save(mapping);
-                            });
+                existingData.ifPresent(cachedUrl -> 
+                {//캐시 데이터가 있는 경우
+                    UrlResponse cachedResponse = convertToUrlResponse(cachedUrl);
+                    if (urlResponse.get() == null) { // 만약 가져온 데이터가 없다면
+                        urlResponse.set(cachedResponse);
+                    } else {// 만약 가져온 데이터가 있다면
+                        urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
                     }
                 });
-                
                 // 캐시 데이터가 없는 경우
                 if (!existingData.isPresent()) {
                     newUrlStr.add(urlStr);
@@ -127,26 +105,20 @@ public class UrlServiceImpl implements UrlService {
                     requestUrl, requestBody, UrlResponse.class
                 );
                 
-                if (response.getBody() != null) {
-                    // 새로운 URL들에 대한 데이터 저장
-                    for(String urlStr : newUrlStr) {
-                        Url newUrl = Url.builder()
-                                .urlTitle(urlStr)
-                                .urlAuthor(urlStr)
-                                .url(urlStr)
-                                .build();
-                        urlRepository.save(newUrl);
-                    }
+                if (response.getBody() != null) { // 만약 가져온 데이터가 있다면
                     
                     // Place 정보 저장
                     for (PlaceInfo placeInfo : response.getBody().getPlaceDetails()) {
                         List<PlacePhoto> photos = placeInfo.getPhotos();
                         String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
                         
+                        // 만약 이미지가 있다면
                         if (photos != null && !photos.isEmpty() && photos.get(0) != null) {
+                            // 이미지 리다이렉트
                             imageUrl = imageService.redirectImageUrl(photos.get(0).getUrl());
                         }
                         
+                        // Place 정보 저장
                         Place place = saveOrUpdatePlace(placeInfo, imageUrl);
                         
                         // URL과 Place 연관 매핑 저장
@@ -157,6 +129,13 @@ public class UrlServiceImpl implements UrlService {
                         }
                     }
                     
+                    for(String urlStr : urlRequest.getUrls()) {
+                        UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, urlStr)
+                            .orElseThrow(() -> new RuntimeException("URL not found"));
+                        usersUrl.setUse(false);
+                        usersUrlRepository.save(usersUrl);
+                    }
+
                     // 응답 데이터 병합
                     if (urlResponse.get() == null) {
                         urlResponse.set(response.getBody());
@@ -366,24 +345,24 @@ public class UrlServiceImpl implements UrlService {
         }
     }
 
-    private String extractYoutubeVideoId(String url) {
-        try {
-            URI uri = new URI(url);
-            String query = uri.getQuery();
-            if(query != null) {
-                String[] params = query.split("&");
-                for (String param : params) {
-                    String[] keyValue = param.split("=");
-                    if (keyValue[0].equals("v") && keyValue.length > 1) {
-                        return keyValue[1];
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // 추출 실패 시 빈 문자열 반환
-        }
-        return "";
-    }
+    // private String extractYoutubeVideoId(String url) {
+    //     try {
+    //         URI uri = new URI(url);
+    //         String query = uri.getQuery();
+    //         if(query != null) {
+    //             String[] params = query.split("&");
+    //             for (String param : params) {
+    //                 String[] keyValue = param.split("=");
+    //                 if (keyValue[0].equals("v") && keyValue.length > 1) {
+    //                     return keyValue[1];
+    //                 }
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         // 추출 실패 시 빈 문자열 반환
+    //     }
+    //     return "";
+    // }
 
     @Override
     @Transactional
@@ -478,9 +457,9 @@ public class UrlServiceImpl implements UrlService {
     @Override
     @Async
     @Transactional
-    public void processUrlAsync(UrlRequest urlRequest, String jobId) {
+    public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            UrlResponse response = processUrl(urlRequest, jobId);
+            UrlResponse response = processUrl(urlRequest, jobId, email);
             String result = objectMapper.writeValueAsString(response);
             jobStatusService.setJobStatus(jobId, "Completed", result);
         } catch (Exception e) {

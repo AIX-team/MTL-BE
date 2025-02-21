@@ -71,14 +71,17 @@ public class UrlController {
 
     // 비동기 분석 엔드포인트
     @PostMapping("/analysis/async")
-    public ResponseEntity<String> processUrlAsync(@RequestBody UrlRequest request) {
+    public ResponseEntity<String> processUrlAsync(
+        @RequestHeader("Authorization") String token,
+        @RequestBody UrlRequest request) {
+        String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
         String jobId = UUID.randomUUID().toString();
         log.info("새로운 분석 작업 시작. JobID: {}", jobId);
         
         jobStatusService.setStatus(jobId, "Processing");
         
         // 비동기 작업 시작
-        urlService.processUrlAsync(request, jobId);
+        urlService.processUrlAsync(request, jobId, email);
         
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                            .body(jobId);
