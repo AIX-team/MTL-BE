@@ -68,6 +68,7 @@ public class UrlServiceImpl implements UrlService {
     private String fastAPiUrl;
 
     @Override
+    @Transactional(readOnly = true)  // 읽기 전용 트랜잭션 추가
     public UrlResponse processUrl(UrlRequest urlRequest, String jobId) {
         try {
             // URL 리스트가 비어있으면 예외 처리
@@ -99,49 +100,7 @@ public class UrlServiceImpl implements UrlService {
             // 2. 기존 데이터가 있으면 해당 데이터로 반환 (active 매핑이 없는 경우)
             if (existingData.isPresent()) {
                 Url url = existingData.get();
-                ObjectMapper objectMapper = new ObjectMapper();
-
-                List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
-                        .map(urlPlace -> {
-                            Place place = urlPlace.getPlace();
-                            // 이미지 변환
-                            List<PlacePhoto> images;
-                            try {
-                                images = place.getImage() != null
-                                        ? objectMapper.readValue(place.getImage(), new TypeReference<List<PlacePhoto>>() {})
-                                        : Collections.emptyList();
-                            } catch (Exception e) {
-                                images = Collections.emptyList();
-                            }
-                            // 영업시간 변환
-                            List<String> openHours;
-                            try {
-                                openHours = place.getOpenHours() != null
-                                        ? objectMapper.readValue(place.getOpenHours(), new TypeReference<List<String>>() {})
-                                        : Collections.emptyList();
-                            } catch (Exception e) {
-                                openHours = Collections.emptyList();
-                            }
-
-                            return new PlaceInfo(
-                                    place.getTitle(),
-                                    place.getDescription(),
-                                    place.getAddress(),
-                                    images,
-                                    place.getPhone(),
-                                    place.getWebsite(),
-                                    place.getRating(),
-                                    openHours,
-                                    place.getIntro()
-                            );
-                        })
-                        .toList();
-
-                return UrlResponse.builder()
-                        .contentInfos(Collections.emptyList())
-                        .placeDetails(placeInfoList)
-                        .processingTimeSeconds(0)
-                        .build();
+                return convertToUrlResponse(url);
             }
 
             
@@ -224,6 +183,46 @@ public class UrlServiceImpl implements UrlService {
         } catch (Exception e) {
             log.error("URL 처리 실패", e);
             throw new RuntimeException("URL 처리 실패: " + e.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    private UrlResponse convertToUrlResponse(Url url) {
+        List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
+            .map(this::convertToPlaceInfo)
+            .toList();
+
+        return UrlResponse.builder()
+            .contentInfos(Collections.emptyList())
+            .placeDetails(placeInfoList)
+            .processingTimeSeconds(0)
+            .build();
+    }
+
+    private PlaceInfo convertToPlaceInfo(UrlPlace urlPlace) {
+        Place place = urlPlace.getPlace();
+        List<PlacePhoto> images = parseJson(place.getImage(), new TypeReference<List<PlacePhoto>>() {});
+        List<String> openHours = parseJson(place.getOpenHours(), new TypeReference<List<String>>() {});
+
+        return new PlaceInfo(
+            place.getTitle(),
+            place.getDescription(),
+            place.getAddress(),
+            images,
+            place.getPhone(),
+            place.getWebsite(),
+            place.getRating(),
+            openHours,
+            place.getIntro()
+        );
+    }
+
+    private <T> T parseJson(String json, TypeReference<T> typeReference) {
+        try {
+            return json != null ? objectMapper.readValue(json, typeReference) : null;
+        } catch (Exception e) {
+            log.warn("JSON 파싱 실패: {}", e.getMessage());
+            return null;
         }
     }
 
