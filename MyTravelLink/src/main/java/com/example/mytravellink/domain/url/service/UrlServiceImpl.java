@@ -77,7 +77,7 @@ public class UrlServiceImpl implements UrlService {
         try {
             // 1. 입력값 검증
             if (urlRequest.getUrls() == null || urlRequest.getUrls().isEmpty()) {
-                jobStatusService.setJobStatus(jobId, "FAILED", "URL 리스트가 비어있습니다.");
+                jobStatusService.setJobStatus(jobId, "Failed", "URL 리스트가 비어있습니다.");
                 throw new IllegalArgumentException("URL 리스트가 비어있습니다.");
             }
             
@@ -91,15 +91,9 @@ public class UrlServiceImpl implements UrlService {
                 existingData.ifPresent(cachedUrl -> {
                     UrlResponse cachedResponse = convertToUrlResponse(cachedUrl);
                     if (urlResponse.get() == null) {
-                        // 새로운 UrlResponse 객체 생성
-                        UrlResponse newResponse = UrlResponse.builder()
-                            .placeDetails(new ArrayList<>(cachedResponse.getPlaceDetails()))
-                            .processingTimeSeconds(cachedResponse.getProcessingTimeSeconds())
-                            .build();
-                        urlResponse.set(newResponse);
+                        urlResponse.set(cachedResponse);
                     } else {
-                        // 기존 리스트에 새로운 항목들 추가
-                        urlResponse.get().getPlaceDetails().addAll(new ArrayList<>(cachedResponse.getPlaceDetails()));
+                        urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
                     }
                 });
                 
@@ -123,26 +117,22 @@ public class UrlServiceImpl implements UrlService {
                 );
                 
                 if (response.getBody() == null) {
-                    jobStatusService.setJobStatus(jobId, "FAILED", "FastAPI 응답이 없습니다.");
+                    jobStatusService.setJobStatus(jobId, "Failed", "FastAPI 응답이 없습니다.");
                     throw new RuntimeException("FastAPI 응답이 없습니다.");
                 }
                 
                 // Place 정보 저장 및 처리
                 processPlaceInfo(response.getBody(), newUrlStr, urlResponse);
+                
+                // FastAPI 응답이 없는 경우 예외 처리
+                if (urlResponse.get() == null) {
+                    throw new RuntimeException("FastAPI 처리 결과가 없습니다.");
+                }
             }
             
-            // 캐시된 데이터만 있는 경우에만 빈 응답 반환
-            if (newUrlStr.isEmpty()) {
-                return urlResponse.get() != null ? urlResponse.get() : 
-                    UrlResponse.builder()
-                        .placeDetails(new ArrayList<>())
-                        .processingTimeSeconds(0.0f)
-                        .build();
-            }
-            
-            // FastAPI 응답이 필요한 경우는 반드시 응답이 있어야 함
+            // 캐시된 데이터만 있거나 FastAPI 응답이 있는 경우만 반환
             if (urlResponse.get() == null) {
-                jobStatusService.setJobStatus(jobId, "FAILED", "처리된 데이터가 없습니다.");
+                jobStatusService.setJobStatus(jobId, "Failed", "처리된 데이터가 없습니다.");
                 throw new RuntimeException("처리된 데이터가 없습니다.");
             }
             
@@ -176,7 +166,7 @@ public class UrlServiceImpl implements UrlService {
                           .append(e.getStackTrace()[0].getLineNumber());
             }
             
-            jobStatusService.setJobStatus(jobId, "FAILED", errorDetail.toString());
+            jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
             throw new RuntimeException(errorDetail.toString(), e);
         }
     }
@@ -503,7 +493,7 @@ public class UrlServiceImpl implements UrlService {
             
             if (response != null && response.getPlaceDetails() != null) {
                 String result = objectMapper.writeValueAsString(response);
-                jobStatusService.setJobStatus(jobId, "COMPLETED", result);
+                jobStatusService.setJobStatus(jobId, "Completed", result);
             } else {
                 throw new RuntimeException("FastAPI 처리 결과가 없습니다.");
             }
@@ -511,7 +501,7 @@ public class UrlServiceImpl implements UrlService {
         } catch (TimeoutException e) {
             String error = "FastAPI 처리 시간 초과: " + e.getMessage();
             log.error(error, e);
-            jobStatusService.setJobStatus(jobId, "FAILED", error);
+            jobStatusService.setJobStatus(jobId, "Failed", error);
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
             StringBuilder errorDetail = new StringBuilder();
@@ -532,7 +522,7 @@ public class UrlServiceImpl implements UrlService {
                           .append(e.getCause().getMessage());
             }
             
-            jobStatusService.setJobStatus(jobId, "FAILED", errorDetail.toString());
+            jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
         }
     }
     public boolean isUser(String urlId, String userEmail) {
