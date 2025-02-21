@@ -43,6 +43,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.client.RestClientException;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -478,18 +481,38 @@ public class UrlServiceImpl implements UrlService {
     @Transactional
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            UrlResponse response = processUrl(urlRequest, jobId, email);
-            String result = objectMapper.writeValueAsString(response);
-            jobStatusService.setJobStatus(jobId, "Completed", result);
+            // 처리 중 상태로 업데이트
+            jobStatusService.setJobStatus(jobId, "PROCESSING", "URL 분석 중...");
+            
+            // CompletableFuture를 사용하여 FastAPI 호출 결과 대기
+            CompletableFuture<UrlResponse> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return processUrl(urlRequest, jobId, email);
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            });
+
+            // 타임아웃 설정 (예: 10분)
+            UrlResponse response = future.get(600, TimeUnit.SECONDS);
+            
+            if (response != null && response.getPlaceDetails() != null) {
+                String result = objectMapper.writeValueAsString(response);
+                jobStatusService.setJobStatus(jobId, "COMPLETED", result);
+            } else {
+                throw new RuntimeException("FastAPI 처리 결과가 없습니다.");
+            }
+            
+        } catch (TimeoutException e) {
+            String error = "FastAPI 처리 시간 초과: " + e.getMessage();
+            log.error(error, e);
+            jobStatusService.setJobStatus(jobId, "FAILED", error);
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
-            
-            // 상세한 에러 메시지 생성
             StringBuilder errorDetail = new StringBuilder();
             errorDetail.append("Error: ").append(e.getClass().getName())
                       .append("\nMessage: ").append(e.getMessage());
             
-            // Stack trace 추가
             if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
                 errorDetail.append("\nStack trace:\n");
                 for (int i = 0; i < Math.min(3, e.getStackTrace().length); i++) {
@@ -497,7 +520,6 @@ public class UrlServiceImpl implements UrlService {
                 }
             }
             
-            // Cause가 있다면 추가
             if (e.getCause() != null) {
                 errorDetail.append("\nCaused by: ")
                           .append(e.getCause().getClass().getName())
