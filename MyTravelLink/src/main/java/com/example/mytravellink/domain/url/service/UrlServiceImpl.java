@@ -120,7 +120,7 @@ public class UrlServiceImpl implements UrlService {
                     throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
                 }
                 
-                processPlaceInfo(response, newUrlStr, urlResponse);
+                processPlaceInfo(response, newUrlStr, urlResponse, jobId);
             }
             
             if (urlResponse.get() == null || urlResponse.get().getPlaceDetails().isEmpty()) {
@@ -509,7 +509,7 @@ public class UrlServiceImpl implements UrlService {
                     if (response != null && !response.getPlaceDetails().isEmpty()) {
                         jobStatusService.setResult(jobId, "FastAPI 응답 성공");
                         transactionTemplate.execute(status -> {
-                            processPlaceInfo(response, newUrlStr, urlResponse);
+                            processPlaceInfo(response, newUrlStr, urlResponse, jobId);
                             return null;
                         });
                     } else {
@@ -547,35 +547,69 @@ public class UrlServiceImpl implements UrlService {
 
     // Place 정보 처리를 위한 별도 메서드
     private void processPlaceInfo(UrlResponse apiResponse, List<String> newUrlStr, 
-                                AtomicReference<UrlResponse> urlResponse) {
-        // URL 조회를 한 번만 수행
-        List<Url> savedUrls = newUrlStr.stream()
-            .map(urlStr -> urlRepository.findByUrl(urlStr)
-                .orElseThrow(() -> new RuntimeException("URL not found")))
-            .collect(Collectors.toList());
+                                AtomicReference<UrlResponse> urlResponse, String jobId) {
+        try {
+            jobStatusService.setResult(jobId, "장소 정보 처리 시작");
+            jobStatusService.setResult(jobId, "새로운 URL 수: " + newUrlStr.size());
+            jobStatusService.setResult(jobId, "응답 장소 수: " + apiResponse.getPlaceDetails().size());
 
-        int index = 0;
-        for (PlaceInfo placeInfo : apiResponse.getPlaceDetails()) {
-            List<PlacePhoto> photos = placeInfo.getPhotos();
-            String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
-            
-            if (photos != null && !photos.isEmpty() && photos.get(0) != null) {
-                imageUrl = imageService.redirectImageUrl(photos.get(0).getUrl());
+            // URL과 PlaceInfo의 매핑 관계 확인
+            if (newUrlStr.size() != apiResponse.getPlaceDetails().size()) {
+                jobStatusService.setResult(jobId, 
+                    String.format("URL 수(%d)와 장소 수(%d)가 일치하지 않습니다", 
+                    newUrlStr.size(), apiResponse.getPlaceDetails().size()));
+            }
+
+            // URL 조회를 한 번만 수행
+            List<Url> savedUrls = new ArrayList<>();
+            for (String urlStr : newUrlStr) {
+                Optional<Url> existingUrl = urlRepository.findByUrl(urlStr);
+                Url url = existingUrl.orElseGet(() -> { // 존재하지 않는 경우 새로 생성
+                    Url newUrl = Url.builder()
+                        .url(urlStr)
+                        .urlTitle(urlStr)
+                        .urlAuthor("system")
+                        .build();
+                    return urlRepository.save(newUrl);
+                });
+                savedUrls.add(url);
+            }
+
+            // Place 정보 처리
+            for (int i = 0; i < apiResponse.getPlaceDetails().size(); i++) {
+                PlaceInfo placeInfo = apiResponse.getPlaceDetails().get(i);
+                
+                // 이미지 URL 처리
+                String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+                if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() 
+                    && placeInfo.getPhotos().get(0) != null) {
+                    imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
+                }
+                
+                // Place 저장
+                Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+                
+                // URL-Place 매핑 (인덱스 범위 체크 추가)
+                if (i < savedUrls.size()) {
+                    saveUrlPlaceMapping(savedUrls.get(i), place);
+                } else {
+                    jobStatusService.setResult(jobId, 
+                        String.format("인덱스 초과: i=%d, savedUrls.size=%d", i, savedUrls.size()));
+                }
             }
             
-            Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+            // 응답 데이터 병합
+            if (urlResponse.get() == null) {
+                urlResponse.set(apiResponse);
+            } else {
+                urlResponse.get().getPlaceDetails().addAll(apiResponse.getPlaceDetails());
+            }
             
-            // 이미 조회한 URL 사용
-            saveUrlPlaceMapping(savedUrls.get(index), place);
-            index++;
+            jobStatusService.setResult(jobId, "장소 정보 처리 완료");
             
-        }
-        
-        // 응답 데이터 병합
-        if (urlResponse.get() == null) {
-            urlResponse.set(apiResponse);
-        } else {
-            urlResponse.get().getPlaceDetails().addAll(apiResponse.getPlaceDetails());
+        } catch (Exception e) {
+            jobStatusService.setResult(jobId, "장소 정보 처리 실패: " + e.getMessage());
+            throw e;
         }
     }
 }
