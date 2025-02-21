@@ -44,6 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -518,6 +519,13 @@ public class UrlServiceImpl implements UrlService {
     // Place 정보 처리를 위한 별도 메서드
     private void processPlaceInfo(UrlResponse apiResponse, List<String> newUrlStr, 
                                 AtomicReference<UrlResponse> urlResponse) {
+        // URL 조회를 한 번만 수행
+        List<Url> savedUrls = newUrlStr.stream()
+            .map(urlStr -> urlRepository.findByUrl(urlStr)
+                .orElseThrow(() -> new RuntimeException("URL not found")))
+            .collect(Collectors.toList());
+
+        int index = 0;
         for (PlaceInfo placeInfo : apiResponse.getPlaceDetails()) {
             List<PlacePhoto> photos = placeInfo.getPhotos();
             String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
@@ -528,11 +536,10 @@ public class UrlServiceImpl implements UrlService {
             
             Place place = saveOrUpdatePlace(placeInfo, imageUrl);
             
-            for(String urlStr : newUrlStr) {
-                Url url = urlRepository.findByUrl(urlStr)
-                    .orElseThrow(() -> new RuntimeException("URL not found"));
-                saveUrlPlaceMapping(url, place);
-            }
+            // 이미 조회한 URL 사용
+            saveUrlPlaceMapping(savedUrls.get(index), place);
+            index++;
+            
         }
         
         // 응답 데이터 병합
