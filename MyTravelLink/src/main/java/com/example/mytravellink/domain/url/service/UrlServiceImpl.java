@@ -43,8 +43,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.client.RestClientException;
 import java.util.stream.Collectors;
-import java.util.concurrent.CompletionException;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import jakarta.annotation.PostConstruct;
+import java.time.Duration;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -68,6 +70,15 @@ public class UrlServiceImpl implements UrlService {
 
     @Value("${ai.server.url}")  // application.yml에서 설정
     private String fastAPiUrl;
+
+    @PostConstruct
+    public void configureRestTemplate() {
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(5));  // 5초
+        factory.setConnectionRequestTimeout(Duration.ofMinutes(15));  // 15분
+        
+        restTemplate.setRequestFactory(factory);
+    }
 
     @Override
     @Transactional
@@ -102,30 +113,12 @@ public class UrlServiceImpl implements UrlService {
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("urls", newUrlStr);
                 
-                // FastAPI 호출 및 응답 대기
-                ResponseEntity<UrlResponse> response = null;
-                int maxRetries = 120;  // 최대 재시도 횟수
-                int retryDelay = 5000;  // 5초 대기
+                // FastAPI 호출 (한 번만)
+                ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
+                    requestUrl, requestBody, UrlResponse.class
+                );
                 
-                for (int i = 0; i < maxRetries; i++) {
-                    response = restTemplate.postForEntity(requestUrl, requestBody, UrlResponse.class);
-                    
-                    if (response.getBody() != null && 
-                        response.getBody().getPlaceDetails() != null && 
-                        !response.getBody().getPlaceDetails().isEmpty()) {
-                        break;  // 유효한 응답을 받으면 반복 종료
-                    }
-                    
-                    try {
-                        Thread.sleep(retryDelay);  // 잠시 대기 후 재시도
-                        jobStatusService.setJobStatus(jobId, "Processing", 
-                            String.format("FastAPI 분석 중... (%d/%d)", i + 1, maxRetries));
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("FastAPI 처리가 중단되었습니다", e);
-                    }
-                }
-                
+                // 응답 검증 및 처리
                 if (response == null || 
                     response.getBody() == null || 
                     response.getBody().getPlaceDetails() == null || 
