@@ -454,17 +454,20 @@ public class TravelInfoController {
      * @return ResponseEntity<Map<String, Object>>
      */
     @GetMapping("/guidebook/status/{jobId}")
-    public ResponseEntity<Map<String, Object>> getJobStatus(@PathVariable String jobId) {
-        JobStatus status = jobStatusService.getJobStatus(jobId);
-        Map<String, Object> response = new HashMap<>();
+    public ResponseEntity<Map<String, String>> getGuideBookStatus(@PathVariable String jobId) {
+        Map<String, String> response = new HashMap<>();
+        String status = jobStatusService.getStatus(jobId);
+        String error = jobStatusService.getError(jobId);
+        String guideId = jobStatusService.getResult(jobId);
         
-        response.put("status", status.getStatus());
-        
-        if ("COMPLETED".equals(status.getStatus())) {
-            response.put("guideId", status.getResult());  // result에 guideId가 저장되어 있음
-        } else if ("FAILED".equals(status.getStatus())) {
-            response.put("error", status.getResult());    // 실패 시 에러 메시지
+        response.put("status", status);
+        if (error != null) {
+            response.put("error", error);
         }
+        if (guideId != null) {
+            response.put("guideId", guideId);
+        }
+        
         return ResponseEntity.ok(response);
     }
 
