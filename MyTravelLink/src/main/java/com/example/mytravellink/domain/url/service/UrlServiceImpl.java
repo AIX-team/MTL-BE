@@ -176,18 +176,30 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Transactional(readOnly = true)
-    private UrlResponse convertToUrlResponse(Url url) {
-        List<PlaceInfo> placeInfoList = new ArrayList<>();  // 수정 가능한 ArrayList 생성
-        
-        for (UrlPlace urlPlace : url.getUrlPlaces()) {
-            placeInfoList.add(convertToPlaceInfo(urlPlace));
-        }
+    private UrlResponse convertToUrlResponse(Url url, String jobId) {
+        try {
+            jobStatusService.setResult(jobId, "URL 데이터 변환 시작: " + url.getUrl());
+            
+            List<PlaceInfo> placeInfoList = new ArrayList<>();
+            
+            // Fetch 조인으로 N+1 문제 해결
+            List<UrlPlace> urlPlaces = urlPlaceRepository.findByUrlWithPlace(url.getId());
+            
+            for (UrlPlace urlPlace : urlPlaces) {
+                placeInfoList.add(convertToPlaceInfo(urlPlace));
+            }
 
-        return UrlResponse.builder()
-            .contentInfos(new ArrayList<>())  // 수정 가능한 ArrayList 사용
-            .placeDetails(placeInfoList)
-            .processingTimeSeconds(0)
-            .build();
+            jobStatusService.setResult(jobId, "변환된 장소 데이터 수: " + placeInfoList.size());
+
+            return UrlResponse.builder()
+                .contentInfos(new ArrayList<>())
+                .placeDetails(placeInfoList)
+                .processingTimeSeconds(0)
+                .build();
+        } catch (Exception e) {
+            jobStatusService.setResult(jobId, "URL 데이터 변환 실패: " + e.getMessage());
+            throw e;
+        }
     }
 
     private PlaceInfo convertToPlaceInfo(UrlPlace urlPlace) {
@@ -472,7 +484,7 @@ public class UrlServiceImpl implements UrlService {
                 }
                 
                 jobStatusService.setResult(jobId, "캐시된 URL 처리: " + urlStr);
-                UrlResponse cachedResponse = convertToUrlResponse(existingData.get());
+                UrlResponse cachedResponse = convertToUrlResponse(existingData.get(), jobId);
                 if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
                     if (urlResponse.get() == null) {
                         urlResponse.set(cachedResponse);
