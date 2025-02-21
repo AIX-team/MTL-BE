@@ -43,9 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.client.RestClientException;
 import java.util.stream.Collectors;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
@@ -476,55 +474,26 @@ public class UrlServiceImpl implements UrlService {
         try {
             jobStatusService.setJobStatus(jobId, "PROCESSING", "URL 분석 중...");
             
-            CompletableFuture<UrlResponse> future = CompletableFuture.supplyAsync(() -> {
+            // 1. CompletableFuture 대신 직접 실행
+            UrlResponse response = transactionTemplate.execute(status -> {
                 try {
-                    // 새로운 트랜잭션에서 실행
-                    return transactionTemplate.execute(status -> {
-                        try {
-                            return processUrl(urlRequest, jobId, email);
-                        } catch (Exception e) {
-                            throw new CompletionException(e);
-                        }
-                    });
+                    return processUrl(urlRequest, jobId, email);
                 } catch (Exception e) {
+                    log.error("URL 처리 실패", e);
+                    jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
                     throw new CompletionException(e);
                 }
             });
 
-            UrlResponse response = future.get(600, TimeUnit.SECONDS);
-            
+            // 2. 결과가 있을 때만 완료 상태로 변경
             if (response != null && response.getPlaceDetails() != null) {
                 String result = objectMapper.writeValueAsString(response);
                 jobStatusService.setJobStatus(jobId, "Completed", result);
-            } else {
-                throw new RuntimeException("FastAPI 처리 결과가 없습니다.");
             }
             
-        } catch (TimeoutException e) {
-            String error = "FastAPI 처리 시간 초과: " + e.getMessage();
-            log.error(error, e);
-            jobStatusService.setJobStatus(jobId, "Failed", error);
         } catch (Exception e) {
-            log.error("URL 분석 실패", e);
-            StringBuilder errorDetail = new StringBuilder();
-            errorDetail.append("Error: ").append(e.getClass().getName())
-                      .append("\nMessage: ").append(e.getMessage());
-            
-            if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
-                errorDetail.append("\nStack trace:\n");
-                for (int i = 0; i < Math.min(3, e.getStackTrace().length); i++) {
-                    errorDetail.append("  ").append(e.getStackTrace()[i].toString()).append("\n");
-                }
-            }
-            
-            if (e.getCause() != null) {
-                errorDetail.append("\nCaused by: ")
-                          .append(e.getCause().getClass().getName())
-                          .append(": ")
-                          .append(e.getCause().getMessage());
-            }
-            
-            jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
+            log.error("비동기 처리 실패", e);
+            jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
         }
     }
     public boolean isUser(String urlId, String userEmail) {
