@@ -207,12 +207,14 @@ public class UrlServiceImpl implements UrlService {
 
     @Transactional(readOnly = true)
     private UrlResponse convertToUrlResponse(Url url) {
-        List<PlaceInfo> placeInfoList = url.getUrlPlaces().stream()
-            .map(this::convertToPlaceInfo)
-            .toList();
+        List<PlaceInfo> placeInfoList = new ArrayList<>();  // 수정 가능한 ArrayList 생성
+        
+        for (UrlPlace urlPlace : url.getUrlPlaces()) {
+            placeInfoList.add(convertToPlaceInfo(urlPlace));
+        }
 
         return UrlResponse.builder()
-            .contentInfos(Collections.emptyList())
+            .contentInfos(new ArrayList<>())  // 수정 가능한 ArrayList 사용
             .placeDetails(placeInfoList)
             .processingTimeSeconds(0)
             .build();
@@ -223,17 +225,17 @@ public class UrlServiceImpl implements UrlService {
         List<PlacePhoto> images = parseJson(place.getImage(), new TypeReference<List<PlacePhoto>>() {});
         List<String> openHours = parseJson(place.getOpenHours(), new TypeReference<List<String>>() {});
 
-        return new PlaceInfo(
-            place.getTitle(),
-            place.getDescription(),
-            place.getAddress(),
-            images,
-            place.getPhone(),
-            place.getWebsite(),
-            place.getRating(),
-            openHours,
-            place.getIntro()
-        );
+        return PlaceInfo.builder()
+            .name(place.getTitle())
+            .description(place.getDescription())
+            .formattedAddress(place.getAddress())
+            .photos(images != null ? new ArrayList<>(images) : new ArrayList<>())
+            .phone(place.getPhone())
+            .website(place.getWebsite())
+            .rating(place.getRating())
+            .open_hours(openHours != null ? new ArrayList<>(openHours) : new ArrayList<>())
+            .officialDescription(place.getIntro())
+            .build();
     }
 
     private <T> T parseJson(String json, TypeReference<T> typeReference) {
