@@ -45,7 +45,6 @@ import org.springframework.web.client.RestClientException;
 import java.util.stream.Collectors;
 import java.util.concurrent.CompletionException;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.TransactionDefinition;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -103,11 +102,34 @@ public class UrlServiceImpl implements UrlService {
                 Map<String, Object> requestBody = new HashMap<>();
                 requestBody.put("urls", newUrlStr);
                 
-                ResponseEntity<UrlResponse> response = restTemplate.postForEntity(
-                    requestUrl, requestBody, UrlResponse.class
-                );
+                // FastAPI 호출 및 응답 대기
+                ResponseEntity<UrlResponse> response = null;
+                int maxRetries = 120;  // 최대 재시도 횟수
+                int retryDelay = 5000;  // 5초 대기
                 
-                if (response.getBody() == null || response.getBody().getPlaceDetails() == null) {
+                for (int i = 0; i < maxRetries; i++) {
+                    response = restTemplate.postForEntity(requestUrl, requestBody, UrlResponse.class);
+                    
+                    if (response.getBody() != null && 
+                        response.getBody().getPlaceDetails() != null && 
+                        !response.getBody().getPlaceDetails().isEmpty()) {
+                        break;  // 유효한 응답을 받으면 반복 종료
+                    }
+                    
+                    try {
+                        Thread.sleep(retryDelay);  // 잠시 대기 후 재시도
+                        jobStatusService.setJobStatus(jobId, "Processing", 
+                            String.format("FastAPI 분석 중... (%d/%d)", i + 1, maxRetries));
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("FastAPI 처리가 중단되었습니다", e);
+                    }
+                }
+                
+                if (response == null || 
+                    response.getBody() == null || 
+                    response.getBody().getPlaceDetails() == null || 
+                    response.getBody().getPlaceDetails().isEmpty()) {
                     throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
                 }
                 
@@ -448,28 +470,22 @@ public class UrlServiceImpl implements UrlService {
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            jobStatusService.setJobStatus(jobId, "PROCESSING", "URL 분석 중...");
+            jobStatusService.setJobStatus(jobId, "Processing", "URL 분석 중...");
             
-            // TransactionTemplate의 propagation을 REQUIRES_NEW로 설정
-            transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-            
-            // 트랜잭션 내에서 모든 데이터를 즉시 로딩
+            // 새로운 트랜잭션에서 실행하고 결과를 기다림
             UrlResponse response = transactionTemplate.execute(status -> {
                 try {
-                    UrlResponse result = processUrl(urlRequest, jobId, email);
-                    // 결과를 JSON으로 직렬화하여 모든 데이터를 즉시 로딩
-                    String jsonResult = objectMapper.writeValueAsString(result);
-                    return objectMapper.readValue(jsonResult, UrlResponse.class);
+                    return processUrl(urlRequest, jobId, email);
                 } catch (Exception e) {
                     log.error("URL 처리 중 오류 발생", e);
                     throw new RuntimeException(e);
                 }
             });
 
-            if (response != null && response.getPlaceDetails() != null && 
-                !response.getPlaceDetails().isEmpty()) {
+            // 결과가 있을 때만 완료 상태로 업데이트
+            if (response != null && !response.getPlaceDetails().isEmpty()) {
                 String result = objectMapper.writeValueAsString(response);
-                jobStatusService.setJobStatus(jobId, "COMPLETED", result);
+                jobStatusService.setJobStatus(jobId, "Completed", result);
             } else {
                 throw new RuntimeException("처리된 장소 데이터가 없습니다");
             }
@@ -477,10 +493,17 @@ public class UrlServiceImpl implements UrlService {
         } catch (Exception e) {
             log.error("URL 분석 실패", e);
             StringBuilder errorDetail = new StringBuilder();
-            errorDetail.append("비동기 처리 실패: ")
-                      .append(e.getMessage());
+            errorDetail.append("Error: ").append(e.getClass().getName())
+                      .append("\nMessage: ").append(e.getMessage());
             
-            jobStatusService.setJobStatus(jobId, "FAILED", errorDetail.toString());
+            if (e.getStackTrace() != null && e.getStackTrace().length > 0) {
+                errorDetail.append("\nStack trace:\n");
+                for (int i = 0; i < Math.min(3, e.getStackTrace().length); i++) {
+                    errorDetail.append("  ").append(e.getStackTrace()[i].toString()).append("\n");
+                }
+            }
+            
+            jobStatusService.setJobStatus(jobId, "Failed", errorDetail.toString());
         }
     }
     public boolean isUser(String urlId, String userEmail) {
