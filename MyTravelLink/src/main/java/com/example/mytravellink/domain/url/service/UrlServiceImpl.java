@@ -137,12 +137,13 @@ public class UrlServiceImpl implements UrlService {
 
 
                 // 6. FASTAPI에서 추출한 장소 데이터를 DB의 Place에 저장
-                // (기존 로직 그대로)
                 for (PlaceInfo placeInfo : urlResponse.getPlaceDetails()) {
-                    
+                    // NPE 방지를 위한 null 체크 추가
                     List<PlacePhoto> photos = placeInfo.getPhotos();
-                    PlacePhoto photo = photos.get(0);
-            
+                    final String finalImageUrl = photos != null && !photos.isEmpty() && photos.get(0) != null
+                        ? imageService.redirectImageUrl(photos.get(0).getUrl())
+                        : "https://via.placeholder.com/300x200?text=No+Image";
+
                     Place place = placeRepository.findByTitle(placeInfo.getName())
                             .orElseGet(() -> {
                                 // opening_hours가 빈 리스트이거나 null이면 null 처리
@@ -155,16 +156,15 @@ public class UrlServiceImpl implements UrlService {
                                         .title(placeInfo.getName())
                                         .description(placeInfo.getDescription())
                                         .address(placeInfo.getFormattedAddress())
-                                        .image(placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() ? 
-                                            imageService.redirectImageUrl(photo.getUrl()) : "https://via.placeholder.com/300x200?text=No+Image")
+                                        .image(finalImageUrl)  // final 변수 사용
                                         .phone(placeInfo.getPhone())
                                         .intro(placeInfo.getOfficialDescription())
                                         .website(placeInfo.getWebsite())
                                         .rating(placeInfo.getRating())
                                         .openHours(openHours)
-                                        .type(placeInfo.getType())  // type 설정
-                                        .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)  // latitude 설정
-                                        .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)  // longitude 설정
+                                        .type(placeInfo.getType())
+                                        .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)
+                                        .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)
                                         .build();
                                 return placeRepository.save(newPlace);
                             });
