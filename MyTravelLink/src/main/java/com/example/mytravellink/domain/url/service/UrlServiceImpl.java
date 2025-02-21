@@ -68,7 +68,7 @@ public class UrlServiceImpl implements UrlService {
     private String fastAPiUrl;
 
     @Override
-    @Transactional(readOnly = true)  // 읽기 전용 트랜잭션 추가
+    @Transactional
     public UrlResponse processUrl(UrlRequest urlRequest, String jobId) {
         try {
             // URL 리스트가 비어있으면 예외 처리
@@ -448,7 +448,9 @@ public class UrlServiceImpl implements UrlService {
         return false;
     }
 
+    @Override
     @Async
+    @Transactional
     public void processUrlAsync(UrlRequest urlRequest, String jobId) {
         try {
             UrlResponse response = processUrl(urlRequest, jobId);
