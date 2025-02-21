@@ -3,9 +3,11 @@ package com.example.mytravellink.domain.travel.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 import com.example.mytravellink.infrastructure.ai.Guide.AIGuideInfrastructure;
 import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
@@ -15,7 +17,9 @@ import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlaceServiceImpl implements PlaceService {
@@ -43,37 +47,18 @@ public class PlaceServiceImpl implements PlaceService {
    * @return AI 코스 추천 응답
    */
 
+  @Async("asyncTaskExecutor")
   @Override
-  public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
-
-    List<AIPlace> places = new ArrayList<>();
-    for(AIPlace place : aiGuideCourseRequest.getPlaces()) {
-      AIPlace tmpPlace =AIPlace.builder()
-        .id(place.getId())
-        .address(place.getAddress())
-        .title(place.getTitle())
-        .description(place.getDescription() != null ? place.getDescription() : "")
-        .intro(place.getIntro() != null ? place.getIntro() : "")
-        .type(place.getType() != null ? place.getType() : "")
-        .image(place.getImage() != null ? place.getImage() : "")
-        .latitude(place.getLatitude())
-        .longitude(place.getLongitude())
-        .openHours(place.getOpenHours() != null ? place.getOpenHours() : "")
-        .phone(place.getPhone() != null ? place.getPhone() : "")
-        .rating(place.getRating() != null ? place.getRating() : BigDecimal.ZERO)
-        .build();
-      places.add(tmpPlace);
+  public CompletableFuture<List<AIGuideCourseResponse>> getAIGuideCourse(AIGuideCourseRequest request, int dayNum) {
+    try {
+      log.info("AI 가이드 코스 생성 시작: dayNum={}", dayNum);
+      List<AIGuideCourseResponse> response = aiGuideInfrastructure.getGuideRecommendation(request);
+      log.info("AI 가이드 코스 생성 완료");
+      return CompletableFuture.completedFuture(response);
+    } catch (Exception e) {
+      log.error("AI 가이드 코스 생성 실패: {}", e.getMessage(), e);
+      return CompletableFuture.failedFuture(e);
     }
-
-    AIGuideCourseRequest request = AIGuideCourseRequest.builder()
-      .places(places)
-      .travelDays(travelDays)
-      .build();
-
-    List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
-
-
-    return aiGuideCourseResponses;
   }
 
   /**
