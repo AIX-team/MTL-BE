@@ -1,4 +1,3 @@
-
 package com.example.mytravellink.domain.job.service;
 
 import org.springframework.stereotype.Service;
@@ -20,6 +19,7 @@ public class JobStatusService {
     public static class JobStatus {
         private String status;    // PENDING, PROCESSING, COMPLETED, FAILED
         private String result;
+        private String error;     // 에러 메시지 필드 추가
         private LocalDateTime createdAt;  // 작업 시작 시간 추가
         private LocalDateTime updatedAt;  // 마지막 업데이트 시간 추가
     }
@@ -31,7 +31,7 @@ public class JobStatusService {
      */
     public void setStatus(String jobId, String status) {
         log.info("Setting job status. JobID: {}, Status: {}", jobId, status);
-        jobs.put(jobId, new JobStatus(status, null, null, null));
+        jobs.put(jobId, new JobStatus(status, null, null, LocalDateTime.now(), LocalDateTime.now()));
     }
 
     /**
@@ -42,7 +42,9 @@ public class JobStatusService {
     public void setResult(String jobId, String result) {
         JobStatus current = jobs.get(jobId);
         String currentStatus = (current != null) ? current.getStatus() : null;
-        jobs.put(jobId, new JobStatus(currentStatus, result, null, null));
+        String currentError = (current != null) ? current.getError() : null;
+        LocalDateTime createdAt = (current != null) ? current.getCreatedAt() : LocalDateTime.now();
+        jobs.put(jobId, new JobStatus(currentStatus, result, currentError, createdAt, LocalDateTime.now()));
     }
 
     /**
@@ -76,19 +78,55 @@ public class JobStatusService {
         jobs.remove(jobId);
     }
 
-    public void setJobStatus(String jobId, String status, String result) {
-        log.info("Job Status Update - ID: {}, Status: {}", jobId, status);
+    /**
+     * 작업 상태와 에러 메시지 설정
+     * @param jobId 작업 ID
+     * @param status 상태
+     * @param result 결과
+     * @param error 에러 메시지
+     */
+    public void setJobStatus(String jobId, String status, String result, String error) {
+        log.info("Job Status Update - ID: {}, Status: {}, Error: {}", jobId, status, error);
         jobs.put(jobId, new JobStatus(
             status, 
             result,
+            error,
             jobs.containsKey(jobId) ? jobs.get(jobId).getCreatedAt() : LocalDateTime.now(),
             LocalDateTime.now()
         ));
     }
 
+    /**
+     * 에러 메시지 설정
+     * @param jobId 작업 ID
+     * @param error 에러 메시지
+     */
+    public void setError(String jobId, String error) {
+        JobStatus current = jobs.get(jobId);
+        if (current != null) {
+            jobs.put(jobId, new JobStatus(
+                current.getStatus(),
+                current.getResult(),
+                error,
+                current.getCreatedAt(),
+                LocalDateTime.now()
+            ));
+        }
+    }
+
+    /**
+     * 에러 메시지 조회
+     * @param jobId 작업 ID
+     * @return 에러 메시지
+     */
+    public String getError(String jobId) {
+        JobStatus jobStatus = jobs.get(jobId);
+        return jobStatus != null ? jobStatus.getError() : null;
+    }
+
     public JobStatus getJobStatus(String jobId) {
         return jobs.getOrDefault(jobId, 
-            new JobStatus("NOT_FOUND", null, null, null));
+            new JobStatus("NOT_FOUND", null, null, null, null));
     }
 
     // 오래된 작업 정리

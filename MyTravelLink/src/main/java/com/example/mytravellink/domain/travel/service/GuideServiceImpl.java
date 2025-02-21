@@ -367,4 +367,26 @@ public class GuideServiceImpl implements GuideService {
             .isDelete(false)
             .build();
   }
+
+  @Override
+  public String createGuide(PlaceSelectRequest placeSelectRequest, String email) {
+    try {
+        // 1. AI 가이드 코스 요청 데이터 생성
+        AIGuideCourseRequest aiGuideCourseRequest = convertToAIGuideCourseRequest(placeSelectRequest);
+
+        // 2. AI 코스 추천 데이터 받기
+        List<AIGuideCourseResponse> aiGuideCourseResponses = 
+            placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
+
+        String title = "가이드북" + travelInfoService.getGuideCount(email);
+        Guide guide = createGuideEntity(placeSelectRequest, title, email);
+        
+        // 3. 가이드, 코스, 코스 장소 생성
+        return createGuideAndCourses(guide, aiGuideCourseResponses);
+        
+    } catch (Exception e) {
+        log.error("Failed to create guide", e);
+        throw new RuntimeException("Failed to create guide: " + e.getMessage(), e);
+    }
+  }
 }
