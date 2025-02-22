@@ -4,10 +4,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.core.Ordered;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
+                .resourceChain(true);
+    }
 
     // SPA 라우팅을 위한 설정
     @Override
