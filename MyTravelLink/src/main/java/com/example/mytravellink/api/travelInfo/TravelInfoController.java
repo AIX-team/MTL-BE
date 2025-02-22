@@ -491,7 +491,7 @@ public class TravelInfoController {
         try {
             //TO-DO: String userEmail = user.getEmail();
             String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            List<Guide> guideList = guideService.getGuideList(userEmail);
+            List<Guide> guideList = guideService.getGuideList(email);
             List<GuideBookListResponse.GuideList> guideListResponse = new ArrayList<>();
             for(Guide guide : guideList){
                 List<String> authors = travelInfoService.getUrlAuthors(guide.getTravelInfo().getId());
