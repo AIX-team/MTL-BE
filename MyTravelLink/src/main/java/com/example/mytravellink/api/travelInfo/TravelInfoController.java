@@ -12,15 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import com.example.mytravellink.auth.handler.JwtTokenProvider;
+
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.BooleanRequest;
@@ -60,6 +55,8 @@ public class TravelInfoController {
     private final GuideServiceImpl guideService;
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
+    private final JwtTokenProvider jwtTokenProvider;
+
 
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
@@ -334,13 +331,12 @@ public class TravelInfoController {
      * @return TravelInfoListResponse
      */
     @GetMapping("/travelInfos/list")
-    public ResponseEntity<TravelInfoListResponse> travelInfoList(
+    public ResponseEntity<TravelInfoListResponse> travelInfoList(@RequestHeader("Authorization") String token
         // @AuthenticationPrincipal CustomUserDetails user
         ) {
         try{
-            //TO-DO: String userEmail = user.getEmail();
-            String userEmail = "user1@example.com";
-            List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(userEmail);
+            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(email);
             List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
             for(TravelInfo travelInfo : travelInfoList){
                 String imgUrl = placeService.getPlaceImage(travelInfo.getId());
