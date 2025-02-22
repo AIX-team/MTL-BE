@@ -51,6 +51,8 @@ spring:
           content:
             enabled: true
             paths: /**
+  codec:
+    max-in-memory-size: 10MB
 
 url:
   google:
@@ -82,3 +84,5 @@ resilience4j:
     instances:
       ai-server:
         timeoutDuration: 420s  # 7분
+
+  
