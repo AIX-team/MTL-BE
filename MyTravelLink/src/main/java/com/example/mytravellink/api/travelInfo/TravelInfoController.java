@@ -10,7 +10,6 @@ import java.util.HashMap;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +28,6 @@ import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoListResponse
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
-import com.example.mytravellink.auth.service.CustomUserDetails;
 import com.example.mytravellink.domain.job.service.JobStatusService;
 import com.example.mytravellink.domain.job.service.JobStatusService.JobStatus;
 import com.example.mytravellink.domain.travel.entity.Guide;

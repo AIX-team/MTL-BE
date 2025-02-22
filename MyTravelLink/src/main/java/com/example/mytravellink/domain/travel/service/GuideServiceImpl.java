@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
 import com.example.mytravellink.domain.travel.repository.CourseRepository;
@@ -38,6 +39,7 @@ public class GuideServiceImpl implements GuideService {
   private final ObjectMapper objectMapper;
   private final PlaceService placeService;
   private final TravelInfoService travelInfoService;
+  private final TransactionTemplate transactionTemplate;
 
 
   /**
@@ -271,23 +273,61 @@ public class GuideServiceImpl implements GuideService {
    * @param placeSelectRequest
    * @param jobId
    */
-  @Async("asyncTaskExecutor")
+  @Async
   @Override
   public void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email) {
     try {
-      log.info("Starting async guide creation for jobId: {}", jobId);
-      jobStatusService.setJobStatus(jobId, "PROCESSING", null);
+      log.info("[작업 시작] jobId: {}, email: {}", jobId, email);
+      jobStatusService.setJobStatus(jobId, "PROCESSING", "가이드 생성 시작");
 
-      String response = createGuide(placeSelectRequest, email);
-      String resultString = objectMapper.writeValueAsString(response);
+      // 1. AI 요청 데이터 준비
+      AIGuideCourseRequest aiGuideCourseRequest = transactionTemplate.execute(status -> {
+        try {
+          return convertToAIGuideCourseRequest(placeSelectRequest);
+        } catch (Exception e) {
+          log.error("[AI 요청 준비] jobId: {}, 실패: {}", jobId, e.getMessage());
+          throw new RuntimeException("AI 요청 데이터 준비 실패", e);
+        }
+      });
       
-      log.info("Guide creation completed for jobId: {}", jobId);
-      jobStatusService.setJobStatus(jobId, "COMPLETED", resultString);
-      
+      log.info("[AI 요청] jobId: {}, 데이터 준비 완료", jobId);
+      jobStatusService.setResult(jobId, "AI 서버 요청 중...");
+
+      // 2. AI 코스 추천 요청
+      List<AIGuideCourseResponse> aiGuideCourseResponses = 
+          placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
+
+      if (aiGuideCourseResponses == null || aiGuideCourseResponses.isEmpty()) {
+        throw new RuntimeException("AI 응답 데이터가 없습니다");
+      }
+
+      log.info("[AI 응답] jobId: {}, 코스 수: {}", jobId, aiGuideCourseResponses.size());
+      jobStatusService.setResult(jobId, "가이드북 생성 중...");
+
+      // 3. 가이드북 생성 및 저장
+      String guideId = transactionTemplate.execute(status -> {
+        try {
+          String title = "가이드북" + travelInfoService.getGuideCount(email);
+          Guide guide = createGuideEntity(placeSelectRequest, title, email);
+          return createGuideAndCourses(guide, aiGuideCourseResponses);
+        } catch (Exception e) {
+          log.error("[가이드 생성] jobId: {}, 실패: {}", jobId, e.getMessage());
+          throw new RuntimeException("가이드북 생성 실패", e);
+        }
+      });
+
+      log.info("[완료] jobId: {}, guideId: {}", jobId, guideId);
+      jobStatusService.setJobStatus(jobId, "COMPLETED", guideId);
+
     } catch (Exception e) {
-      log.error("Guide creation failed for jobId: " + jobId, e);
-      jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
-      throw new RuntimeException("가이드 북 비동기 생성 실패", e);
+      String errorDetail = String.format(
+        "가이드 생성 실패: %s\n위치: %s:%d",
+        e.getMessage(),
+        e.getStackTrace()[0].getFileName(),
+        e.getStackTrace()[0].getLineNumber()
+      );
+      log.error("[실패] jobId: {}, {}", jobId, errorDetail);
+      jobStatusService.setJobStatus(jobId, "FAILED", errorDetail);
     }
   }
 
@@ -321,6 +361,13 @@ public class GuideServiceImpl implements GuideService {
     }
   }
 
+  /**
+   * 가이드 엔티티 생성
+   * @param placeSelectRequest
+   * @param title
+   * @param email
+   * @return Guide
+   */
   private Guide createGuideEntity(PlaceSelectRequest placeSelectRequest, String title, String email) {
     return Guide.builder()
             .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))

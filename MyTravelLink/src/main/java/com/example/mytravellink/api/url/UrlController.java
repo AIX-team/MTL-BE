@@ -1,8 +1,6 @@
 package com.example.mytravellink.api.url;
 
 import com.example.mytravellink.api.url.dto.UrlRequest;
-import com.example.mytravellink.api.url.dto.UrlResponse;
-import com.example.mytravellink.api.url.dto.UserUrlRequest;
 import com.example.mytravellink.domain.url.service.UrlService;
 import com.example.mytravellink.auth.handler.JwtTokenProvider;
 import com.example.mytravellink.domain.job.service.JobStatusService;
