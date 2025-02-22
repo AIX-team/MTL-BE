@@ -467,13 +467,20 @@ public class TravelInfoController {
 
             String title = "가이드북" + travelInfoService.getGuideCount(email);
 
+            // planType을 표준화 (매핑)
+            Map<String, String> planTypeMapping = new HashMap<>();
+            planTypeMapping.put("빼곡한 일정 선호", "busy");
+            planTypeMapping.put("적당한 일정 선호", "normal");
+            planTypeMapping.put("널널한 일정 선호", "relaxed");
+            String normalizedPlanType = planTypeMapping.getOrDefault(placeSelectRequest.getTravelTaste(), placeSelectRequest.getTravelTaste());
+
             // 3. 가이드북 생성
             Guide guide = Guide.builder()
                     .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
                     .title(title)
                     .travelDays(placeSelectRequest.getTravelDays())
                     .courseCount(placeSelectRequest.getTravelDays())
-                    .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
+                    .planTypes(normalizedPlanType) // 수정된 표준화된 plan_type 저장
                     .isFavorite(false)
                     .fixed(false)
                     .isDelete(false)
