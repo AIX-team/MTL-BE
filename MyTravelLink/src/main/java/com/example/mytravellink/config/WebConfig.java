@@ -8,10 +8,34 @@ import org.springframework.core.Ordered;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+
     // SPA 라우팅을 위한 설정
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/**").setViewName("forward:/index.html");
+        // API 요청은 제외하고 나머지만 index.html로 포워딩
+        registry.addViewController("/")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/login/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/loginSuccess/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/link/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/guide/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/mypage/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/wish/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/travel/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/travelInfos/**")
+               .setViewName("forward:/index.html");
+        registry.addViewController("/guidebooks/**")
+               .setViewName("forward:/index.html");
+
+        // 필요한 프론트엔드 라우트 추가
+        
         registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
     }
 } 

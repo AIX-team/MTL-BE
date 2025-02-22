@@ -42,6 +42,15 @@ spring:
         max-size: 16
         queue-capacity: 100
       thread-name-prefix: async-task-
+  web:
+    resources:
+      static-locations: classpath:/static/  # 여기서 static은 Spring Boot의 정적 리소스 폴더
+      add-mappings: false  # API 요청이 정적 리소스보다 우선하도록 설정
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
 
 url:
   google:
