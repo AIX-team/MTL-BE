@@ -1,9 +1,7 @@
 package com.example.mytravellink.domain.travel.service;
 
-import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseRequest;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.AIGuideCourseResponse;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
-import com.example.mytravellink.domain.job.service.JobStatusService.JobStatus;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
 
@@ -81,12 +79,12 @@ public interface GuideService {
      * @param jobId
      */
     void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email);
-
+    
     /**
-     * 가이드 북 비동기 생성 상태 조회
-     * @param jobId
-     * @return JobStatus
+     * 가이드 북 생성
+     * @param placeSelectRequest
+     * @return String
      */
-    JobStatus getJobStatus(String jobId);
+    String createGuide(PlaceSelectRequest placeSelectRequest, String email);  
 }
 
