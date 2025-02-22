@@ -551,6 +551,9 @@ public class UrlServiceImpl implements UrlService {
                 throw new RuntimeException(errorMsg);
             }
 
+            for(String url : urlRequest.getUrls()) {
+                updateUserUrlStatus(email, url);
+            }
             String result = objectMapper.writeValueAsString(finalResponse);
             jobStatusService.setJobStatus(jobId, "Completed", result);
             log.info("[완료] jobId: {}", jobId);
