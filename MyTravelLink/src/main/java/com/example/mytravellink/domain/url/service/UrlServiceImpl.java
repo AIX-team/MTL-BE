@@ -532,7 +532,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     private void updateUserUrlStatus(String email, String url) {
-        UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, url)
+        UsersUrl usersUrl = usersUrlRepository.findByUserEmailAndUrlUrl(email, url)
             .orElseGet(() -> UsersUrl.builder()
                 .user(usersRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found")))
