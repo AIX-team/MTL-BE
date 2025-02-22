@@ -307,7 +307,7 @@ public class GuideServiceImpl implements GuideService {
       // 3. 가이드북 생성 및 저장
       String guideId = transactionTemplate.execute(status -> {
         try {
-          String title = "가이드북" + travelInfoService.getGuideCount(email);
+          String title = "가이드북" + (travelInfoService.getGuideCount(email) +1);
           Guide guide = createGuideEntity(placeSelectRequest, title, email);
           return createGuideAndCourses(guide, aiGuideCourseResponses);
         } catch (Exception e) {
