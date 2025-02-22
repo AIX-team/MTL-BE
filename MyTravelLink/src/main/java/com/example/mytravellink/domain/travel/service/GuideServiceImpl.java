@@ -2,10 +2,14 @@ package com.example.mytravellink.domain.travel.service;
 
 import com.example.mytravellink.api.travelInfo.dto.travel.AIPlace;
 import com.example.mytravellink.api.travelInfo.dto.travel.PlaceSelectRequest;
+import com.example.mytravellink.domain.job.service.JobStatusService;
 import com.example.mytravellink.domain.travel.entity.*;
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.List;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.example.mytravellink.domain.travel.repository.CoursePlaceRepository;
@@ -16,9 +20,11 @@ import com.example.mytravellink.domain.travel.repository.TravelInfoRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GuideServiceImpl implements GuideService {
@@ -28,6 +34,11 @@ public class GuideServiceImpl implements GuideService {
   private final CoursePlaceRepository coursePlaceRepository;
   private final PlaceRepository placeRepository;
   private final TravelInfoRepository travelInfoRepository;
+  private final JobStatusService jobStatusService;
+  private final ObjectMapper objectMapper;
+  private final PlaceService placeService;
+  private final TravelInfoService travelInfoService;
+
 
   /**
    * Guide 조회
@@ -253,5 +264,73 @@ public class GuideServiceImpl implements GuideService {
   @Override
   public boolean isUser(String guideId, String userEmail) {
     return guideRepository.isUser(guideId, userEmail);
+  }
+  
+  /**
+   * 가이드 북 비동기 생성
+   * @param placeSelectRequest
+   * @param jobId
+   */
+  @Async("asyncTaskExecutor")
+  @Override
+  public void createGuideAsync(PlaceSelectRequest placeSelectRequest, String jobId, String email) {
+    try {
+      log.info("Starting async guide creation for jobId: {}", jobId);
+      jobStatusService.setJobStatus(jobId, "PROCESSING", null);
+
+      String response = createGuide(placeSelectRequest, email);
+      String resultString = objectMapper.writeValueAsString(response);
+      
+      log.info("Guide creation completed for jobId: {}", jobId);
+      jobStatusService.setJobStatus(jobId, "COMPLETED", resultString);
+      
+    } catch (Exception e) {
+      log.error("Guide creation failed for jobId: " + jobId, e);
+      jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
+      throw new RuntimeException("가이드 북 비동기 생성 실패", e);
+    }
+  }
+
+  /**
+   * 비동기적 가이드 북 생성을 위한 컨트롤러 서비스
+   * @param placeSelectRequest
+   * @return String
+   */
+  @Override
+  @Transactional
+  public String createGuide(PlaceSelectRequest placeSelectRequest, String email) {
+    try {
+      AIGuideCourseRequest aiGuideCourseRequest = convertToAIGuideCourseRequest(placeSelectRequest);
+      log.debug("AI 요청 데이터: {}", aiGuideCourseRequest);
+
+      List<AIGuideCourseResponse> aiGuideCourseResponses = 
+          placeService.getAIGuideCourse(aiGuideCourseRequest, placeSelectRequest.getTravelDays());
+
+      if (aiGuideCourseResponses == null) {
+          log.error("AI 응답 데이터가 null입니다");
+          throw new RuntimeException("AI 응답 데이터 없음");
+      }
+
+      String title = "가이드북" + travelInfoService.getGuideCount(email);
+      Guide guide = createGuideEntity(placeSelectRequest, title, email);
+      
+      return createGuideAndCourses(guide, aiGuideCourseResponses);
+    } catch (Exception e) {
+      log.error("가이드 생성 중 오류 발생", e);
+      throw new RuntimeException("가이드 생성 실패", e);
+    }
+  }
+
+  private Guide createGuideEntity(PlaceSelectRequest placeSelectRequest, String title, String email) {
+    return Guide.builder()
+            .travelInfo(travelInfoService.getTravelInfo(placeSelectRequest.getTravelInfoId()))
+            .title(title)
+            .travelDays(placeSelectRequest.getTravelDays())
+            .courseCount(placeSelectRequest.getTravelDays())
+            .planTypes(placeSelectRequest.getTravelTaste()) // 타입별 수정해야됨
+            .isFavorite(false)
+            .fixed(false)
+            .isDelete(false)
+            .build();
   }
 }

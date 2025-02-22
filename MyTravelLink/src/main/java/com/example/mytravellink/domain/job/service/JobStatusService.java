@@ -1,10 +1,14 @@
 package com.example.mytravellink.domain.job.service;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.AllArgsConstructor;
 
 @Slf4j
@@ -13,10 +17,14 @@ public class JobStatusService {
     private final Map<String, JobStatus> jobs = new ConcurrentHashMap<>();
 
     @Data
+    @Getter
+    @Setter
     @AllArgsConstructor
     public static class JobStatus {
         private String status;  // "Processing", "Completed", "Failed"
         private String result;  // 성공 시 결과, 실패 시 에러 메시지
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
     }
 
     /**
@@ -26,7 +34,7 @@ public class JobStatusService {
      */
     public void setStatus(String jobId, String status) {
         log.info("Setting job status. JobID: {}, Status: {}", jobId, status);
-        jobs.put(jobId, new JobStatus(status, null));
+        jobs.put(jobId, new JobStatus(status, null, LocalDateTime.now(), LocalDateTime.now()));
     }
 
     /**
@@ -36,8 +44,10 @@ public class JobStatusService {
      */
     public void setResult(String jobId, String result) {
         JobStatus current = jobs.get(jobId);
-        String currentStatus = (current != null) ? current.getStatus() : null;
-        jobs.put(jobId, new JobStatus(currentStatus, result));
+        if (current == null) {
+            current = new JobStatus("Failed", null, LocalDateTime.now(), LocalDateTime.now());
+        }
+        jobs.put(jobId, new JobStatus(current.getStatus(), result, current.getCreatedAt(), LocalDateTime.now()));
     }
 
     /**
@@ -48,7 +58,7 @@ public class JobStatusService {
     public JobStatus getStatus(String jobId) {
         JobStatus jobStatus = jobs.get(jobId);
         log.debug("Getting job status. JobID: {}, Status: {}", jobId, jobStatus);
-        return jobStatus != null ? jobStatus : new JobStatus("Not Found", null);
+        return jobStatus != null ? jobStatus : new JobStatus("Not Found", null, null, null);
     }
 
     /**
@@ -70,8 +80,40 @@ public class JobStatusService {
         log.info("Removing job. JobID: {}", jobId);
         jobs.remove(jobId);
     }
-
+    /**
+     * 작업 상태 설정
+     * @param jobId 작업 ID
+     * @param status 상태
+     * @param result 결과
+     */
     public void setJobStatus(String jobId, String status, String result) {
-        jobs.put(jobId, new JobStatus(status, result));
+        log.info("Job Status Update - ID: {}, Status: {}", jobId, status);
+        jobs.put(jobId, new JobStatus(
+            status, 
+            result,
+            jobs.containsKey(jobId) ? jobs.get(jobId).getCreatedAt() : LocalDateTime.now(),
+            LocalDateTime.now()
+        ));
+    }
+
+    /**
+     * 작업 상태 조회
+     * @param jobId 작업 ID
+     * @return 작업 상태
+     */
+    public JobStatus getJobStatus(String jobId) {
+        return jobs.getOrDefault(jobId, 
+            new JobStatus("NOT_FOUND", null, null, null));
+    }
+
+    // 오래된 작업 정리
+    /**
+     * 오래된 작업 정리
+     */
+    @Scheduled(fixedRate = 1800000) // 30분마다 실행
+    public void cleanupOldJobs() {
+        LocalDateTime threshold = LocalDateTime.now().minusHours(24);
+        jobs.entrySet().removeIf(entry -> 
+            entry.getValue().getUpdatedAt().isBefore(threshold));
     }
 } 

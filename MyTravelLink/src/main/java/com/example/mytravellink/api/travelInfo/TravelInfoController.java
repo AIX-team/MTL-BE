@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 import java.util.HashMap;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
@@ -29,6 +30,8 @@ import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoPlaceRespons
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUpdateTitleAndTravelDaysRequest;
 import com.example.mytravellink.api.travelInfo.dto.travel.TravelInfoUrlResponse;
 import com.example.mytravellink.auth.service.CustomUserDetails;
+import com.example.mytravellink.domain.job.service.JobStatusService;
+import com.example.mytravellink.domain.job.service.JobStatusService.JobStatus;
 import com.example.mytravellink.domain.travel.entity.Guide;
 import com.example.mytravellink.domain.travel.entity.Place;
 import com.example.mytravellink.domain.travel.entity.TravelInfo;
@@ -56,7 +59,7 @@ public class TravelInfoController {
     private final CourseServiceImpl courseService;
     private final ImageService imageService;
     private final JwtTokenProvider jwtTokenProvider;
-
+    private final JobStatusService jobStatusService;
 
     /**
      * 여행정보 ID 기준 여행정보 및 URL정보 조회
@@ -386,6 +389,59 @@ public class TravelInfoController {
     }
 
     
+
+    /*
+     * 가이드 북 비동기 생성성
+     */
+    @PostMapping("/guidebook/async")
+    public ResponseEntity<Map<String, String>> processUrlAsync(
+            @RequestHeader("Authorization") String token,
+            @RequestBody PlaceSelectRequest placeSelectRequest) {
+        
+        String jobId = UUID.randomUUID().toString();
+        
+        try {
+            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+            
+            if (!travelInfoService.isUser(placeSelectRequest.getTravelInfoId(), email)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            jobStatusService.setJobStatus(jobId, "PENDING", null);
+            guideService.createGuideAsync(placeSelectRequest, jobId, email);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("jobId", jobId);
+            response.put("status", "ACCEPTED");
+            
+            return ResponseEntity.accepted().body(response);
+            
+        } catch (Exception e) {
+            log.error("비동기 처리 시작 실패", e);
+            jobStatusService.setJobStatus(jobId, "FAILED", e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /*
+     * 가이드 북 비동기 생성 상태 조회
+     * @param jobId
+     * @return ResponseEntity<Map<String, Object>>
+     */
+    @GetMapping("/guidebook/status/{jobId}")
+    public ResponseEntity<Map<String, Object>> getJobStatus(@PathVariable String jobId) {
+        JobStatus status = jobStatusService.getJobStatus(jobId);
+        Map<String, Object> response = new HashMap<>();
+        
+        response.put("status", status.getStatus());
+        
+        if ("COMPLETED".equals(status.getStatus())) {
+            response.put("guideId", status.getResult());  // result에 guideId가 저장되어 있음
+        } else if ("FAILED".equals(status.getStatus())) {
+            response.put("error", status.getResult());    // 실패 시 에러 메시지
+        }
+        return ResponseEntity.ok(response);
+    }
 
 
 
