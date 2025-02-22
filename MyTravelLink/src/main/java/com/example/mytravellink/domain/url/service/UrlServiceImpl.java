@@ -457,46 +457,54 @@ public class UrlServiceImpl implements UrlService {
     @Async
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
-            // 초기 입력값 로깅
+            // 초기 상태 로깅
             jobStatusService.setResult(jobId, String.format(
-                "처리 시작 - 총 %d개 URL: %s", 
+                "[시작] 입력된 URL 목록 (%d개): %s", 
                 urlRequest.getUrls().size(), 
                 String.join(", ", urlRequest.getUrls())
             ));
 
             AtomicReference<UrlResponse> urlResponse = new AtomicReference<>();
             
-            // 1. URL 분류
+            // 1. URL 분류 및 로깅
             Map<Boolean, List<String>> urlGroups = urlRequest.getUrls().stream()
-                .collect(Collectors.groupingBy(url -> 
-                    urlRepository.findByUrl(url).isPresent()
-                ));
-            
-            // URL 분류 결과 로깅
-            jobStatusService.setResult(jobId, String.format(
-                "URL 분류 결과 - 캐시된 URL: %d개, 새로운 URL: %d개",
-                urlGroups.getOrDefault(true, Collections.emptyList()).size(),
-                urlGroups.getOrDefault(false, Collections.emptyList()).size()
-            ));
+                .collect(Collectors.groupingBy(url -> {
+                    boolean exists = urlRepository.findByUrl(url).isPresent();
+                    jobStatusService.setResult(jobId, String.format(
+                        "[URL 확인] %s: %s", 
+                        url, 
+                        exists ? "캐시 있음" : "캐시 없음"
+                    ));
+                    return exists;
+                }));
             
             // 2. 캐시 데이터 처리
             if (urlGroups.containsKey(true)) {
+                List<Url> cachedUrls = urlRepository.findByUrlIn(urlGroups.get(true));
+                jobStatusService.setResult(jobId, String.format(
+                    "[캐시] 처리할 캐시 URL 수: %d", 
+                    cachedUrls.size()
+                ));
+                
                 transactionTemplate.execute(status -> {
-                    List<Url> cachedUrls = urlRepository.findByUrlIn(urlGroups.get(true));
                     List<PlaceInfo> cachedPlaces = new ArrayList<>();
-                    
                     for (Url url : cachedUrls) {
-                        jobStatusService.setResult(jobId, "캐시 데이터 처리 중: " + url.getUrl());
-                        UrlResponse cached = convertToUrlResponse(url, jobId);
-                        if (cached != null && !cached.getPlaceDetails().isEmpty()) {
-                            cachedPlaces.addAll(cached.getPlaceDetails());
+                        try {
+                            UrlResponse cached = convertToUrlResponse(url, jobId);
+                            if (cached != null && cached.getPlaceDetails() != null) {
+                                jobStatusService.setResult(jobId, String.format(
+                                    "[캐시] URL(%s)에서 %d개 장소 발견",
+                                    url.getUrl(),
+                                    cached.getPlaceDetails().size()
+                                ));
+                                cachedPlaces.addAll(cached.getPlaceDetails());
+                            }
+                        } catch (Exception e) {
                             jobStatusService.setResult(jobId, String.format(
-                                "캐시된 장소 추가: %s - %d개",
+                                "[에러] 캐시 데이터 처리 실패(%s): %s",
                                 url.getUrl(),
-                                cached.getPlaceDetails().size()
+                                e.getMessage()
                             ));
-                        } else {
-                            jobStatusService.setResult(jobId, "캐시 데이터 없음: " + url.getUrl());
                         }
                     }
                     
@@ -504,9 +512,10 @@ public class UrlServiceImpl implements UrlService {
                         UrlResponse cachedResponse = new UrlResponse();
                         cachedResponse.setPlaceDetails(cachedPlaces);
                         urlResponse.set(cachedResponse);
-                        jobStatusService.setResult(jobId, "총 캐시된 장소 수: " + cachedPlaces.size());
-                    } else {
-                        jobStatusService.setResult(jobId, "캐시된 장소 데이터 없음");
+                        jobStatusService.setResult(jobId, String.format(
+                            "[캐시] 총 %d개 장소 처리 완료",
+                            cachedPlaces.size()
+                        ));
                     }
                     return null;
                 });
@@ -516,66 +525,65 @@ public class UrlServiceImpl implements UrlService {
             List<String> newUrls = urlGroups.getOrDefault(false, new ArrayList<>());
             if (!newUrls.isEmpty()) {
                 jobStatusService.setResult(jobId, String.format(
-                    "FastAPI 호출 시작 - URLs: %s",
+                    "[FastAPI] %d개 URL 처리 시작: %s",
+                    newUrls.size(),
                     String.join(", ", newUrls)
                 ));
                 
-                UrlResponse apiResponse = webClient.post()
-                    .uri("/api/v1/contentanalysis")
-                    .bodyValue(Map.of("urls", newUrls))
-                    .retrieve()
-                    .bodyToMono(UrlResponse.class)
-                    .timeout(Duration.ofMinutes(15))
-                    .doOnSuccess(response -> {
-                        jobStatusService.setResult(jobId, String.format(
-                            "FastAPI 응답 성공 - 장소 수: %d",
-                            response != null ? 
-                                (response.getPlaceDetails() != null ? 
-                                    response.getPlaceDetails().size() : 0) : 0
-                        ));
-                    })
-                    .doOnError(error -> 
-                        jobStatusService.setResult(jobId, "FastAPI 호출 실패: " + error.getMessage())
-                    )
-                    .block();
+                try {
+                    UrlResponse apiResponse = webClient.post()
+                        .uri("/api/v1/contentanalysis")
+                        .bodyValue(Map.of("urls", newUrls))
+                        .retrieve()
+                        .bodyToMono(UrlResponse.class)
+                        .timeout(Duration.ofMinutes(15))
+                        .block();
 
-                if (apiResponse != null && !apiResponse.getPlaceDetails().isEmpty()) {
-                    transactionTemplate.execute(status -> {
-                        processPlaceInfo(apiResponse, urlResponse, jobId);
-                        for (String url : newUrls) {
-                            updateUserUrlStatus(email, url);
-                            jobStatusService.setResult(jobId, "URL 상태 업데이트: " + url);
-                        }
-                        return null;
-                    });
-                } else {
                     jobStatusService.setResult(jobId, String.format(
-                        "FastAPI 응답 무효 - response: %s, placeDetails: %s",
-                        apiResponse != null ? "not null" : "null",
-                        apiResponse != null && apiResponse.getPlaceDetails() != null ? 
+                        "[FastAPI] 응답 상태: %s, 장소 데이터: %s",
+                        apiResponse != null ? "성공" : "null",
+                        apiResponse != null && apiResponse.getPlaceDetails() != null ?
                             apiResponse.getPlaceDetails().size() + "개" : "null"
+                    ));
+
+                    if (apiResponse != null && apiResponse.getPlaceDetails() != null) {
+                        transactionTemplate.execute(status -> {
+                            processPlaceInfo(apiResponse, urlResponse, jobId);
+                            return null;
+                        });
+                    }
+                } catch (Exception e) {
+                    jobStatusService.setResult(jobId, String.format(
+                        "[에러] FastAPI 처리 실패: %s\n%s",
+                        e.getMessage(),
+                        Arrays.toString(e.getStackTrace())
                     ));
                 }
             }
 
-            // 4. 최종 결과 검증
+            // 4. 최종 검증
             UrlResponse finalResponse = urlResponse.get();
             jobStatusService.setResult(jobId, String.format(
-                "최종 결과 검증 - response: %s, placeDetails: %s",
-                finalResponse != null ? "not null" : "null",
-                finalResponse != null && finalResponse.getPlaceDetails() != null ? 
-                    finalResponse.getPlaceDetails().size() + "개" : "null"
+                "[검증] 최종 상태:\n" +
+                "- response null 여부: %s\n" +
+                "- placeDetails null 여부: %s\n" +
+                "- 장소 데이터 수: %d",
+                finalResponse == null ? "null" : "not null",
+                finalResponse != null && finalResponse.getPlaceDetails() != null ? "not null" : "null",
+                finalResponse != null && finalResponse.getPlaceDetails() != null ?
+                    finalResponse.getPlaceDetails().size() : 0
             ));
 
-            if (finalResponse != null && !finalResponse.getPlaceDetails().isEmpty()) {
-                String result = objectMapper.writeValueAsString(finalResponse);
-                jobStatusService.setJobStatus(jobId, "Completed", result);
-            } else {
+            if (finalResponse == null || 
+                finalResponse.getPlaceDetails() == null || 
+                finalResponse.getPlaceDetails().isEmpty()) {
                 throw new RuntimeException("처리된 데이터가 없습니다");
             }
+
+            String result = objectMapper.writeValueAsString(finalResponse);
+            jobStatusService.setJobStatus(jobId, "Completed", result);
             
         } catch (Exception e) {
-            log.error("URL 처리 실패", e);
             String errorDetail = String.format(
                 "처리 중 오류 발생: %s\n스택트레이스: %s\n발생 위치: %s:%d",
                 e.getMessage(),
@@ -583,7 +591,7 @@ public class UrlServiceImpl implements UrlService {
                 e.getStackTrace()[0].getFileName(),
                 e.getStackTrace()[0].getLineNumber()
             );
-            jobStatusService.setResult(jobId, errorDetail);
+            log.error(errorDetail);
             jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
         }
     }
