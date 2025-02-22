@@ -465,7 +465,7 @@ public class UrlServiceImpl implements UrlService {
             // 1. URL 분류 및 로깅
             Map<Boolean, List<String>> urlGroups = urlRequest.getUrls().stream()
                 .collect(Collectors.groupingBy(url -> {
-                    boolean exists = urlRepository.findByUrl(url).isPresent();
+                    boolean exists = urlPlaceRepository.findByUrl_Id(url).size() > 0;
                     log.info("[URL 확인] jobId: {}, url: {}, 캐시: {}", 
                         jobId, url, exists ? "있음" : "없음");
                     return exists;
