@@ -42,6 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import java.util.stream.Collectors;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -457,101 +458,91 @@ public class UrlServiceImpl implements UrlService {
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
             AtomicReference<UrlResponse> urlResponse = new AtomicReference<>();
-            List<String> newUrlStr = new ArrayList<>();
             
-            // 1. 캐시 데이터 처리 개선
-            for(String urlStr : urlRequest.getUrls()) {
-                jobStatusService.setResult(jobId, "URL 처리: " + urlStr);
-                Optional<Url> existingData = urlRepository.findByUrl(urlStr);
-                
-                if (existingData.isPresent()) {
-                    UrlResponse cachedResponse = convertToUrlResponse(existingData.get(), jobId);
-                    if (cachedResponse != null && !cachedResponse.getPlaceDetails().isEmpty()) {
-                        if (urlResponse.get() == null) {
-                            urlResponse.set(cachedResponse);
-                        } else {
-                            urlResponse.get().getPlaceDetails().addAll(cachedResponse.getPlaceDetails());
+            // 1. 전체 URL 분류 (캐시 있는 것과 없는 것)
+            Map<Boolean, List<String>> urlGroups = urlRequest.getUrls().stream()
+                .collect(Collectors.groupingBy(url -> 
+                    urlRepository.findByUrl(url).isPresent()
+                ));
+            
+            // 2. 캐시된 데이터 한 번에 처리
+            if (urlGroups.containsKey(true)) {
+                transactionTemplate.execute(status -> {
+                    List<Url> cachedUrls = urlRepository.findByUrlIn(urlGroups.get(true));
+                    List<PlaceInfo> cachedPlaces = new ArrayList<>();
+                    
+                    for (Url url : cachedUrls) {
+                        UrlResponse cached = convertToUrlResponse(url, jobId);
+                        if (cached != null && !cached.getPlaceDetails().isEmpty()) {
+                            cachedPlaces.addAll(cached.getPlaceDetails());
                         }
-                        jobStatusService.setResult(jobId, "캐시 데이터 처리 완료: " + urlStr);
-                    } else {
-                        jobStatusService.setResult(jobId, "캐시 데이터 없음, 새로운 URL로 처리: " + urlStr);
-                        newUrlStr.add(urlStr);
                     }
-                } else {
-                    newUrlStr.add(urlStr);
-                    jobStatusService.setResult(jobId, "새로운 URL 추가: " + urlStr);
+                    
+                    if (!cachedPlaces.isEmpty()) {
+                        UrlResponse cachedResponse = new UrlResponse();
+                        cachedResponse.setPlaceDetails(cachedPlaces);
+                        urlResponse.set(cachedResponse);
+                    }
+                    return null;
+                });
+            }
+
+            // 3. 새로운 URL FastAPI 호출
+            List<String> newUrls = urlGroups.getOrDefault(false, new ArrayList<>());
+            if (!newUrls.isEmpty()) {
+                jobStatusService.setJobStatus(jobId, "Processing", 
+                    String.format("새로운 URL %d개 처리 중...", newUrls.size()));
+                
+                UrlResponse apiResponse = webClient.post()
+                    .uri("/api/v1/contentanalysis")
+                    .bodyValue(Map.of("urls", newUrls))
+                    .retrieve()
+                    .bodyToMono(UrlResponse.class)
+                    .timeout(Duration.ofMinutes(15))
+                    .block();
+
+                if (apiResponse != null && !apiResponse.getPlaceDetails().isEmpty()) {
+                    // 4. Place 정보 저장 및 URL 매핑 (단일 트랜잭션)
+                    transactionTemplate.execute(status -> {
+                        processPlaceInfo(apiResponse, urlResponse, jobId);
+                        
+                        // URL 사용 처리도 같은 트랜잭션에서 수행
+                        for (String url : newUrls) {
+                            updateUserUrlStatus(email, url);
+                        }
+                        return null;
+                    });
                 }
             }
 
-            // 2. FastAPI 호출 개선
-            if (!newUrlStr.isEmpty()) {
-                jobStatusService.setResult(jobId, "FastAPI 호출 시작");
-                Map<String, Object> requestBody = new HashMap<>();
-                requestBody.put("urls", newUrlStr);
-                
-                try {
-                    UrlResponse response = webClient
-                        .post()
-                        .uri("/api/v1/contentanalysis")
-                        .bodyValue(requestBody)
-                        .retrieve()
-                        .onStatus(
-                            status -> status.is4xxClientError() || status.is5xxServerError(),
-                            clientResponse -> clientResponse.bodyToMono(String.class)
-                                .flatMap(error -> Mono.error(new RuntimeException("FastAPI 오류: " + error)))
-                        )
-                        .bodyToMono(UrlResponse.class)
-                        .timeout(Duration.ofMinutes(15))
-                        .block();
-
-                    if (response != null && !response.getPlaceDetails().isEmpty()) {
-                        jobStatusService.setResult(jobId, "FastAPI 응답 성공");
-                        transactionTemplate.execute(status -> {
-                            processPlaceInfo(response, urlResponse, jobId);
-                            return null;
-                        });
-                    } else {
-                        jobStatusService.setResult(jobId, "FastAPI 응답이 비어있음");
-                        throw new RuntimeException("FastAPI 응답이 비어있습니다");
-                    }
-
-                    for(String urlStr : urlRequest.getUrls()) {
-                        Optional<UsersUrl> usrurl = usersUrlRepository.findByUserEmailAndUrlUrl(email, urlStr);
-                        if(usrurl.isEmpty()) {
-                            usersUrlRepository.save(UsersUrl.builder()
-                                .user(usersRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found")))
-                                .url(urlRepository.findByUrl(urlStr).orElseThrow(() -> new RuntimeException("URL not found")))
-                                .isUse(false)
-                                .build());
-                        }else{
-                            usersUrlRepository.save(usrurl.get());
-                        }
-                    }
-                } catch (Exception e) {
-                    jobStatusService.setResult(jobId, "FastAPI 호출 실패: " + e.getMessage());
-                    throw e;
-                }
+            // 5. 최종 결과 검증 및 상태 업데이트
+            UrlResponse finalResponse = urlResponse.get();
+            if (finalResponse != null && !finalResponse.getPlaceDetails().isEmpty()) {
+                jobStatusService.setJobStatus(jobId, "Completed", 
+                    objectMapper.writeValueAsString(finalResponse));
+            } else {
+                throw new RuntimeException("처리된 데이터가 없습니다");
             }
-
-            // 3. 최종 결과 검증 개선
-            if (urlResponse.get() == null) {
-                throw new RuntimeException("URL 응답 객체가 null입니다");
-            }
-            
-            if (urlResponse.get().getPlaceDetails() == null || urlResponse.get().getPlaceDetails().isEmpty()) {
-                throw new RuntimeException("처리된 장소 데이터가 없습니다");
-            }
-
-            // 성공 처리
-            String result = objectMapper.writeValueAsString(urlResponse.get());
-            jobStatusService.setJobStatus(jobId, "Completed", result);
             
         } catch (Exception e) {
-            log.error("URL 분석 실패", e);
-            String errorDetail = String.format("처리 중 오류 발생: %s", e.getMessage());
-            jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
+            log.error("URL 처리 실패", e);
+            jobStatusService.setJobStatus(jobId, "Failed", 
+                String.format("처리 중 오류 발생: %s", e.getMessage()));
         }
     }
+
+    private void updateUserUrlStatus(String email, String url) {
+        UsersUrl usersUrl = usersUrlRepository.findByEmailAndUrl_Url(email, url)
+            .orElseGet(() -> UsersUrl.builder()
+                .user(usersRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found")))
+                .url(urlRepository.findByUrl(url)
+                    .orElseThrow(() -> new RuntimeException("URL not found")))
+                .build());
+        usersUrl.setUse(false);
+        usersUrlRepository.save(usersUrl);
+    }
+
     public boolean isUser(String urlId, String userEmail) {
         return usersUrlRepository.existsByIdAndUserEmail(urlId, userEmail);
     }
