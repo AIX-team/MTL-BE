@@ -385,6 +385,8 @@ public class TravelInfoController {
         }
     }
 
+    
+
 
 
     /**
@@ -395,10 +397,10 @@ public class TravelInfoController {
     @PostMapping("/guidebook")
     public ResponseEntity<StringResponse> createGuide(
         // @AuthenticationPrincipal CustomUserDetails user,
-        @RequestBody PlaceSelectRequest placeSelectRequest) {
+        @RequestBody PlaceSelectRequest placeSelectRequest, @RequestHeader("Authorization") String token) {
         try {
             //TO-DO: String email = user.getEmail();
-            String email = "user1@example.com";
+            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             // 1. AI 코스 추천에 요청할 데이터 형식 설정
             AIGuideCourseRequest aiGuideCourseRequest = guideService.convertToAIGuideCourseRequest(placeSelectRequest);
 
@@ -483,11 +485,12 @@ public class TravelInfoController {
     @Transactional(readOnly = true)
     @GetMapping("/guidebooks/list")
     public ResponseEntity<GuideBookListResponse> guideBookList(
-        // @AuthenticationPrincipal CustomUserDetails user
+        // @AuthenticationPrincipal CustomUserDetails user 
+        @RequestHeader("Authorization") String token
     ) {
         try {
             //TO-DO: String userEmail = user.getEmail();
-            String userEmail = "user1@example.com";
+            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
             List<Guide> guideList = guideService.getGuideList(userEmail);
             List<GuideBookListResponse.GuideList> guideListResponse = new ArrayList<>();
             for(Guide guide : guideList){
