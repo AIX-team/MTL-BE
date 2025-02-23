@@ -69,6 +69,8 @@ public class UrlServiceImpl implements UrlService {
         .codecs(configurer -> {
             configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024); // 2MB로 제한
             configurer.defaultCodecs().enableLoggingRequestDetails(true);
+            // GZIP 압축 해제 비활성화
+            configurer.defaultCodecs().gzip(false);
         })
         .build();
 
