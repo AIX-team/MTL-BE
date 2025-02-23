@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.5785e843.css",
-    "main.js": "/static/js/main.b13997e0.js",
+    "main.js": "/static/js/main.f5abb89a.js",
     "static/js/213.042bb37f.chunk.js": "/static/js/213.042bb37f.chunk.js",
     "static/js/455.41fa853c.chunk.js": "/static/js/455.41fa853c.chunk.js",
     "static/media/chatbot.gif": "/static/media/chatbot.36a1cd9ab0f0a642a098.gif",
@@ -17,6 +17,7 @@
     "static/media/landing_search.png": "/static/media/landing_search.b87b53448efac5590b39.png",
     "static/media/loading_map.png": "/static/media/loading_map.73948584a92a3fc87a6f.png",
     "static/media/Travel.png": "/static/media/Travel.bdce61c47e67d1e7f35e.png",
+    "static/media/tokyo.png": "/static/media/tokyo.2db1742a533867d3f967.png",
     "static/media/wish_icon.png": "/static/media/wish_icon.a192a0af3740fe5f4fce.png",
     "static/media/mapyoutube.png": "/static/media/mapyoutube.d576d2a24e815b80f0c5.png",
     "static/media/Link.png": "/static/media/Link.6c6edcc474fbf097bc81.png",
@@ -33,12 +34,12 @@
     "static/media/backArrow.svg": "/static/media/backArrow.b4697267c787bde4f9d922deab327e90.svg",
     "static/media/select.svg": "/static/media/select.41ef0ee098c7d8eb5379721426f17d6a.svg",
     "main.5785e843.css.map": "/static/css/main.5785e843.css.map",
-    "main.b13997e0.js.map": "/static/js/main.b13997e0.js.map",
+    "main.f5abb89a.js.map": "/static/js/main.f5abb89a.js.map",
     "213.042bb37f.chunk.js.map": "/static/js/213.042bb37f.chunk.js.map",
     "455.41fa853c.chunk.js.map": "/static/js/455.41fa853c.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.5785e843.css",
-    "static/js/main.b13997e0.js"
+    "static/js/main.f5abb89a.js"
   ]
 }

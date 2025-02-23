@@ -50,6 +50,9 @@ public class PlaceServiceImpl implements PlaceService {
   @Override
   public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
     try {
+        log.info("AI 가이드 코스 요청 시작: days={}, taste={}", travelDays, aiGuideCourseRequest.getTravelTaste());
+        log.debug("요청 데이터: {}", aiGuideCourseRequest);
+
         // 1. 장소 데이터 변환 및 유효성 검사
         List<AIPlace> places = aiGuideCourseRequest.getPlaces().stream()
             .map(place -> AIPlace.builder()
@@ -83,6 +86,7 @@ public class PlaceServiceImpl implements PlaceService {
         List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
         
         if (aiGuideCourseResponses == null || aiGuideCourseResponses.isEmpty()) {
+            log.error("AI 가이드 추천 응답이 비어있습니다");
             throw new RuntimeException("AI 가이드 추천 응답이 비어있습니다.");
         }
 
@@ -100,11 +104,11 @@ public class PlaceServiceImpl implements PlaceService {
             });
         }
 
-        log.info("AI 가이드 추천 성공: {} 일차 계획 생성", travelDays);
+        log.info("AI 응답 받음: {} 개의 일정", aiGuideCourseResponses.size());
         return aiGuideCourseResponses;
 
     } catch (Exception e) {
-        log.error("AI 가이드 추천 실패: {}", e.getMessage());
+        log.error("AI 가이드 추천 처리 중 오류 발생: {}", e.getMessage(), e);
         throw new RuntimeException("AI 가이드 추천 처리 중 오류 발생: " + e.getMessage());
     }
   }
