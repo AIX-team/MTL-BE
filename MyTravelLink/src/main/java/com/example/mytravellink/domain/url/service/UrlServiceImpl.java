@@ -68,11 +68,11 @@ public class UrlServiceImpl implements UrlService {
         .baseUrl("http://221.148.97.237:28001")
         .exchangeStrategies(ExchangeStrategies.builder()
             .codecs(configurer -> {
-                configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024); // 2MB로 제한
+                configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024);
                 configurer.defaultCodecs().enableLoggingRequestDetails(true);
+                configurer.defaultCodecs().gzip(false);
             })
             .build())
-        .defaultHeader("Accept-Encoding", "identity") // GZIP 비활성화
         .build();
 
     @Value("${ai.server.url}")
