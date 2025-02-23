@@ -547,7 +547,24 @@ public class UrlServiceImpl implements UrlService {
             }
             // Place 정보 처리
             List<PlaceInfo> processedPlaces = new ArrayList<>();
-            for (PlaceInfo placeInfo : apiResponse.getPlaceDetails()) {
+            for (Object rawPlaceObj : apiResponse.getPlaceDetails()) {
+                PlaceInfo placeInfo = null;
+                if (rawPlaceObj instanceof Map) {
+                    placeInfo = objectMapper.convertValue(rawPlaceObj, PlaceInfo.class);
+                } else if (rawPlaceObj instanceof String) {
+                    try {
+                        placeInfo = objectMapper.readValue((String) rawPlaceObj, PlaceInfo.class);
+                    } catch (Exception e) {
+                        jobStatusService.setResult(jobId, "장소 정보 파싱 실패: " + e.getMessage());
+                        continue;
+                    }
+                } else if (rawPlaceObj instanceof PlaceInfo) {
+                    placeInfo = (PlaceInfo) rawPlaceObj;
+                } else {
+                    jobStatusService.setResult(jobId, "예상치 못한 형식의 장소 정보: " + rawPlaceObj);
+                    continue;
+                }
+
                 try {
                     if (placeInfo == null) {
                         jobStatusService.setResult(jobId, "null PlaceInfo 발견, 건너뜀");
@@ -558,9 +575,7 @@ public class UrlServiceImpl implements UrlService {
 
                     // 이미지 URL 처리
                     String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
-                    if (placeInfo.getPhotos() != null && 
-                        !placeInfo.getPhotos().isEmpty() && 
-                        placeInfo.getPhotos().get(0) != null) {
+                    if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() && placeInfo.getPhotos().get(0) != null) {
                         try {
                             imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
                         } catch (Exception e) {
@@ -584,7 +599,7 @@ public class UrlServiceImpl implements UrlService {
 
                     saveUrlPlaceMapping(url, place);
                     processedPlaces.add(placeInfo);
-                    
+                        
                 } catch (Exception e) {
                     jobStatusService.setResult(jobId, "장소 처리 실패: " + e.getMessage());
                 }
