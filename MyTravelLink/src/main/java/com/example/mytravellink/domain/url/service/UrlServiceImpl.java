@@ -45,7 +45,6 @@ import reactor.core.publisher.Mono;
 import java.util.stream.Collectors;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.Jackson2JsonDecoder;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -71,13 +70,6 @@ public class UrlServiceImpl implements UrlService {
             configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024); // 2MB로 제한
             configurer.defaultCodecs().enableLoggingRequestDetails(true);
         })
-        .exchangeStrategies(ExchangeStrategies.builder()
-            .codecs(configurer -> {
-                configurer.defaultCodecs().jackson2JsonDecoder(
-                    new Jackson2JsonDecoder(new ObjectMapper(), MediaType.APPLICATION_JSON)
-                );
-            })
-            .build())
         .build();
 
     @Value("${ai.server.url}")
