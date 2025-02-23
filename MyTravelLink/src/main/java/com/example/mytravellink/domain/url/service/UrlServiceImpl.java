@@ -62,7 +62,12 @@ public class UrlServiceImpl implements UrlService {
     private final JobStatusService jobStatusService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
-    private final WebClient webClient;
+    private final WebClient webClient = WebClient.builder()
+        .baseUrl("http://221.148.97.237:28001")
+        .codecs(configurer -> configurer
+            .defaultCodecs()
+            .maxInMemorySize(2 * 1024 * 1024)) // 2MB로 제한
+        .build();
 
     @Value("${ai.server.url}")
     private String fastAPiUrl;
@@ -458,106 +463,44 @@ public class UrlServiceImpl implements UrlService {
     public void processUrlAsync(UrlRequest urlRequest, String jobId, String email) {
         try {
             log.info("[작업 시작] jobId: {}, email: {}", jobId, email);
-            jobStatusService.setResult(jobId, "URL 처리 시작");
-            
-            AtomicReference<UrlResponse> urlResponse = new AtomicReference<>();
-            
-            // 1. URL 분류 및 로깅
-            Map<Boolean, List<String>> urlGroups = urlRequest.getUrls().stream()
-                .collect(Collectors.groupingBy(url -> {
-                    boolean exists = urlPlaceRepository.findByUrl_Id(url).size() > 0;
-                    log.info("[URL 확인] jobId: {}, url: {}, 캐시: {}", 
-                        jobId, url, exists ? "있음" : "없음");
-                    return exists;
-                }));
-            
-            // 2. 캐시 데이터 처리
-            if (urlGroups.containsKey(true)) {
-                List<Url> cachedUrls = urlRepository.findByUrlIn(urlGroups.get(true));
-                log.info("[캐시] jobId: {}, 처리할 URL 수: {}", jobId, cachedUrls.size());
-                
-                transactionTemplate.execute(status -> {
-                    List<PlaceInfo> cachedPlaces = new ArrayList<>();
-                    for (Url url : cachedUrls) {
-                        try {
-                            UrlResponse cached = convertToUrlResponse(url, jobId);
-                            if (cached != null && cached.getPlaceDetails() != null) {
-                                log.info("[캐시] jobId: {}, url: {}, places: {}", 
-                                    jobId, url.getUrl(), cached.getPlaceDetails().size());
-                                cachedPlaces.addAll(cached.getPlaceDetails());
-                            }
-                        } catch (Exception e) {
-                            log.error("[캐시] jobId: {}, url: {}, 처리 실패: {}", 
-                                jobId, url.getUrl(), e.getMessage(), e);
-                        }
-                    }
-                    
-                    if (!cachedPlaces.isEmpty()) {
-                        UrlResponse cachedResponse = new UrlResponse();
-                        cachedResponse.setPlaceDetails(cachedPlaces);
-                        urlResponse.set(cachedResponse);
-                        log.info("[캐시] jobId: {}, 총 처리된 places: {}", 
-                            jobId, cachedPlaces.size());
-                    }
-                    return null;
-                });
+            jobStatusService.setJobStatus(jobId, "Processing", "URL 처리 시작");
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("urls", urlRequest.getUrls());
+
+            // FastAPI 호출 with 타임아웃
+            UrlResponse response = webClient
+                .post()
+                .uri("/api/v1/contentanalysis")
+                .bodyValue(requestBody)
+                .retrieve()
+                .onStatus(
+                    status -> status.is4xxClientError() || status.is5xxServerError(),
+                    clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(error -> Mono.error(new RuntimeException("FastAPI 오류: " + error)))
+                )
+                .bodyToMono(UrlResponse.class)
+                .timeout(Duration.ofMinutes(5))
+                .doOnError(error -> {
+                    String errorDetail = String.format(
+                        "처리 중 오류 발생: %s\n위치: %s:%d",
+                        error.getMessage(),
+                        error.getStackTrace()[0].getFileName(),
+                        error.getStackTrace()[0].getLineNumber()
+                    );
+                    log.error("[실패] jobId: {}, {}", jobId, errorDetail);
+                    jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
+                })
+                .block();
+
+            if (response != null && response.getPlaceDetails() != null) {
+                String result = objectMapper.writeValueAsString(response);
+                jobStatusService.setJobStatus(jobId, "Completed", result);
+                log.info("[완료] jobId: {}", jobId);
+            } else {
+                throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
             }
 
-            // 3. 새로운 URL 처리
-            List<String> newUrls = urlGroups.getOrDefault(false, new ArrayList<>());
-            if (!newUrls.isEmpty()) {
-                log.info("[FastAPI] jobId: {}, 처리할 URL 수: {}", jobId, newUrls.size());
-                jobStatusService.setResult(jobId, "새로운 URL 처리 중...");
-                
-                try {
-                    UrlResponse apiResponse = webClient.post()
-                        .uri("/api/v1/contentanalysis")
-                        .bodyValue(Map.of("urls", newUrls))
-                        .retrieve()
-                        .bodyToMono(UrlResponse.class)
-                        .block();
-
-                    if (apiResponse != null && apiResponse.getPlaceDetails() != null) {
-                        log.info("[FastAPI] jobId: {}, 응답 받음, places: {}", 
-                            jobId, apiResponse.getPlaceDetails().size());
-                        
-                        transactionTemplate.execute(status -> {
-                            processPlaceInfo(apiResponse, urlResponse, jobId);
-                            return null;
-                        });
-                    } else {
-                        log.warn("[FastAPI] jobId: {}, 유효하지 않은 응답", jobId);
-                    }
-                } catch (Exception e) {
-                    log.error("[FastAPI] jobId: {}, 처리 실패: {}", jobId, e.getMessage(), e);
-                    throw e;
-                }
-            }
-
-            // 4. 최종 검증
-            UrlResponse finalResponse = urlResponse.get();
-            log.info("[검증] jobId: {}, response null?: {}, places: {}", 
-                jobId,
-                finalResponse == null,
-                finalResponse != null && finalResponse.getPlaceDetails() != null ? 
-                    finalResponse.getPlaceDetails().size() : "null"
-            );
-
-            if (finalResponse == null || 
-                finalResponse.getPlaceDetails() == null || 
-                finalResponse.getPlaceDetails().isEmpty()) {
-                String errorMsg = "처리된 데이터가 없습니다";
-                log.error("[검증] jobId: {}, {}", jobId, errorMsg);
-                throw new RuntimeException(errorMsg);
-            }
-
-            for(String url : urlRequest.getUrls()) {
-                updateUserUrlStatus(email, url);
-            }
-            String result = objectMapper.writeValueAsString(finalResponse);
-            jobStatusService.setJobStatus(jobId, "Completed", result);
-            log.info("[완료] jobId: {}", jobId);
-            
         } catch (Exception e) {
             String errorDetail = String.format(
                 "처리 중 오류 발생: %s\n스택트레이스: %s\n발생 위치: %s:%d",
