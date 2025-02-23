@@ -11,40 +11,39 @@ public interface PlaceService {
 
     /**
      * AI 코스 추천
-     * @param placeIdList 장소 ID 리스트
-     * @param dayNum 여행 일수
+     * @param aiGuideCourseRequest AI 가이드 코스 요청 (places, travelDays, travelTaste 포함)
+     * @param travelDays 여행 일수
      * @return AI 코스 추천 응답
      */
-  // AI 코스 추천
-  List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int dayNum);
+    List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays);
 
-  /**
-   * AI 장소 선택
-   * @param travelInfoId 여행 정보 ID
-   * @param travelDays 여행 일수
-   * @return AI 장소 선택 응답
-   */
-  TravelInfoPlaceResponse getAISelectPlace(String travelInfoId, int travelDays);
+    /**
+     * AI 장소 선택
+     * @param travelInfoId 여행 정보 ID
+     * @param travelDays 여행 일수
+     * @return AI 장소 선택 응답
+     */
+    TravelInfoPlaceResponse getAISelectPlace(String travelInfoId, int travelDays);
 
-  /**
-   * 장소 조회
-   * @param id 장소 ID
-   * @return 장소
-   */
-  Place findById(String id);
+    /**
+     * 장소 조회
+     * @param id 장소 ID
+     * @return 장소
+     */
+    Place findById(String id);
 
-  /**
-   * 장소 리스트 조회
-   * @param placeIds 장소 ID 리스트
-   * @return 장소 리스트
-   */
-  List<Place> getPlacesByIds(List<String> placeIds);
+    /**
+     * 장소 리스트 조회
+     * @param placeIds 장소 ID 리스트
+     * @return 장소 리스트
+     */
+    List<Place> getPlacesByIds(List<String> placeIds);
 
-  /**
-   * 여행 정보 첫 장소 이미지 조회
-   * @param travelInfoId 여행 정보 ID
-   * @return 장소 이미지
-   */
-  String getPlaceImage(String travelInfoId);
+    /**
+     * 여행 정보 첫 장소 이미지 조회
+     * @param travelInfoId 여행 정보 ID
+     * @return 장소 이미지
+     */
+    String getPlaceImage(String travelInfoId);
 }
 

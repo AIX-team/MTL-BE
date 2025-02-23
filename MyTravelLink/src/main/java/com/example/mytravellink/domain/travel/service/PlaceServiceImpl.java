@@ -68,6 +68,8 @@ public class PlaceServiceImpl implements PlaceService {
     AIGuideCourseRequest request = AIGuideCourseRequest.builder()
       .places(places)
       .travelDays(travelDays)
+      .travelTaste(aiGuideCourseRequest.getTravelTaste())  // 이 부분 추가
+
       .build();
 
     List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
