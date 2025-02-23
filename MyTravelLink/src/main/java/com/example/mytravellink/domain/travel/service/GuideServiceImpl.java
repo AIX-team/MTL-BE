@@ -149,8 +149,9 @@ public class GuideServiceImpl implements GuideService {
 
       // AIGuideCourseRequest 객체 생성
       AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
-              .places(guidePlaces) // 변환된 AIPlace 리스트 추가
-              .travelDays(placeSelectRequest.getTravelDays()) // 여행 일수
+              .places(guidePlaces)
+              .travelDays(placeSelectRequest.getTravelDays())
+              .travelTaste(placeSelectRequest.getTravelTaste())
               .build();
 
       return aiGuideCourseRequest;
