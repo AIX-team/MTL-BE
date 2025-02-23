@@ -3,6 +3,7 @@ package com.example.mytravellink.domain.travel.service;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.example.mytravellink.infrastructure.ai.Guide.dto.*;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,8 @@ import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class PlaceServiceImpl implements PlaceService {
   private final PlaceRepository placeRepository;
   private final TravelInfoPlaceRepository travelInfoPlaceRepository;
   private final AIGuideInfrastructure aiGuideInfrastructure;
+  private static final Logger log = LoggerFactory.getLogger(PlaceServiceImpl.class);
 
 
   /**
@@ -45,37 +49,64 @@ public class PlaceServiceImpl implements PlaceService {
 
   @Override
   public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
+    try {
+        // 1. 장소 데이터 변환 및 유효성 검사
+        List<AIPlace> places = aiGuideCourseRequest.getPlaces().stream()
+            .map(place -> AIPlace.builder()
+                .id(place.getId())
+                .address(place.getAddress())
+                .title(place.getTitle())
+                .description(place.getDescription() != null ? place.getDescription() : "")
+                .intro(place.getIntro() != null ? place.getIntro() : "")
+                .type(place.getType() != null ? place.getType() : "")
+                .image(place.getImage() != null ? place.getImage() : "")
+                .latitude(place.getLatitude())
+                .longitude(place.getLongitude())
+                .openHours(place.getOpenHours() != null ? place.getOpenHours() : "")
+                .phone(place.getPhone() != null ? place.getPhone() : "")
+                .rating(place.getRating() != null ? place.getRating() : BigDecimal.ZERO)
+                .build())
+            .collect(Collectors.toList());
 
-    List<AIPlace> places = new ArrayList<>();
-    for(AIPlace place : aiGuideCourseRequest.getPlaces()) {
-      AIPlace tmpPlace =AIPlace.builder()
-        .id(place.getId())
-        .address(place.getAddress())
-        .title(place.getTitle())
-        .description(place.getDescription() != null ? place.getDescription() : "")
-        .intro(place.getIntro() != null ? place.getIntro() : "")
-        .type(place.getType() != null ? place.getType() : "")
-        .image(place.getImage() != null ? place.getImage() : "")
-        .latitude(place.getLatitude())
-        .longitude(place.getLongitude())
-        .openHours(place.getOpenHours() != null ? place.getOpenHours() : "")
-        .phone(place.getPhone() != null ? place.getPhone() : "")
-        .rating(place.getRating() != null ? place.getRating() : BigDecimal.ZERO)
-        .build();
-      places.add(tmpPlace);
+        if (places.isEmpty()) {
+            throw new RuntimeException("장소 목록이 비어있습니다.");
+        }
+
+        // 2. AI 가이드 요청 객체 생성
+        AIGuideCourseRequest request = AIGuideCourseRequest.builder()
+            .places(places)
+            .travelDays(travelDays)
+            .travelTaste(aiGuideCourseRequest.getTravelTaste())
+            .build();
+
+        // 3. AI 가이드 추천 요청 및 응답 검증
+        List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
+        
+        if (aiGuideCourseResponses == null || aiGuideCourseResponses.isEmpty()) {
+            throw new RuntimeException("AI 가이드 추천 응답이 비어있습니다.");
+        }
+
+        // 4. 응답 데이터 구조 검증
+        for (AIGuideCourseResponse response : aiGuideCourseResponses) {
+            if (response.getDailyPlans() == null || response.getDailyPlans().isEmpty()) {
+                throw new RuntimeException("일일 계획이 비어있습니다.");
+            }
+            
+            // 각 일일 계획의 장소 목록 검증
+            response.getDailyPlans().forEach(dailyPlan -> {
+                if (dailyPlan.getPlaces() == null || dailyPlan.getPlaces().isEmpty()) {
+                    throw new RuntimeException("일일 계획의 장소 목록이 비어있습니다.");
+                }
+            });
+        }
+
+        log.info("AI 가이드 추천 성공: {} 일차 계획 생성", travelDays);
+        return aiGuideCourseResponses;
+
+    } catch (Exception e) {
+        log.error("AI 가이드 추천 실패: {}", e.getMessage());
+        throw new RuntimeException("AI 가이드 추천 처리 중 오류 발생: " + e.getMessage());
     }
-
-    AIGuideCourseRequest request = AIGuideCourseRequest.builder()
-      .places(places)
-      .travelDays(travelDays)
-      .travelTaste(aiGuideCourseRequest.getTravelTaste())  // 이 부분 추가
-
-      .build();
-
-    List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
-
-
-    return aiGuideCourseResponses;
   }
 
   /**
