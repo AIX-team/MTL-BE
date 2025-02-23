@@ -120,41 +120,38 @@ public class GuideServiceImpl implements GuideService {
      * @return AIGuideCourseRequest
      */
     public AIGuideCourseRequest convertToAIGuideCourseRequest(PlaceSelectRequest placeSelectRequest) {
+        log.debug("Converting PlaceSelectRequest to AIGuideCourseRequest");
+        log.debug("PlaceSelectRequest: {}", placeSelectRequest);  // 입력 데이터 로깅
 
+        List<Place> places = placeRepository.findAllById(placeSelectRequest.getPlaceIds());
+        List<AIPlace> guidePlaces = places.stream()
+                .map(place -> {
+                    AIPlace aiPlace = AIPlace.builder()
+                            .id(place.getId())
+                            .address(place.getAddress())
+                            .title(place.getTitle())
+                            .description(place.getDescription())
+                            .intro(place.getIntro())
+                            .type(place.getType())
+                            .image(place.getImage())
+                            .latitude(place.getLatitude().floatValue())
+                            .longitude(place.getLongitude().floatValue())
+                            .phone(place.getPhone())
+                            .rating(place.getRating())
+                            .openHours(place.getOpenHours())
+                            .build();
+                    return aiPlace;
+                })
+                .collect(Collectors.toList());
 
-      List<Place> places = placeRepository.findAllById(placeSelectRequest.getPlaceIds());
-      // PlaceSelectRequest에서 입력된 장소 리스트를 기반으로 AIPlace 리스트 생성
-      List<AIPlace> guidePlaces = places.stream() // places가 List<PlaceInfo>라고 가정
-              .map(place -> {
+        AIGuideCourseRequest request = AIGuideCourseRequest.builder()
+                .places(guidePlaces)
+                .travelDays(placeSelectRequest.getTravelDays())
+                .travelTaste(placeSelectRequest.getTravelTaste())
+                .build();
 
-                // AIPlace로 변환
-                AIPlace aiPlace = AIPlace.builder()
-                        .id(place.getId()) // ID
-                        .address(place.getAddress()) // 주소
-                        .title(place.getTitle()) // 제목
-                        .description(place.getDescription()) // 설명
-                        .intro(place.getIntro()) // 소개
-                        .type(place.getType()) // 타입
-                        .image(place.getImage()) // 이미지
-                        .latitude(place.getLatitude().floatValue()) // 위도
-                        .longitude(place.getLongitude().floatValue()) // 경도
-                        .phone(place.getPhone()) // 전화번호
-                        .rating(place.getRating()) // 평점
-                        .openHours(place.getOpenHours()) // 영업시간
-                        .build();
-
-                return aiPlace;
-              })
-              .collect(Collectors.toList());
-
-      // AIGuideCourseRequest 객체 생성
-      AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
-              .places(guidePlaces)
-              .travelDays(placeSelectRequest.getTravelDays())
-              .travelTaste(placeSelectRequest.getTravelTaste())
-              .build();
-
-      return aiGuideCourseRequest;
+        log.debug("Converted AIGuideCourseRequest: {}", request);  // 변환된 데이터 로깅
+        return request;
     }
 
 

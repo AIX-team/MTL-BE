@@ -15,6 +15,9 @@ import com.example.mytravellink.domain.travel.repository.PlaceRepository;
 import com.example.mytravellink.domain.travel.repository.TravelInfoPlaceRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,8 @@ public class PlaceServiceImpl implements PlaceService {
   private final PlaceRepository placeRepository;
   private final TravelInfoPlaceRepository travelInfoPlaceRepository;
   private final AIGuideInfrastructure aiGuideInfrastructure;
+  private final ObjectMapper objectMapper;
+  private static final Logger log = LoggerFactory.getLogger(PlaceServiceImpl.class);
 
 
   /**
@@ -45,35 +50,55 @@ public class PlaceServiceImpl implements PlaceService {
 
   @Override
   public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
+    try {
+        log.info("AI 가이드 코스 요청 시작: days={}, taste={}", 
+            travelDays, 
+            aiGuideCourseRequest.getTravelTaste());
+        log.debug("요청 데이터: {}", objectMapper.writeValueAsString(aiGuideCourseRequest));  // 전체 요청 데이터 로깅
 
-    List<AIPlace> places = new ArrayList<>();
-    for(AIPlace place : aiGuideCourseRequest.getPlaces()) {
-      AIPlace tmpPlace =AIPlace.builder()
-        .id(place.getId())
-        .address(place.getAddress())
-        .title(place.getTitle())
-        .description(place.getDescription() != null ? place.getDescription() : "")
-        .intro(place.getIntro() != null ? place.getIntro() : "")
-        .type(place.getType() != null ? place.getType() : "")
-        .image(place.getImage() != null ? place.getImage() : "")
-        .latitude(place.getLatitude())
-        .longitude(place.getLongitude())
-        .openHours(place.getOpenHours() != null ? place.getOpenHours() : "")
-        .phone(place.getPhone() != null ? place.getPhone() : "")
-        .rating(place.getRating() != null ? place.getRating() : BigDecimal.ZERO)
-        .build();
-      places.add(tmpPlace);
+        // 요청 데이터 검증
+        if (aiGuideCourseRequest.getPlaces() == null || aiGuideCourseRequest.getPlaces().isEmpty()) {
+            log.error("장소 목록이 비어있습니다");
+            throw new RuntimeException("장소 목록이 비어있습니다");
+        }
+
+        if (aiGuideCourseRequest.getTravelTaste() == null || aiGuideCourseRequest.getTravelTaste().trim().isEmpty()) {
+            log.error("여행 취향이 지정되지 않았습니다");
+            throw new RuntimeException("여행 취향이 지정되지 않았습니다");
+        }
+
+        List<AIPlace> places = new ArrayList<>();
+        for(AIPlace place : aiGuideCourseRequest.getPlaces()) {
+          AIPlace tmpPlace =AIPlace.builder()
+            .id(place.getId())
+            .address(place.getAddress())
+            .title(place.getTitle())
+            .description(place.getDescription() != null ? place.getDescription() : "")
+            .intro(place.getIntro() != null ? place.getIntro() : "")
+            .type(place.getType() != null ? place.getType() : "")
+            .image(place.getImage() != null ? place.getImage() : "")
+            .latitude(place.getLatitude())
+            .longitude(place.getLongitude())
+            .openHours(place.getOpenHours() != null ? place.getOpenHours() : "")
+            .phone(place.getPhone() != null ? place.getPhone() : "")
+            .rating(place.getRating() != null ? place.getRating() : BigDecimal.ZERO)
+            .build();
+          places.add(tmpPlace);
+        }
+
+        AIGuideCourseRequest request = AIGuideCourseRequest.builder()
+          .places(places)
+          .travelDays(travelDays)
+          .travelTaste(aiGuideCourseRequest.getTravelTaste())
+          .build();
+
+        List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
+
+
+        return aiGuideCourseResponses;
+    } catch (Exception e) {
+        throw new RuntimeException("AI 코스 추천 실패", e);
     }
-
-    AIGuideCourseRequest request = AIGuideCourseRequest.builder()
-      .places(places)
-      .travelDays(travelDays)
-      .build();
-
-    List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
-
-
-    return aiGuideCourseResponses;
   }
 
   /**
