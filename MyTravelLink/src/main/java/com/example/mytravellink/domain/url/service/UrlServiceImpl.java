@@ -552,17 +552,23 @@ public class UrlServiceImpl implements UrlService {
                 if (rawPlaceObj instanceof Map) {
                     placeInfo = objectMapper.convertValue(rawPlaceObj, PlaceInfo.class);
                 } else if (rawPlaceObj instanceof String) {
-                    try {
-                        placeInfo = objectMapper.readValue((String) rawPlaceObj, PlaceInfo.class);
-                    } catch (Exception e) {
-                        jobStatusService.setResult(jobId, "장소 정보 파싱 실패: " + e.getMessage());
-                        continue;
-                    }
+                try {
+                placeInfo = objectMapper.readValue((String) rawPlaceObj, PlaceInfo.class);
+                } catch (Exception e) {
+                String name = ((String) rawPlaceObj).trim();
+                if (name.isEmpty()) {
+                jobStatusService.setResult(jobId, "빈 문자열의 장소 정보 발견, 건너뜀");
+                continue;
+                }
+                placeInfo = new PlaceInfo();
+                placeInfo.setName(name);
+                placeInfo.setSourceUrl("");
+                }
                 } else if (rawPlaceObj instanceof PlaceInfo) {
-                    placeInfo = (PlaceInfo) rawPlaceObj;
+                placeInfo = (PlaceInfo) rawPlaceObj;
                 } else {
                     jobStatusService.setResult(jobId, "예상치 못한 형식의 장소 정보: " + rawPlaceObj);
-                    continue;
+                continue;
                 }
 
                 try {
