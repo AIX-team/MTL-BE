@@ -50,8 +50,16 @@ public class PlaceServiceImpl implements PlaceService {
   @Override
   public List<AIGuideCourseResponse> getAIGuideCourse(AIGuideCourseRequest aiGuideCourseRequest, int travelDays) {
     try {
-        log.info("AI 가이드 코스 요청 시작: days={}, taste={}", travelDays, aiGuideCourseRequest.getTravelTaste());
-        log.debug("요청 데이터: {}", aiGuideCourseRequest);
+        log.info("AI 가이드 코스 요청 시작: days={}, taste={}, places={}", 
+            travelDays, 
+            aiGuideCourseRequest.getTravelTaste(),
+            aiGuideCourseRequest.getPlaces().size());
+            
+        // 요청 데이터 검증
+        if (aiGuideCourseRequest.getPlaces() == null || aiGuideCourseRequest.getPlaces().isEmpty()) {
+            log.error("장소 목록이 비어있습니다");
+            throw new RuntimeException("장소 목록이 비어있습니다");
+        }
 
         // 1. 장소 데이터 변환 및 유효성 검사
         List<AIPlace> places = aiGuideCourseRequest.getPlaces().stream()
@@ -83,30 +91,24 @@ public class PlaceServiceImpl implements PlaceService {
             .build();
 
         // 3. AI 가이드 추천 요청 및 응답 검증
-        List<AIGuideCourseResponse> aiGuideCourseResponses = aiGuideInfrastructure.getGuideRecommendation(request);
+        List<AIGuideCourseResponse> responses = aiGuideInfrastructure.getGuideRecommendation(request);
+        log.info("AI 응답 수신: {} 개의 응답", responses != null ? responses.size() : 0);
         
-        if (aiGuideCourseResponses == null || aiGuideCourseResponses.isEmpty()) {
+        if (responses == null || responses.isEmpty()) {
             log.error("AI 가이드 추천 응답이 비어있습니다");
-            throw new RuntimeException("AI 가이드 추천 응답이 비어있습니다.");
+            throw new RuntimeException("AI 가이드 추천 응답이 비어있습니다");
         }
 
-        // 4. 응답 데이터 구조 검증
-        for (AIGuideCourseResponse response : aiGuideCourseResponses) {
+        // 응답 데이터 검증
+        for (int i = 0; i < responses.size(); i++) {
+            AIGuideCourseResponse response = responses.get(i);
             if (response.getDailyPlans() == null || response.getDailyPlans().isEmpty()) {
-                throw new RuntimeException("일일 계획이 비어있습니다.");
+                log.error("응답 {}의 일일 계획이 비어있습니다", i);
+                throw new RuntimeException("일일 계획이 비어있습니다");
             }
-            
-            // 각 일일 계획의 장소 목록 검증
-            response.getDailyPlans().forEach(dailyPlan -> {
-                if (dailyPlan.getPlaces() == null || dailyPlan.getPlaces().isEmpty()) {
-                    throw new RuntimeException("일일 계획의 장소 목록이 비어있습니다.");
-                }
-            });
         }
 
-        log.info("AI 응답 받음: {} 개의 일정", aiGuideCourseResponses.size());
-        return aiGuideCourseResponses;
-
+        return responses;
     } catch (Exception e) {
         log.error("AI 가이드 추천 처리 중 오류 발생: {}", e.getMessage(), e);
         throw new RuntimeException("AI 가이드 추천 처리 중 오류 발생: " + e.getMessage());
