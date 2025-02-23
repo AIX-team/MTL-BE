@@ -68,7 +68,7 @@ public class UrlServiceImpl implements UrlService {
         .baseUrl("http://221.148.97.237:28001")
         .exchangeStrategies(ExchangeStrategies.builder()
             .codecs(configurer -> {
-                configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024);
+                configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024);
                 configurer.defaultCodecs().enableLoggingRequestDetails(true);
             })
             .build())
