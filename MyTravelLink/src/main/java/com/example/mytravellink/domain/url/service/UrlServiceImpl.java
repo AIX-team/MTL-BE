@@ -70,9 +70,9 @@ public class UrlServiceImpl implements UrlService {
             .codecs(configurer -> {
                 configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024);
                 configurer.defaultCodecs().enableLoggingRequestDetails(true);
-                configurer.defaultCodecs().gzip(false);
             })
             .build())
+        .defaultHeader("Accept-Encoding", "identity")
         .build();
 
     @Value("${ai.server.url}")
