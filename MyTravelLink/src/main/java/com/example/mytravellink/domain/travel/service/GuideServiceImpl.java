@@ -147,10 +147,11 @@ public class GuideServiceImpl implements GuideService {
               })
               .collect(Collectors.toList());
 
-      // AIGuideCourseRequest 객체 생성
+      // travelTaste를 포함하도록 수정
       AIGuideCourseRequest aiGuideCourseRequest = AIGuideCourseRequest.builder()
-              .places(guidePlaces) // 변환된 AIPlace 리스트 추가
-              .travelDays(placeSelectRequest.getTravelDays()) // 여행 일수
+              .places(guidePlaces)
+              .travelDays(placeSelectRequest.getTravelDays())
+              .travelTaste(placeSelectRequest.getTravelTaste().toLowerCase())  // 소문자로 변환하여 전송
               .build();
 
       return aiGuideCourseRequest;

@@ -22,4 +22,7 @@ public class AIGuideCourseRequest {
 
   @JsonProperty("travelDays")
   private int travelDays;
+
+   @JsonProperty("travelTaste")
+    private String travelTaste; 
 }
