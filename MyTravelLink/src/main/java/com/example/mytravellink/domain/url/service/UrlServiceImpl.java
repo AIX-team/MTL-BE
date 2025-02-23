@@ -66,12 +66,13 @@ public class UrlServiceImpl implements UrlService {
     private final TransactionTemplate transactionTemplate;
     private final WebClient webClient = WebClient.builder()
         .baseUrl("http://221.148.97.237:28001")
-        .codecs(configurer -> {
-            configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024); // 2MB로 제한
-            configurer.defaultCodecs().enableLoggingRequestDetails(true);
-            // GZIP 압축 해제 비활성화
-            configurer.defaultCodecs().gzip(false);
-        })
+        .exchangeStrategies(ExchangeStrategies.builder()
+            .codecs(configurer -> {
+                configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024); // 2MB로 제한
+                configurer.defaultCodecs().enableLoggingRequestDetails(true);
+            })
+            .build())
+        .defaultHeader("Accept-Encoding", "identity") // GZIP 비활성화
         .build();
 
     @Value("${ai.server.url}")
