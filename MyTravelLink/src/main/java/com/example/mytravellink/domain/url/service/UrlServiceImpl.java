@@ -546,7 +546,7 @@ public class UrlServiceImpl implements UrlService {
                 throw new RuntimeException("API 응답이 null입니다");
             }
             // Place 정보 처리
-            List<PlaceInfo> processedPlaces = new ArrayList<>();
+            final List<PlaceInfo> processedPlaces = new ArrayList<>();
             for (Object rawPlaceObj : apiResponse.getPlaceDetails()) {
                 PlaceInfo placeInfo = null;
                 if (rawPlaceObj instanceof Map) {
@@ -583,23 +583,22 @@ public class UrlServiceImpl implements UrlService {
                         }
                     }
 
-                    // Place 저장
-                    Place place = saveOrUpdatePlace(placeInfo, imageUrl);
-                    jobStatusService.setResult(jobId, "장소 저장 완료: " + place.getTitle());
-                    Url url = urlRepository.findByUrl(placeInfo.getSourceUrl())
+                    // 수정된 부분: 'placeInfo'를 final 변수 'currentPlace'로 캡처
+                    final PlaceInfo currentPlace = placeInfo;
+                    Url url = urlRepository.findByUrl(currentPlace.getSourceUrl())
                         .orElseGet(() -> {
                             Url newUrl = Url.builder()
-                                .url(placeInfo.getSourceUrl())
-                                .urlTitle(placeInfo.getSourceUrl())
+                                .url(currentPlace.getSourceUrl())
+                                .urlTitle(currentPlace.getSourceUrl())
                                 .urlAuthor("system")
                                 .build();
                             return urlRepository.save(newUrl);
                         });
+
                     jobStatusService.setResult(jobId, "URL 저장 완료: " + url.getUrl());
 
-                    saveUrlPlaceMapping(url, place);
+                    saveUrlPlaceMapping(url, saveOrUpdatePlace(placeInfo, imageUrl));
                     processedPlaces.add(placeInfo);
-                        
                 } catch (Exception e) {
                     jobStatusService.setResult(jobId, "장소 처리 실패: " + e.getMessage());
                 }
