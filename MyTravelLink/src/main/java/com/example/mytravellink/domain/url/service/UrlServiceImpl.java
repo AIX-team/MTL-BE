@@ -43,6 +43,9 @@ import java.time.Duration;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import java.util.stream.Collectors;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.Jackson2JsonDecoder;
 
 @Service
 @EnableAsync  // 비동기 처리 활성화
@@ -64,9 +67,17 @@ public class UrlServiceImpl implements UrlService {
     private final TransactionTemplate transactionTemplate;
     private final WebClient webClient = WebClient.builder()
         .baseUrl("http://221.148.97.237:28001")
-        .codecs(configurer -> configurer
-            .defaultCodecs()
-            .maxInMemorySize(2 * 1024 * 1024)) // 2MB로 제한
+        .codecs(configurer -> {
+            configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024); // 2MB로 제한
+            configurer.defaultCodecs().enableLoggingRequestDetails(true);
+        })
+        .exchangeStrategies(ExchangeStrategies.builder()
+            .codecs(configurer -> {
+                configurer.defaultCodecs().jackson2JsonDecoder(
+                    new Jackson2JsonDecoder(new ObjectMapper(), MediaType.APPLICATION_JSON)
+                );
+            })
+            .build())
         .build();
 
     @Value("${ai.server.url}")
