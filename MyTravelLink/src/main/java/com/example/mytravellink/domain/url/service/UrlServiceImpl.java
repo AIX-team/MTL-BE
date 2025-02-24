@@ -502,6 +502,7 @@ public class UrlServiceImpl implements UrlService {
             if (response != null && response.getPlaceDetails() != null) {
                 String result = objectMapper.writeValueAsString(response);
                 jobStatusService.setJobStatus(jobId, "Completed", result);
+                log.info(result.toString());
                 log.info("[완료] jobId: {}", jobId);
             } else {
                 throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
