@@ -3,7 +3,7 @@ name: Deploy my travel link website
 on:
   push:
     branches:
-      - TEST11
+      - HolyBranch
 
 jobs:
   build-and-deploy:
