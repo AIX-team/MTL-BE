@@ -15,4 +15,7 @@ public interface UrlPlaceRepository extends JpaRepository<UrlPlace, UrlPlaceId> 
   List<String> findByUrlId(@Param("urlId") String urlId);
 
     List<UrlPlace> findByUrl_Id(String urlId);
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN TRUE ELSE FALSE END FROM UrlPlace p WHERE p.url.url = :url AND p.place.id = :placeId")
+    Boolean existsByUrlAndPlaceId(@Param("url") String url, @Param("placeId") String placeId);
 }

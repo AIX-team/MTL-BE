@@ -42,8 +42,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import java.util.stream.Collectors;
-import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 
 @Service
@@ -176,7 +174,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     private void saveUrlPlaceMapping(Url url, Place place) {
-        if (!urlPlaceRepository.existsByUrlAndPlace(url, place)) {
+        if (!urlPlaceRepository.existsByUrlAndPlaceId(url.getUrl(), place.getId())) {
             UrlPlace urlPlace = UrlPlace.builder()
                 .url(url)
                 .place(place)
@@ -489,35 +487,9 @@ public class UrlServiceImpl implements UrlService {
                 .block();
 
             if (response != null && response.getPlaceDetails() != null) {
-                // FastAPI 응답 데이터 저장
-                for (String urlStr : urlRequest.getUrls()) {
-                    // URL 엔티티 저장
-                    Url url = urlRepository.findByUrl(urlStr)
-                        .orElseGet(() -> {
-                            Url newUrl = Url.builder()
-                                .url(urlStr)
-                                .urlTitle(urlStr)
-                                .urlAuthor(email)
-                                .build();
-                            return urlRepository.save(newUrl);
-                        });
-
-                    // Place 정보 저장 및 URL과 매핑
-                    for (PlaceInfo placeInfo : response.getPlaceDetails()) {
-                        // 이미지 URL 처리
-                        String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
-                        if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty()) {
-                            imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
-                        }
-
-                        // Place 저장
-                        Place place = saveOrUpdatePlace(placeInfo, imageUrl);
-                        
-                        // URL과 Place 매핑 저장
-                        saveUrlPlaceMapping(url, place);
-                    }
-                }
-
+                // 트랜잭션 내에서 데이터 저장 처리
+                saveResponseData(response, urlRequest, email);
+                
                 String result = objectMapper.writeValueAsString(response);
                 jobStatusService.setJobStatus(jobId, "Completed", result);
                 log.info("[완료] jobId: {}", jobId);
@@ -535,6 +507,39 @@ public class UrlServiceImpl implements UrlService {
             );
             log.error("[실패] jobId: {}, {}", jobId, errorDetail);
             jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
+        }
+    }
+
+    @Transactional
+    private void saveResponseData(UrlResponse response, UrlRequest urlRequest, String email) {
+        for (String urlStr : urlRequest.getUrls()) {
+            // URL 엔티티 저장
+            Url url = urlRepository.findByUrl(urlStr)
+                .orElseGet(() -> {
+                    Url newUrl = Url.builder()
+                        .url(urlStr)
+                        .urlTitle(urlStr)
+                        .urlAuthor(email)
+                        .build();
+                    return urlRepository.save(newUrl);
+                });
+
+            // Place 정보 저장 및 URL과 매핑
+            for (PlaceInfo placeInfo : response.getPlaceDetails()) {
+                // 이미지 URL 처리
+                String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+                if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty()) {
+                    imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
+                }
+
+                // Place 저장
+                Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+                
+                // URL과 Place 매핑 저장
+                saveUrlPlaceMapping(url, place);
+            }
+            
+            updateUserUrlStatus(email, urlStr);
         }
     }
 
