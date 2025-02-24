@@ -332,27 +332,130 @@ public class TravelInfoController {
      * @return TravelInfoListResponse
      */
     @GetMapping("/travelInfos/list")
-    public ResponseEntity<TravelInfoListResponse> travelInfoList(@RequestHeader("Authorization") String token
-        // @AuthenticationPrincipal CustomUserDetails user
-        ) {
-        try{
-            String email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
-            List<TravelInfo> travelInfoList = travelInfoService.getTravelInfoList(email);
-            List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
-            for(TravelInfo travelInfo : travelInfoList){
-                String imgUrl = placeService.getPlaceImage(travelInfo.getId());
-                String redirectImgUrl = imageService.redirectImageUrl(imgUrl);
-                TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, redirectImgUrl);
-                infosList.add(infos);
+    public ResponseEntity<TravelInfoListResponse> travelInfoList(@RequestHeader("Authorization") String token) {
+        log.info("========== 여행 정보 목록 조회 시작 ==========");
+        log.debug("요청 헤더 - Authorization: {}", token);
+
+        try {
+            // 1. JWT 토큰 처리
+            log.info("[1단계] JWT 토큰 처리 시작");
+            String email;
+            try {
+                email = jwtTokenProvider.getEmailFromToken(token.replace("Bearer ", ""));
+                log.info("✓ 토큰 처리 성공 - 이메일: {}", email);
+            } catch (Exception e) {
+                log.error("❌ 토큰 처리 실패: {}", e.getMessage());
+                log.error("상세 에러: ", e);
+                return new ResponseEntity<>(
+                    TravelInfoListResponse.builder()
+                        .success("error")
+                        .message("토큰 처리 실패: " + e.getMessage())
+                        .build(),
+                    HttpStatus.UNAUTHORIZED
+                );
             }
-            TravelInfoListResponse travelInfoListResponse = TravelInfoListResponse.builder()
-                .success("success")
-                .message("success")
-                .travelInfoList(infosList)
-                .build();
-            return new ResponseEntity<>(travelInfoListResponse, HttpStatus.OK);
+
+            // 2. 여행 정보 목록 조회
+            log.info("[2단계] 여행 정보 목록 조회 시작");
+            List<TravelInfo> travelInfoList;
+            try {
+                travelInfoList = travelInfoService.getTravelInfoList(email);
+                log.info("✓ 여행 정보 조회 성공 - 총 {}건", travelInfoList.size());
+                log.debug("조회된 여행 정보: {}", travelInfoList);
+            } catch (Exception e) {
+                log.error("❌ 여행 정보 조회 실패: {}", e.getMessage());
+                log.error("상세 에러: ", e);
+                return new ResponseEntity<>(
+                    TravelInfoListResponse.builder()
+                        .success("error")
+                        .message("여행 정보 조회 실패: " + e.getMessage())
+                        .build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
+
+            // 3. 이미지 처리 및 응답 데이터 구성
+            log.info("[3단계] 이미지 처리 및 응답 데이터 구성 시작");
+            List<TravelInfoListResponse.Infos> infosList = new ArrayList<>();
+            for (TravelInfo travelInfo : travelInfoList) {
+                try {
+                    log.debug("여행 정보 처리 중 - ID: {}", travelInfo.getId());
+                    
+                    // 3.1 이미지 URL 조회
+                    log.debug("이미지 URL 조회 시작 - travelInfo ID: {}", travelInfo.getId());
+                    String imgUrl = placeService.getPlaceImage(travelInfo.getId());
+                    log.debug("조회된 이미지 URL: {}", imgUrl);
+
+                    // 3.2 이미지 URL 리다이렉션 처리
+                    log.debug("이미지 URL 리다이렉션 처리 시작");
+                    String redirectImgUrl = imageService.redirectImageUrl(imgUrl);
+                    log.debug("리다이렉션된 이미지 URL: {}", redirectImgUrl);
+
+                    // 3.3 응답 객체 변환
+                    log.debug("응답 객체 변환 시작");
+                    TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(travelInfo, redirectImgUrl);
+                    infosList.add(infos);
+                    log.info("✓ 여행 정보 처리 완료 - ID: {}", travelInfo.getId());
+
+                } catch (Exception e) {
+                    log.error("❌ 여행 정보 처리 실패 - ID: {}: {}", travelInfo.getId(), e.getMessage());
+                    log.error("상세 에러: ", e);
+                    
+                    // 에러 발생해도 기본 이미지로 계속 진행
+                    try {
+                        log.info("기본 이미지로 대체 처리 시도");
+                        TravelInfoListResponse.Infos infos = TravelInfoListResponse.convertToInfos(
+                            travelInfo, 
+                            "https://default-image-url.com/placeholder.jpg"
+                        );
+                        infosList.add(infos);
+                        log.info("✓ 기본 이미지 대체 처리 성공");
+                    } catch (Exception conversionError) {
+                        log.error("❌ 기본 이미지 대체 처리 실패: {}", conversionError.getMessage());
+                        log.error("상세 에러: ", conversionError);
+                    }
+                }
+            }
+
+            // 4. 최종 응답 생성
+            log.info("[4단계] 최종 응답 생성 시작");
+            try {
+                TravelInfoListResponse response = TravelInfoListResponse.builder()
+                    .success("success")
+                    .message("success")
+                    .travelInfoList(infosList)
+                    .build();
+                
+                log.info("✓ 최종 응답 생성 완료");
+                log.debug("응답 데이터: {}", response);
+                log.info("========== 여행 정보 목록 조회 완료 ==========");
+                
+                return new ResponseEntity<>(response, HttpStatus.OK);
+
+            } catch (Exception e) {
+                log.error("❌ 최종 응답 생성 실패: {}", e.getMessage());
+                log.error("상세 에러: ", e);
+                return new ResponseEntity<>(
+                    TravelInfoListResponse.builder()
+                        .success("error")
+                        .message("응답 생성 실패: " + e.getMessage())
+                        .build(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+                );
+            }
+
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            log.error("❌ 예상치 못한 오류 발생: {}", e.getMessage());
+            log.error("상세 에러: ", e);
+            return new ResponseEntity<>(
+                TravelInfoListResponse.builder()
+                    .success("error")
+                    .message("서버 내부 오류: " + e.getMessage())
+                    .build(),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        } finally {
+            log.info("========== 여행 정보 목록 조회 종료 ==========\n");
         }
     }
 
