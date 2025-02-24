@@ -154,11 +154,6 @@ public class UrlServiceImpl implements UrlService {
     private Place saveOrUpdatePlace(PlaceInfo placeInfo, String imageUrl) {
         return placeRepository.findByTitle(placeInfo.getName())
             .orElseGet(() -> {
-                String openHours = Optional.ofNullable(placeInfo.getOpen_hours())
-                    .filter(list -> !list.isEmpty())
-                    .map(Object::toString)
-                    .orElse(null);
-
                 Place newPlace = Place.builder()
                     .title(placeInfo.getName())
                     .description(placeInfo.getDescription())
@@ -168,21 +163,26 @@ public class UrlServiceImpl implements UrlService {
                     .intro(placeInfo.getOfficialDescription())
                     .website(placeInfo.getWebsite())
                     .rating(placeInfo.getRating())
-                    .openHours(openHours)
+                    .openHours(placeInfo.getOpen_hours() != null ? 
+                        String.join(", ", placeInfo.getOpen_hours()) : null)
                     .type(placeInfo.getType())
-                    .latitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLatitude() : null)
-                    .longitude(placeInfo.getGeometry() != null ? placeInfo.getGeometry().getLongitude() : null)
+                    .latitude(placeInfo.getGeometry() != null ? 
+                        placeInfo.getGeometry().getLatitude() : null)
+                    .longitude(placeInfo.getGeometry() != null ? 
+                        placeInfo.getGeometry().getLongitude() : null)
                     .build();
                 return placeRepository.save(newPlace);
             });
     }
 
     private void saveUrlPlaceMapping(Url url, Place place) {
-        UrlPlace urlPlace = UrlPlace.builder()
-            .url(url)
-            .place(place)
-            .build();
-        urlPlaceRepository.save(urlPlace);
+        if (!urlPlaceRepository.existsByUrlAndPlace(url, place)) {
+            UrlPlace urlPlace = UrlPlace.builder()
+                .url(url)
+                .place(place)
+                .build();
+            urlPlaceRepository.save(urlPlace);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -486,23 +486,40 @@ public class UrlServiceImpl implements UrlService {
                         .flatMap(error -> Mono.error(new RuntimeException("FastAPI 오류: " + error)))
                 )
                 .bodyToMono(UrlResponse.class)
-                .timeout(Duration.ofMinutes(5))
-                .doOnError(error -> {
-                    String errorDetail = String.format(
-                        "처리 중 오류 발생: %s\n위치: %s:%d",
-                        error.getMessage(),
-                        error.getStackTrace()[0].getFileName(),
-                        error.getStackTrace()[0].getLineNumber()
-                    );
-                    log.error("[실패] jobId: {}, {}", jobId, errorDetail);
-                    jobStatusService.setJobStatus(jobId, "Failed", errorDetail);
-                })
                 .block();
 
             if (response != null && response.getPlaceDetails() != null) {
+                // FastAPI 응답 데이터 저장
+                for (String urlStr : urlRequest.getUrls()) {
+                    // URL 엔티티 저장
+                    Url url = urlRepository.findByUrl(urlStr)
+                        .orElseGet(() -> {
+                            Url newUrl = Url.builder()
+                                .url(urlStr)
+                                .urlTitle(urlStr)
+                                .urlAuthor(email)
+                                .build();
+                            return urlRepository.save(newUrl);
+                        });
+
+                    // Place 정보 저장 및 URL과 매핑
+                    for (PlaceInfo placeInfo : response.getPlaceDetails()) {
+                        // 이미지 URL 처리
+                        String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+                        if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty()) {
+                            imageUrl = imageService.redirectImageUrl(placeInfo.getPhotos().get(0).getUrl());
+                        }
+
+                        // Place 저장
+                        Place place = saveOrUpdatePlace(placeInfo, imageUrl);
+                        
+                        // URL과 Place 매핑 저장
+                        saveUrlPlaceMapping(url, place);
+                    }
+                }
+
                 String result = objectMapper.writeValueAsString(response);
                 jobStatusService.setJobStatus(jobId, "Completed", result);
-                log.info(result.toString());
                 log.info("[완료] jobId: {}", jobId);
             } else {
                 throw new RuntimeException("FastAPI 응답이 유효하지 않습니다");
