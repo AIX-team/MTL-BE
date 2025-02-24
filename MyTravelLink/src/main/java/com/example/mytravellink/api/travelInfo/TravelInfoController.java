@@ -205,9 +205,9 @@ public class TravelInfoController {
      * @return
      */
     @DeleteMapping("/travelInfos/{travelInfoId}")
-    public ResponseEntity<String> deleteTravelInfo(@PathVariable StringRequest request) {
+    public ResponseEntity<String> deleteTravelInfo(@PathVariable StringRequest travelInfoId) {
         try {
-            travelInfoService.deleteTravelInfo(request.getValue());
+            travelInfoService.deleteTravelInfo(travelInfoId.getValue());
             return new ResponseEntity<>("success", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
