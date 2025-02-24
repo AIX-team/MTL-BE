@@ -552,28 +552,24 @@ public class UrlServiceImpl implements UrlService {
                 if (rawPlaceObj instanceof Map) {
                     placeInfo = objectMapper.convertValue(rawPlaceObj, PlaceInfo.class);
                 } else if (rawPlaceObj instanceof String) {
-                    String rawString = ((String) rawPlaceObj).trim();
-                    if (!rawString.startsWith("{")) { // 만약 문자열이 JSON 객체 형식이 아니라면
-                        if (rawString.isEmpty()) {
+                    String rawStr = ((String) rawPlaceObj).trim();
+                    if (rawStr.startsWith("{")) {  // JSON 문자열인 경우
+                        try {
+                            placeInfo = objectMapper.readValue(rawStr, PlaceInfo.class);
+                        } catch (Exception e) {
+                            jobStatusService.setResult(jobId, "문자열 파싱 오류: " + e.getMessage());
+                            continue;
+                        }
+                    } else {
+                        if (rawStr.isEmpty()) {
                             jobStatusService.setResult(jobId, "빈 문자열의 장소 정보 발견, 건너뜀");
                             continue;
                         }
-                        placeInfo = new PlaceInfo();
-                        placeInfo.setName(rawString);
-                        placeInfo.setSourceUrl("");
-                    } else {
-                        try {
-                            placeInfo = objectMapper.readValue((String) rawPlaceObj, PlaceInfo.class);
-                        } catch (Exception e) {
-                            String name = rawString;
-                            if (name.isEmpty()) {
-                                jobStatusService.setResult(jobId, "빈 문자열의 장소 정보 발견, 건너뜀");
-                                continue;
-                            }
-                            placeInfo = new PlaceInfo();
-                            placeInfo.setName(name);
-                            placeInfo.setSourceUrl("");
-                        }
+                        // 단순 문자열인 경우 기본 PlaceInfo 객체 생성
+                        PlaceInfo pi = new PlaceInfo();
+                        pi.setName(rawStr);
+                        pi.setSourceUrl("");  // 기본값으로 빈 문자열 할당
+                        placeInfo = pi;
                     }
                 } else if (rawPlaceObj instanceof PlaceInfo) {
                     placeInfo = (PlaceInfo) rawPlaceObj;
@@ -587,10 +583,7 @@ public class UrlServiceImpl implements UrlService {
                         jobStatusService.setResult(jobId, "null PlaceInfo 발견, 건너뜀");
                         continue;
                     }
-
                     jobStatusService.setResult(jobId, "장소 처리 시작: " + placeInfo.getName());
-
-                    // 이미지 URL 처리
                     String imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
                     if (placeInfo.getPhotos() != null && !placeInfo.getPhotos().isEmpty() && placeInfo.getPhotos().get(0) != null) {
                         try {
@@ -599,21 +592,17 @@ public class UrlServiceImpl implements UrlService {
                             jobStatusService.setResult(jobId, "이미지 URL 처리 실패: " + e.getMessage());
                         }
                     }
-
-                    // 수정된 부분: 'placeInfo'를 final 변수 'currentPlace'로 캡처
                     final PlaceInfo currentPlace = placeInfo;
                     Url url = urlRepository.findByUrl(currentPlace.getSourceUrl())
-                        .orElseGet(() -> {
-                            Url newUrl = Url.builder()
-                                .url(currentPlace.getSourceUrl())
-                                .urlTitle(currentPlace.getSourceUrl())
-                                .urlAuthor("system")
-                                .build();
-                            return urlRepository.save(newUrl);
-                        });
-
+                            .orElseGet(() -> {
+                                Url newUrl = Url.builder()
+                                        .url(currentPlace.getSourceUrl())
+                                        .urlTitle(currentPlace.getSourceUrl())
+                                        .urlAuthor("system")
+                                        .build();
+                                return urlRepository.save(newUrl);
+                            });
                     jobStatusService.setResult(jobId, "URL 저장 완료: " + url.getUrl());
-
                     saveUrlPlaceMapping(url, saveOrUpdatePlace(placeInfo, imageUrl));
                     processedPlaces.add(placeInfo);
                 } catch (Exception e) {
